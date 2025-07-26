@@ -1,0 +1,1763 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model alerts {
+  id                                  Int               @id @default(autoincrement()) @db.UnsignedInt
+  alert_type                          alerts_alert_type
+  severity                            alerts_severity   @default(medium)
+  title                               String            @db.VarChar(200)
+  description                         String?           @db.Text
+  status                              alerts_status     @default(active)
+  source                              Json?
+  metrics                             Json?
+  threshold                           Json?
+  affected_services                   Json?
+  suggested_actions                   Json?
+  acknowledged_by                     Int?              @db.UnsignedInt
+  acknowledged_at                     DateTime?         @db.DateTime(0)
+  acknowledge_note                    String?           @db.Text
+  resolved_by                         Int?              @db.UnsignedInt
+  resolved_at                         DateTime?         @db.DateTime(0)
+  resolution_note                     String?           @db.Text
+  suppressed_until                    DateTime?         @db.DateTime(0)
+  notification_sent                   Boolean           @default(false)
+  escalation_level                    Int               @default(0)
+  next_escalation_at                  DateTime?         @db.DateTime(0)
+  occurrence_count                    Int               @default(1)
+  first_occurred_at                   DateTime          @db.DateTime(0)
+  last_occurred_at                    DateTime          @db.DateTime(0)
+  created_at                          DateTime          @db.DateTime(0)
+  updated_at                          DateTime          @db.DateTime(0)
+  deleted_at                          DateTime?         @db.DateTime(0)
+  acknowledger                        users?            @relation("AlertAcknowledger", fields: [acknowledged_by], references: [id], map: "alerts_ibfk_1")
+  resolver                            users?            @relation("AlertResolver", fields: [resolved_by], references: [id], map: "alerts_ibfk_2")
+
+  @@index([acknowledged_by], map: "alerts_acknowledged_by")
+  @@index([alert_type, status], map: "alerts_alert_type_status")
+  @@index([first_occurred_at], map: "alerts_first_occurred_at")
+  @@index([next_escalation_at], map: "alerts_next_escalation_at")
+  @@index([resolved_by], map: "alerts_resolved_by")
+  @@index([severity, status], map: "alerts_severity_status")
+  @@index([status, created_at], map: "alerts_status_created_at")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model audit_logs {
+  id                  String                @id @db.Char(36)
+  action              String                @db.VarChar(100)
+  entity              String                @db.VarChar(100)
+  entity_id           String?               @db.VarChar(50)
+  user_id             Int?                  @db.UnsignedInt
+  user_role           String?               @db.VarChar(50)
+  description         String                @db.Text
+  changes             Json?
+  old_values          Json?
+  new_values          Json?
+  request_info        Json?
+  session_id          String?               @db.VarChar(100)
+  ip_address          String?               @db.VarChar(45)
+  user_agent          String?               @db.Text
+  location            Json?
+  result              audit_logs_result     @default(success)
+  error_details       Json?
+  risk_level          audit_logs_risk_level @default(low)
+  security_flags      Json?
+  compliance_flags    Json?
+  retention_period    Int                   @default(2555)
+  application_version String?               @db.VarChar(50)
+  correlation_id      String?               @db.VarChar(100)
+  parent_log_id       String?               @db.Char(36)
+  execution_time      Int?
+  resource_usage      Json?
+  is_encrypted        Boolean               @default(false)
+  checksum_hash       String?               @db.VarChar(64)
+  archived_at         DateTime?             @db.DateTime(0)
+  is_archived         Boolean               @default(false)
+  created_at          DateTime              @db.DateTime(0)
+  updated_at          DateTime              @db.DateTime(0)
+  user                users?                @relation(fields: [user_id], references: [id], map: "audit_logs_ibfk_1")
+  parentLog           audit_logs?           @relation("AuditLogHierarchy", fields: [parent_log_id], references: [id], map: "audit_logs_ibfk_2")
+  childLogs           audit_logs[]          @relation("AuditLogHierarchy")
+  securityEvents      security_events[]
+
+  @@index([action], map: "audit_logs_action")
+  @@index([user_id, action, entity, created_at], map: "audit_logs_comprehensive_search")
+  @@index([correlation_id], map: "audit_logs_correlation_id")
+  @@index([created_at], map: "audit_logs_created_at")
+  @@index([entity], map: "audit_logs_entity")
+  @@index([entity_id], map: "audit_logs_entity_id")
+  @@index([ip_address], map: "audit_logs_ip_address")
+  @@index([is_archived], map: "audit_logs_is_archived")
+  @@index([result], map: "audit_logs_result")
+  @@index([risk_level], map: "audit_logs_risk_level")
+  @@index([risk_level, ip_address, created_at], map: "audit_logs_security_monitoring")
+  @@index([session_id], map: "audit_logs_session_id")
+  @@index([user_id], map: "audit_logs_user_id")
+  @@index([parent_log_id], map: "parent_log_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model backup_jobs {
+  id                                                                       Int                         @id @default(autoincrement()) @db.UnsignedInt
+  backup_type                                                              backup_jobs_backup_type     @default(full)
+  status                                                                   backup_jobs_status          @default(pending)
+  name                                                                     String                      @db.VarChar(200)
+  description                                                              String?                     @db.Text
+  scheduled_at                                                             DateTime?                   @db.DateTime(0)
+  started_at                                                               DateTime?                   @db.DateTime(0)
+  completed_at                                                             DateTime?                   @db.DateTime(0)
+  duration                                                                 Int?
+  file_path                                                                String?                     @db.Text
+  file_size                                                                BigInt?
+  file_count                                                               Int?
+  compressed_size                                                          BigInt?
+  compression_ratio                                                        Float?                      @db.Float
+  encrypted                                                                Boolean                     @default(false)
+  encryption_algorithm                                                     String?                     @db.VarChar(50)
+  checksum                                                                 String?                     @db.VarChar(128)
+  checksum_algorithm                                                       String?                     @default("sha256") @db.VarChar(20)
+  storage_backend                                                          backup_jobs_storage_backend @default(local)
+  storage_config                                                           Json?
+  storage_path                                                             String?                     @db.Text
+  backup_config                                                            Json?
+  backup_scope                                                             Json?
+  error_message                                                            String?                     @db.Text
+  error_details                                                            Json?
+  warnings                                                                 Json?
+  statistics                                                               Json?
+  progress                                                                 Float                       @default(0) @db.Float
+  current_operation                                                        String?                     @db.VarChar(200)
+  trigger                                                                  backup_jobs_trigger         @default(manual)
+  triggered_by                                                             Int?                        @db.UnsignedInt
+  schedule_id                                                              Int?                        @db.UnsignedInt
+  parent_backup_id                                                         Int?                        @db.UnsignedInt
+  expires_at                                                               DateTime?                   @db.DateTime(0)
+  verified                                                                 Boolean                     @default(false)
+  verified_at                                                              DateTime?                   @db.DateTime(0)
+  verification_result                                                      Json?
+  tags                                                                     Json?
+  metadata                                                                 Json?
+  created_at                                                               DateTime                    @db.DateTime(0)
+  updated_at                                                               DateTime                    @db.DateTime(0)
+  deleted_at                                                               DateTime?                   @db.DateTime(0)
+  triggeredByUser                                                          users?                      @relation(fields: [triggered_by], references: [id], map: "backup_jobs_ibfk_1")
+  schedule                                                                 backup_schedules?           @relation(fields: [schedule_id], references: [id], map: "backup_jobs_ibfk_2")
+  parentBackup                                                             backup_jobs?                @relation("BackupJobHierarchy", fields: [parent_backup_id], references: [id], map: "backup_jobs_ibfk_3")
+  childBackups                                                             backup_jobs[]               @relation("BackupJobHierarchy")
+  restoreOperations                                                        restore_operations[]        @relation("RestoreFromBackup")
+  preRestoreBackups                                                        restore_operations[]        @relation("PreRestoreBackup")
+
+  @@index([backup_type], map: "backup_jobs_backup_type")
+  @@index([completed_at], map: "backup_jobs_completed_at")
+  @@index([expires_at], map: "backup_jobs_expires_at")
+  @@index([parent_backup_id], map: "backup_jobs_parent_backup_id")
+  @@index([schedule_id], map: "backup_jobs_schedule_id")
+  @@index([scheduled_at], map: "backup_jobs_scheduled_at")
+  @@index([started_at], map: "backup_jobs_started_at")
+  @@index([status], map: "backup_jobs_status")
+  @@index([storage_backend], map: "backup_jobs_storage_backend")
+  @@index([triggered_by], map: "backup_jobs_triggered_by")
+  @@index([verified], map: "backup_jobs_verified")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model backup_schedules {
+  id                                       Int                               @id @default(autoincrement()) @db.UnsignedInt
+  name                                     String                            @unique(map: "name") @db.VarChar(200)
+  description                              String?                           @db.Text
+  enabled                                  Boolean                           @default(true)
+  backup_type                              backup_schedules_backup_type      @default(full)
+  cron_expression                          String                            @db.VarChar(100)
+  timezone                                 String                            @default("Asia/Shanghai") @db.VarChar(50)
+  backup_config                            Json
+  storage_config                           Json
+  notification_config                      Json?
+  retry_config                             Json?
+  priority                                 Int                               @default(5)
+  timeout                                  Int                               @default(3600)
+  concurrency_limit                        Int                               @default(1)
+  next_run_at                              DateTime?                         @db.DateTime(0)
+  last_run_at                              DateTime?                         @db.DateTime(0)
+  last_run_status                          backup_schedules_last_run_status?
+  last_run_result                          Json?
+  run_count                                Int                               @default(0)
+  success_count                            Int                               @default(0)
+  failure_count                            Int                               @default(0)
+  consecutive_failures                     Int                               @default(0)
+  avg_duration                             Float?                            @db.Float
+  last_error                               String?                           @db.Text
+  created_by                               Int?                              @db.UnsignedInt
+  updated_by                               Int?                              @db.UnsignedInt
+  environment                              String                            @default("production") @db.VarChar(50)
+  tags                                     Json?
+  conditions                               Json?
+  hooks                                    Json?
+  metadata                                 Json?
+  created_at                               DateTime                          @db.DateTime(0)
+  updated_at                               DateTime                          @db.DateTime(0)
+  deleted_at                               DateTime?                         @db.DateTime(0)
+  backupJobs                               backup_jobs[]
+  creator                                  users?                            @relation("BackupScheduleCreator", fields: [created_by], references: [id], map: "backup_schedules_ibfk_1")
+  updater                                  users?                            @relation("BackupScheduleUpdater", fields: [updated_by], references: [id], map: "backup_schedules_ibfk_2")
+
+  @@index([consecutive_failures], map: "backup_schedules_consecutive_failures")
+  @@index([created_by], map: "backup_schedules_created_by")
+  @@index([cron_expression], map: "backup_schedules_cron_expression")
+  @@index([enabled], map: "backup_schedules_enabled")
+  @@index([environment], map: "backup_schedules_environment")
+  @@index([last_run_at], map: "backup_schedules_last_run_at")
+  @@index([next_run_at], map: "backup_schedules_next_run_at")
+  @@index([priority], map: "backup_schedules_priority")
+  @@index([updated_by], map: "updated_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model backup_storages {
+  id                                      Int                               @id @default(autoincrement()) @db.UnsignedInt
+  name                                    String                            @unique(map: "name") @db.VarChar(100)
+  type                                    backup_storages_type
+  description                             String?                           @db.Text
+  enabled                                 Boolean                           @default(true)
+  is_default                              Boolean                           @default(false)
+  connection_config                       Json
+  auth_config                             Json?
+  path_config                             Json
+  limits                                  Json?
+  transfer_config                         Json?
+  encryption_config                       Json?
+  retention_policy                        Json?
+  monitoring_config                       Json?
+  connection_status                       backup_storages_connection_status @default(unknown)
+  last_connected_at                       DateTime?                         @db.DateTime(0)
+  last_connection_error                   String?                           @db.Text
+  usage_stats                             Json?
+  performance_metrics                     Json?
+  quota_info                              Json?
+  tags                                    Json?
+  priority                                Int                               @default(5)
+  environment                             String                            @default("production") @db.VarChar(50)
+  created_by                              Int?                              @db.UnsignedInt
+  updated_by                              Int?                              @db.UnsignedInt
+  metadata                                Json?
+  created_at                              DateTime                          @db.DateTime(0)
+  updated_at                              DateTime                          @db.DateTime(0)
+  deleted_at                              DateTime?                         @db.DateTime(0)
+  creator                                 users?                            @relation("BackupStorageCreator", fields: [created_by], references: [id], map: "backup_storages_ibfk_1")
+  updater                                 users?                            @relation("BackupStorageUpdater", fields: [updated_by], references: [id], map: "backup_storages_ibfk_2")
+
+  @@index([connection_status], map: "backup_storages_connection_status")
+  @@index([created_by], map: "backup_storages_created_by")
+  @@index([enabled], map: "backup_storages_enabled")
+  @@index([environment], map: "backup_storages_environment")
+  @@index([is_default], map: "backup_storages_is_default")
+  @@index([priority], map: "backup_storages_priority")
+  @@index([type], map: "backup_storages_type")
+  @@index([updated_by], map: "updated_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model book_categories {
+  id                    Int               @id @default(autoincrement()) @db.UnsignedInt
+  name                  String            @unique(map: "name") @db.VarChar(50)
+  name_en               String?           @db.VarChar(50)
+  code                  String            @unique(map: "code") @db.VarChar(20)
+  parent_id             Int?              @db.UnsignedInt
+  level                 Int               @default(1) @db.UnsignedInt
+  description           String?           @db.Text
+  icon                  String?           @db.VarChar(50)
+  color                 String?           @db.VarChar(7)
+  sort_order            Int?              @default(0)
+  is_active             Boolean?          @default(true)
+  book_count            Int?              @default(0) @db.UnsignedInt
+  created_at            DateTime          @db.DateTime(0)
+  updated_at            DateTime          @db.DateTime(0)
+  parentCategory        book_categories?  @relation("CategoryHierarchy", fields: [parent_id], references: [id], map: "book_categories_ibfk_1")
+  childCategories       book_categories[] @relation("CategoryHierarchy")
+  books                 books[]
+
+  @@index([code], map: "book_categories_code")
+  @@index([name], map: "book_categories_name")
+  @@index([parent_id], map: "book_categories_parent_id")
+  @@index([sort_order], map: "book_categories_sort_order")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model books {
+  id                       Int                        @id @default(autoincrement()) @db.UnsignedInt
+  title                    String                     @db.VarChar(255)
+  subtitle                 String?                    @db.VarChar(255)
+  isbn                     String                     @unique(map: "books_isbn") @db.VarChar(20)
+  authors                  Json
+  publisher                String?                    @db.VarChar(100)
+  publication_year         Int?
+  publication_date         DateTime?                  @db.Date
+  language                 String                     @default("zh-CN") @db.VarChar(20)
+  category_id              Int?                       @db.UnsignedInt
+  category                 String?                    @db.VarChar(50)
+  subcategory              String?                    @db.VarChar(50)
+  tags                     Json?
+  summary                  String?                    @db.Text
+  description              String?                    @db.Text
+  table_of_contents        String?                    @db.Text
+  cover_image              String?                    @db.VarChar(255)
+  back_cover_image         String?                    @db.VarChar(255)
+  total_stock              Int                        @default(0) @db.UnsignedInt
+  available_stock          Int                        @default(0) @db.UnsignedInt
+  reserved_stock           Int                        @default(0) @db.UnsignedInt
+  status                   books_status               @default(available)
+  location                 String?                    @db.VarChar(50)
+  call_number              String?                    @db.VarChar(50)
+  price                    Decimal?                   @db.Decimal(10, 2)
+  pages                    Int?                       @db.UnsignedInt
+  format                   String?                    @db.VarChar(20)
+  dimensions               String?                    @db.VarChar(50)
+  weight                   Int?                       @db.UnsignedInt
+  ebook_url                String?                    @db.VarChar(255)
+  ebook_format             String?                    @db.VarChar(10)
+  ebook_file_size          Int?                       @db.UnsignedInt
+  has_ebook                Boolean?                   @default(false)
+  borrow_count             Int?                       @default(0) @db.UnsignedInt
+  reserve_count            Int?                       @default(0) @db.UnsignedInt
+  view_count               Int?                       @default(0) @db.UnsignedInt
+  download_count           Int?                       @default(0) @db.UnsignedInt
+  average_rating           Decimal?                   @db.Decimal(3, 2)
+  review_count             Int?                       @default(0) @db.UnsignedInt
+  acquired_date            DateTime?                  @db.Date
+  acquired_from            String?                    @db.VarChar(100)
+  condition                books_condition?           @default(new)
+  notes                    String?                    @db.Text
+  is_deleted               Boolean?                   @default(false)
+  deleted_at               DateTime?                  @db.DateTime(0)
+  created_at               DateTime                   @db.DateTime(0)
+  updated_at               DateTime                   @db.DateTime(0)
+  bookCategory             book_categories?           @relation(fields: [category_id], references: [id], map: "books_ibfk_1")
+  borrows                  borrows[]
+  feedbacks                recommendation_feedbacks[]
+  recommendations          recommendations[]
+  reviews                  reviews[]
+  userBehaviors            user_behaviors[]
+
+  @@index([average_rating], map: "books_average_rating")
+  @@index([borrow_count], map: "books_borrow_count")
+  @@index([category], map: "books_category")
+  @@index([created_at], map: "books_created_at")
+  @@index([has_ebook], map: "books_has_ebook")
+  @@index([publication_year], map: "books_publication_year")
+  @@index([publisher], map: "books_publisher")
+  @@index([status], map: "books_status")
+  @@index([title], map: "books_title")
+  @@index([category_id], map: "category_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model borrows {
+  id                                Int                @id @default(autoincrement()) @db.UnsignedInt
+  user_id                           Int                @db.UnsignedInt
+  book_id                           Int                @db.UnsignedInt
+  borrow_date                       DateTime           @db.DateTime(0)
+  due_date                          DateTime           @db.DateTime(0)
+  return_date                       DateTime?          @db.DateTime(0)
+  actual_return_date                DateTime?          @db.DateTime(0)
+  status                            borrows_status     @default(borrowed)
+  borrow_days                       Int                @default(30) @db.UnsignedInt
+  renewal_count                     Int?               @default(0) @db.UnsignedInt
+  max_renewals                      Int?               @default(2) @db.UnsignedInt
+  overdue_days                      Int?               @default(0) @db.UnsignedInt
+  fine                              Decimal?           @default(0.00) @db.Decimal(10, 2)
+  fine_paid                         Boolean?           @default(false)
+  condition                         borrows_condition? @default(good)
+  damage_description                String?            @db.Text
+  return_notes                      String?            @db.Text
+  borrow_notes                      String?            @db.Text
+  notifications_sent                Json?
+  points_earned                     Int?               @default(0)
+  points_deducted                   Int?               @default(0)
+  processed_by                      Int?               @db.UnsignedInt
+  borrow_location                   String?            @db.VarChar(100)
+  return_location                   String?            @db.VarChar(100)
+  is_deleted                        Boolean?           @default(false)
+  created_at                        DateTime           @db.DateTime(0)
+  updated_at                        DateTime           @db.DateTime(0)
+  borrower                          users              @relation("UserBorrows", fields: [user_id], references: [id], onDelete: Cascade, map: "borrows_ibfk_1")
+  book                              books              @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "borrows_ibfk_2")
+  processor                         users?             @relation("BorrowProcessor", fields: [processed_by], references: [id], map: "borrows_ibfk_3")
+  notifications                     notifications[]
+  reviews                           reviews[]
+
+  @@unique([user_id, book_id], map: "borrows_bookId_userId_unique")
+  @@unique([user_id, book_id], map: "unique_active_borrow")
+  @@index([book_id], map: "borrows_book_id")
+  @@index([book_id, status], map: "borrows_book_id_status")
+  @@index([borrow_date], map: "borrows_borrow_date")
+  @@index([due_date], map: "borrows_due_date")
+  @@index([return_date], map: "borrows_return_date")
+  @@index([status], map: "borrows_status")
+  @@index([user_id], map: "borrows_user_id")
+  @@index([user_id, status], map: "borrows_user_id_status")
+  @@index([processed_by], map: "processed_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model health_check_templates {
+  id                    Int                                       @id @default(autoincrement()) @db.UnsignedInt
+  name                  String                                    @unique(map: "name") @db.VarChar(100)
+  check_type            health_check_templates_check_type
+  description           String?                                   @db.Text
+  enabled               Boolean                                   @default(true)
+  interval_seconds      Int                                       @default(60)
+  timeout_seconds       Int                                       @default(30)
+  retry_count           Int                                       @default(3)
+  thresholds            Json?
+  config                Json?
+  alert_rules           Json?
+  check_script          String?                                   @db.Text
+  expected_result       Json?
+  failure_threshold     Int                                       @default(3)
+  success_threshold     Int                                       @default(2)
+  dependencies          Json?
+  environment           String                                    @default("production") @db.VarChar(50)
+  service_tags          Json?
+  last_check_at         DateTime?                                 @db.DateTime(0)
+  last_check_status     health_check_templates_last_check_status?
+  consecutive_failures  Int                                       @default(0)
+  consecutive_successes Int                                       @default(0)
+  created_at            DateTime                                  @db.DateTime(0)
+  updated_at            DateTime                                  @db.DateTime(0)
+  deleted_at            DateTime?                                 @db.DateTime(0)
+
+  @@index([check_type], map: "health_check_templates_check_type")
+  @@index([enabled], map: "health_check_templates_enabled")
+  @@index([environment], map: "health_check_templates_environment")
+  @@index([last_check_at], map: "health_check_templates_last_check_at")
+  @@index([last_check_status], map: "health_check_templates_last_check_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model import_files {
+  id                String              @id @db.Char(36)
+  original_name     String              @db.VarChar(255)
+  file_name         String              @db.VarChar(255)
+  file_path         String              @db.VarChar(500)
+  file_size         Int
+  mime_type         String              @db.VarChar(100)
+  uploaded_by       Int                 @db.UnsignedInt
+  status            import_files_status @default(uploaded)
+  record_count      Int?                @default(0)
+  metadata          Json?
+  validation_result Json?
+  import_result     Json?
+  processed_at      DateTime?           @db.DateTime(0)
+  deleted_at        DateTime?           @db.DateTime(0)
+  created_at        DateTime            @db.DateTime(0)
+  updated_at        DateTime            @db.DateTime(0)
+  uploader          users               @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, map: "import_files_ibfk_1")
+
+  @@index([created_at], map: "import_files_created_at")
+  @@index([status], map: "import_files_status")
+  @@index([uploaded_by], map: "import_files_uploaded_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model login_attempts {
+  id                     String                         @id @db.Char(36)
+  user_id                Int?                           @db.UnsignedInt
+  username               String                         @db.VarChar(100)
+  email                  String?                        @db.VarChar(255)
+  success                Boolean
+  failure_reason         login_attempts_failure_reason?
+  ip_address             String                         @db.VarChar(45)
+  user_agent             String?                        @db.Text
+  geo_location           Json?
+  device_info            Json?
+  device_fingerprint     String?                        @db.VarChar(64)
+  login_method           login_attempts_login_method    @default(password)
+  oauth_provider         String?                        @db.VarChar(50)
+  session_id             String?                        @db.VarChar(100)
+  session_duration       Int?
+  is_suspicious          Boolean                        @default(false)
+  suspicious_reasons     Json?
+  risk_score             Float                          @default(0) @db.Float
+  threat_detected        Boolean                        @default(false)
+  threat_type            login_attempts_threat_type?
+  mfa_used               Boolean                        @default(false)
+  mfa_method             login_attempts_mfa_method?
+  attempt_time           DateTime                       @db.DateTime(0)
+  response_time          Int?
+  previous_attempts      Int                            @default(0)
+  user_previous_attempts Int                            @default(0)
+  blocked                Boolean                        @default(false)
+  block_reason           String?                        @db.VarChar(200)
+  block_duration         Int?
+  captcha_required       Boolean                        @default(false)
+  captcha_solved         Boolean?
+  referrer               String?                        @db.Text
+  utm_source             String?                        @db.VarChar(100)
+  correlation_id         String?                        @db.VarChar(100)
+  security_event_id      String?                        @db.Char(36)
+  notes                  String?                        @db.Text
+  is_encrypted           Boolean                        @default(false)
+  created_at             DateTime                       @db.DateTime(0)
+  updated_at             DateTime                       @db.DateTime(0)
+  user                   users?                         @relation(fields: [user_id], references: [id], map: "login_attempts_ibfk_1")
+  securityEvent          security_events?               @relation(fields: [security_event_id], references: [id], map: "login_attempts_ibfk_2")
+
+  @@index([attempt_time], map: "login_attempts_attempt_time")
+  @@index([blocked], map: "login_attempts_blocked")
+  @@index([correlation_id], map: "login_attempts_correlation_id")
+  @@index([device_fingerprint], map: "login_attempts_device_fingerprint")
+  @@index([ip_address], map: "login_attempts_ip_address")
+  @@index([is_suspicious], map: "login_attempts_is_suspicious")
+  @@index([ip_address, attempt_time, success], map: "login_attempts_security_monitoring")
+  @@index([success], map: "login_attempts_success")
+  @@index([threat_detected], map: "login_attempts_threat_detected")
+  @@index([threat_detected, is_suspicious, attempt_time], map: "login_attempts_threat_detection")
+  @@index([username, attempt_time, success], map: "login_attempts_user_analysis")
+  @@index([user_id], map: "login_attempts_user_id")
+  @@index([username], map: "login_attempts_username")
+  @@index([security_event_id], map: "security_event_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model notification_templates {
+  id               Int                              @id @default(autoincrement()) @db.UnsignedInt
+  code             String                           @unique(map: "code") @db.VarChar(100)
+  name             String                           @db.VarChar(255)
+  type             notification_templates_type
+  title            String                           @db.VarChar(255)
+  content          String                           @db.Text
+  email_subject    String?                          @db.VarChar(255)
+  email_content    String?                          @db.Text
+  sms_content      String?                          @db.Text
+  push_title       String?                          @db.VarChar(255)
+  push_content     String?                          @db.Text
+  priority         notification_templates_priority? @default(normal)
+  is_active        Boolean?                         @default(true)
+  variables        Json?
+  default_channels Json?
+  conditions       Json?
+  metadata         Json?
+  created_at       DateTime                         @db.DateTime(0)
+  updated_at       DateTime                         @db.DateTime(0)
+
+  @@index([is_active], map: "notification_templates_is_active")
+  @@index([type], map: "notification_templates_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model notifications {
+  id            Int                     @id @default(autoincrement()) @db.UnsignedInt
+  user_id       Int                     @db.UnsignedInt
+  type          notifications_type
+  title         String                  @db.VarChar(255)
+  content       String                  @db.Text
+  priority      notifications_priority? @default(normal)
+  status        notifications_status?   @default(pending)
+  is_read       Boolean?                @default(false)
+  read_at       DateTime?               @db.DateTime(0)
+  channel       Json?
+  metadata      Json?
+  related_id    Int?                    @db.UnsignedInt
+  related_type  String?                 @db.VarChar(50)
+  action_url    String?                 @db.VarChar(500)
+  expires_at    DateTime?               @db.DateTime(0)
+  scheduled_at  DateTime?               @db.DateTime(0)
+  sent_at       DateTime?               @db.DateTime(0)
+  retry_count   Int?                    @default(0)
+  error_message String?                 @db.Text
+  created_at    DateTime                @db.DateTime(0)
+  updated_at    DateTime                @db.DateTime(0)
+  deleted_at    DateTime?               @db.DateTime(0)
+  relatedBorrow borrows?                @relation(fields: [related_id], references: [id], onDelete: Cascade, map: "notifications_ibfk_2")
+
+  @@index([created_at], map: "notifications_created_at")
+  @@index([expires_at], map: "notifications_expires_at")
+  @@index([related_id, related_type], map: "notifications_related_id_related_type")
+  @@index([scheduled_at], map: "notifications_scheduled_at")
+  @@index([type, priority], map: "notifications_type_priority")
+  @@index([user_id, status], map: "notifications_user_id_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model points_transactions {
+  id                                                                                         BigInt                               @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id                                                                                    Int                                  @db.UnsignedInt
+  points_change                                                                              Int
+  current_balance                                                                            Int
+  previous_balance                                                                           Int?
+  transaction_type                                                                           points_transactions_transaction_type
+  description                                                                                String                               @db.VarChar(255)
+  related_entity_type                                                                        String?                              @db.VarChar(50)
+  related_entity_id                                                                          Int?                                 @db.UnsignedInt
+  metadata                                                                                   Json?
+  processed_by                                                                               Int?                                 @db.UnsignedInt
+  batch_id                                                                                   String?                              @db.VarChar(36)
+  status                                                                                     points_transactions_status?          @default(completed)
+  reversal_transaction_id                                                                    BigInt?                              @db.UnsignedBigInt
+  original_transaction_id                                                                    BigInt?                              @db.UnsignedBigInt
+  expires_at                                                                                 DateTime?                            @db.DateTime(0)
+  ip_address                                                                                 String?                              @db.VarChar(45)
+  user_agent                                                                                 String?                              @db.VarChar(255)
+  notes                                                                                      String?                              @db.Text
+  created_at                                                                                 DateTime                             @db.DateTime(0)
+  updated_at                                                                                 DateTime                             @db.DateTime(0)
+  user                                                                                       users                                @relation("UserPointsTransactions", fields: [user_id], references: [id], onDelete: Cascade, map: "points_transactions_ibfk_1")
+  processor                                                                                  users?                               @relation("PointsTransactionProcessor", fields: [processed_by], references: [id], map: "points_transactions_ibfk_2")
+  reversalTransaction                                                                        points_transactions?                 @relation("ReversalTransaction", fields: [reversal_transaction_id], references: [id], map: "points_transactions_ibfk_3")
+  reversedByTransactions                                                                     points_transactions[]                @relation("ReversalTransaction")
+  originalTransaction                                                                        points_transactions?                 @relation("OriginalTransaction", fields: [original_transaction_id], references: [id], map: "points_transactions_ibfk_4")
+  reversalOfTransactions                                                                     points_transactions[]                @relation("OriginalTransaction")
+
+  @@index([original_transaction_id], map: "original_transaction_id")
+  @@index([batch_id], map: "points_transactions_batch_id")
+  @@index([created_at], map: "points_transactions_created_at")
+  @@index([processed_by], map: "points_transactions_processed_by")
+  @@index([related_entity_type, related_entity_id], map: "points_transactions_related_entity_type_related_entity_id")
+  @@index([status], map: "points_transactions_status")
+  @@index([transaction_type], map: "points_transactions_transaction_type")
+  @@index([user_id], map: "points_transactions_user_id")
+  @@index([user_id, created_at], map: "points_transactions_user_id_created_at")
+  @@index([user_id, transaction_type], map: "points_transactions_user_id_transaction_type")
+  @@index([reversal_transaction_id], map: "reversal_transaction_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendation_feedbacks {
+  id                  Int                                          @id @default(autoincrement()) @db.UnsignedInt
+  user_id             Int                                          @db.UnsignedInt
+  recommendation_id   Int?                                         @db.UnsignedInt
+  book_id             Int                                          @db.UnsignedInt
+  feedback_type       recommendation_feedbacks_feedback_type
+  feedback_value      Float                                        @db.Float
+  raw_feedback_value  String?                                      @db.VarChar(100)
+  feedback_dimensions Json?
+  confidence          Float                                        @default(1) @db.Float
+  feedback_context    Json?
+  feedback_motivation recommendation_feedbacks_feedback_motivation @default(voluntary)
+  feedback_content    Json?
+  feedback_quality    Json?
+  user_state          Json?
+  algorithm_info      Json?
+  temporal_info       Json?
+  social_info         Json?
+  verification_status recommendation_feedbacks_verification_status @default(unverified)
+  processing_status   recommendation_feedbacks_processing_status   @default(pending)
+  processed_at        DateTime?                                    @db.DateTime(0)
+  feedback_impact     Json?
+  weight              Float                                        @default(1) @db.Float
+  is_training_data    Boolean                                      @default(true)
+  tags                Json?
+  metadata            Json?
+  created_at          DateTime                                     @db.DateTime(0)
+  updated_at          DateTime                                     @db.DateTime(0)
+  deleted_at          DateTime?                                    @db.DateTime(0)
+  user                users                                        @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "recommendation_feedbacks_ibfk_1")
+  recommendation      recommendations?                             @relation(fields: [recommendation_id], references: [id], map: "recommendation_feedbacks_ibfk_2")
+  book                books                                        @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "recommendation_feedbacks_ibfk_3")
+
+  @@index([book_id], map: "recommendation_feedbacks_book_id")
+  @@index([created_at], map: "recommendation_feedbacks_created_at")
+  @@index([feedback_type], map: "recommendation_feedbacks_feedback_type")
+  @@index([feedback_value], map: "recommendation_feedbacks_feedback_value")
+  @@index([is_training_data], map: "recommendation_feedbacks_is_training_data")
+  @@index([processed_at], map: "recommendation_feedbacks_processed_at")
+  @@index([processing_status], map: "recommendation_feedbacks_processing_status")
+  @@index([recommendation_id], map: "recommendation_feedbacks_recommendation_id")
+  @@index([user_id], map: "recommendation_feedbacks_user_id")
+  @@index([user_id, book_id], map: "recommendation_feedbacks_user_id_book_id")
+  @@index([user_id, feedback_type], map: "recommendation_feedbacks_user_id_feedback_type")
+  @@index([verification_status], map: "recommendation_feedbacks_verification_status")
+  @@index([weight], map: "recommendation_feedbacks_weight")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendation_models {
+  id                                            Int                                   @id @default(autoincrement()) @db.UnsignedInt
+  name                                          String                                @unique(map: "name") @db.VarChar(200)
+  type                                          recommendation_models_type
+  description                                   String?                               @db.Text
+  version                                       String                                @default("1.0.0") @db.VarChar(50)
+  enabled                                       Boolean                               @default(true)
+  is_default                                    Boolean                               @default(false)
+  config                                        Json
+  hyperparameters                               Json?
+  feature_config                                Json?
+  training_status                               recommendation_models_training_status @default(not_trained)
+  last_trained_at                               DateTime?                             @db.DateTime(0)
+  next_training_at                              DateTime?                             @db.DateTime(0)
+  training_data_size                            Int?
+  model_path                                    String?                               @db.VarChar(500)
+  model_size                                    BigInt?
+  performance_metrics                           Json?
+  ab_test_config                                Json?
+  deployment_config                             Json?
+  monitoring_config                             Json?
+  data_version                                  String?                               @db.VarChar(100)
+  dependencies                                  Json?
+  weight                                        Float                                 @default(1) @db.Float
+  priority                                      Int                                   @default(5)
+  applicable_scenarios                          Json?
+  target_user_segments                          Json?
+  created_by                                    Int?                                  @db.UnsignedInt
+  updated_by                                    Int?                                  @db.UnsignedInt
+  tags                                          Json?
+  notes                                         String?                               @db.Text
+  metadata                                      Json?
+  created_at                                    DateTime                              @db.DateTime(0)
+  updated_at                                    DateTime                              @db.DateTime(0)
+  deleted_at                                    DateTime?                             @db.DateTime(0)
+  creator                                       users?                                @relation("RecommendationModelCreator", fields: [created_by], references: [id], map: "recommendation_models_ibfk_1")
+  updater                                       users?                                @relation("RecommendationModelUpdater", fields: [updated_by], references: [id], map: "recommendation_models_ibfk_2")
+  recommendations                               recommendations[]
+
+  @@index([created_by], map: "recommendation_models_created_by")
+  @@index([enabled], map: "recommendation_models_enabled")
+  @@index([is_default], map: "recommendation_models_is_default")
+  @@index([last_trained_at], map: "recommendation_models_last_trained_at")
+  @@index([priority], map: "recommendation_models_priority")
+  @@index([training_status], map: "recommendation_models_training_status")
+  @@index([type], map: "recommendation_models_type")
+  @@index([version], map: "recommendation_models_version")
+  @@index([updated_by], map: "updated_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recommendations {
+  id                       Int                                 @id @default(autoincrement()) @db.UnsignedInt
+  user_id                  Int                                 @db.UnsignedInt
+  book_id                  Int                                 @db.UnsignedInt
+  model_id                 Int                                 @db.UnsignedInt
+  algorithm                String                              @db.VarChar(100)
+  score                    Float                               @db.Float
+  rank                     Int?
+  recommendation_type      recommendations_recommendation_type @default(personalized)
+  scenario                 recommendations_scenario
+  status                   recommendations_status              @default(generated)
+  explanation              Json?
+  context                  Json?
+  personalization_factors  Json?
+  diversity_info           Json?
+  experiment_info          Json?
+  display_count            Int                                 @default(0)
+  first_displayed_at       DateTime?                           @db.DateTime(0)
+  last_displayed_at        DateTime?                           @db.DateTime(0)
+  clicked_at               DateTime?                           @db.DateTime(0)
+  user_feedback            Json?
+  actual_outcome           Json?
+  expires_at               DateTime?                           @db.DateTime(0)
+  priority                 Int                                 @default(5)
+  is_real_time             Boolean                             @default(false)
+  batch_id                 String?                             @db.VarChar(100)
+  source                   recommendations_source              @default(system)
+  performance_metrics      Json?
+  tags                     Json?
+  metadata                 Json?
+  created_at               DateTime                            @db.DateTime(0)
+  updated_at               DateTime                            @db.DateTime(0)
+  feedbacks                recommendation_feedbacks[]
+  user                     users                               @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "recommendations_ibfk_1")
+  book                     books                               @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "recommendations_ibfk_2")
+  model                    recommendation_models               @relation(fields: [model_id], references: [id], onDelete: Cascade, map: "recommendations_ibfk_3")
+  userBehaviors            user_behaviors[]
+
+  @@unique([user_id, book_id, scenario, batch_id], map: "recommendations_user_id_book_id_scenario_batch_id")
+  @@index([batch_id], map: "recommendations_batch_id")
+  @@index([book_id], map: "recommendations_book_id")
+  @@index([clicked_at], map: "recommendations_clicked_at")
+  @@index([created_at], map: "recommendations_created_at")
+  @@index([expires_at], map: "recommendations_expires_at")
+  @@index([first_displayed_at], map: "recommendations_first_displayed_at")
+  @@index([model_id], map: "recommendations_model_id")
+  @@index([priority], map: "recommendations_priority")
+  @@index([rank], map: "recommendations_rank")
+  @@index([recommendation_type], map: "recommendations_recommendation_type")
+  @@index([scenario], map: "recommendations_scenario")
+  @@index([score], map: "recommendations_score")
+  @@index([status], map: "recommendations_status")
+  @@index([user_id], map: "recommendations_user_id")
+  @@index([user_id, scenario], map: "recommendations_user_id_scenario")
+  @@index([user_id, status], map: "recommendations_user_id_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model restore_operations {
+  id                                                                Int                             @id @default(autoincrement()) @db.UnsignedInt
+  backup_job_id                                                     Int                             @db.UnsignedInt
+  restore_type                                                      restore_operations_restore_type @default(full)
+  status                                                            restore_operations_status       @default(pending)
+  name                                                              String                          @db.VarChar(200)
+  description                                                       String?                         @db.Text
+  target_timestamp                                                  DateTime?                       @db.DateTime(0)
+  scheduled_at                                                      DateTime?                       @db.DateTime(0)
+  started_at                                                        DateTime?                       @db.DateTime(0)
+  completed_at                                                      DateTime?                       @db.DateTime(0)
+  duration                                                          Int?
+  restore_config                                                    Json
+  restore_scope                                                     Json?
+  target_paths                                                      Json?
+  pre_check_results                                                 Json?
+  pre_restore_backup_id                                             Int?                            @db.UnsignedInt
+  progress                                                          Float                           @default(0) @db.Float
+  current_operation                                                 String?                         @db.VarChar(200)
+  statistics                                                        Json?
+  error_message                                                     String?                         @db.Text
+  error_details                                                     Json?
+  warnings                                                          Json?
+  verification_result                                               Json?
+  rollback_info                                                     Json?
+  trigger                                                           restore_operations_trigger      @default(manual)
+  triggered_by                                                      Int?                            @db.UnsignedInt
+  approved_by                                                       Int?                            @db.UnsignedInt
+  approved_at                                                       DateTime?                       @db.DateTime(0)
+  approval_note                                                     String?                         @db.Text
+  priority                                                          restore_operations_priority     @default(normal)
+  environment                                                       String                          @default("production") @db.VarChar(50)
+  is_test_restore                                                   Boolean                         @default(false)
+  auto_cleanup_at                                                   DateTime?                       @db.DateTime(0)
+  tags                                                              Json?
+  metadata                                                          Json?
+  execution_log                                                     String?                         @db.Text
+  created_at                                                        DateTime                        @db.DateTime(0)
+  updated_at                                                        DateTime                        @db.DateTime(0)
+  deleted_at                                                        DateTime?                       @db.DateTime(0)
+  sourceBackup                                                      backup_jobs                     @relation("RestoreFromBackup", fields: [backup_job_id], references: [id], onDelete: Cascade, map: "restore_operations_ibfk_1")
+  preRestoreBackup                                                  backup_jobs?                    @relation("PreRestoreBackup", fields: [pre_restore_backup_id], references: [id], map: "restore_operations_ibfk_2")
+  triggeredByUser                                                   users?                          @relation("RestoreTriggeredBy", fields: [triggered_by], references: [id], map: "restore_operations_ibfk_3")
+  approvedByUser                                                    users?                          @relation("RestoreApprovedBy", fields: [approved_by], references: [id], map: "restore_operations_ibfk_4")
+
+  @@index([pre_restore_backup_id], map: "pre_restore_backup_id")
+  @@index([approved_by], map: "restore_operations_approved_by")
+  @@index([auto_cleanup_at], map: "restore_operations_auto_cleanup_at")
+  @@index([backup_job_id], map: "restore_operations_backup_job_id")
+  @@index([completed_at], map: "restore_operations_completed_at")
+  @@index([environment], map: "restore_operations_environment")
+  @@index([is_test_restore], map: "restore_operations_is_test_restore")
+  @@index([priority], map: "restore_operations_priority")
+  @@index([restore_type], map: "restore_operations_restore_type")
+  @@index([scheduled_at], map: "restore_operations_scheduled_at")
+  @@index([started_at], map: "restore_operations_started_at")
+  @@index([status], map: "restore_operations_status")
+  @@index([triggered_by], map: "restore_operations_triggered_by")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model reviews {
+  id                                Int            @id @default(autoincrement()) @db.UnsignedInt
+  user_id                           Int            @db.UnsignedInt
+  book_id                           Int            @db.UnsignedInt
+  borrow_id                         Int?           @db.UnsignedInt
+  rating                            Int
+  title                             String?        @db.VarChar(100)
+  content                           String         @db.Text
+  tags                              Json?
+  is_recommended                    Boolean        @default(true)
+  helpful_count                     Int            @default(0)
+  unhelpful_count                   Int            @default(0)
+  status                            reviews_status @default(published)
+  moderator_id                      Int?           @db.UnsignedInt
+  moderator_notes                   String?        @db.Text
+  moderated_at                      DateTime?      @db.DateTime(0)
+  is_verified_purchase              Boolean        @default(false)
+  reading_progress                  Int?
+  reading_time                      Int?
+  spoiler_alert                     Boolean        @default(false)
+  language                          String         @default("zh-CN") @db.VarChar(10)
+  created_at                        DateTime       @db.DateTime(0)
+  updated_at                        DateTime       @db.DateTime(0)
+  deleted_at                        DateTime?      @db.DateTime(0)
+  reviewer                          users          @relation("UserReviews", fields: [user_id], references: [id], onDelete: Cascade, map: "reviews_ibfk_1")
+  book                              books          @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "reviews_ibfk_2")
+  borrow                            borrows?       @relation(fields: [borrow_id], references: [id], map: "reviews_ibfk_3")
+  moderator                         users?         @relation("ReviewModerator", fields: [moderator_id], references: [id], map: "reviews_ibfk_4")
+
+  @@unique([user_id, book_id], map: "uk_reviews_user_book")
+  @@index([book_id], map: "idx_reviews_book_id")
+  @@index([borrow_id], map: "idx_reviews_borrow_id")
+  @@index([created_at], map: "idx_reviews_created_at")
+  @@index([is_recommended], map: "idx_reviews_is_recommended")
+  @@index([rating], map: "idx_reviews_rating")
+  @@index([status], map: "idx_reviews_status")
+  @@index([user_id], map: "idx_reviews_user_id")
+  @@index([moderator_id], map: "moderator_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model security_events {
+  id                                       String                           @id @db.Char(36)
+  event_type                               security_events_event_type
+  severity                                 security_events_severity         @default(medium)
+  status                                   security_events_status           @default(new)
+  user_id                                  Int?                             @db.UnsignedInt
+  source_ip                                String?                          @db.VarChar(45)
+  target_ip                                String?                          @db.VarChar(45)
+  request_method                           String?                          @db.VarChar(10)
+  request_url                              String?                          @db.Text
+  request_headers                          Json?
+  request_body                             String?                          @db.Text
+  response_code                            Int?
+  user_agent                               String?                          @db.Text
+  device_fingerprint                       String?                          @db.VarChar(64)
+  session_id                               String?                          @db.VarChar(100)
+  geo_location                             Json?
+  title                                    String                           @db.VarChar(200)
+  description                              String                           @db.Text
+  detection_method                         security_events_detection_method @default(rule_based)
+  detection_rule                           String?                          @db.VarChar(200)
+  confidence_score                         Float                            @default(0.5) @db.Float
+  threat_indicators                        Json?
+  mitre_tactics                            Json?
+  mitre_techniques                         Json?
+  affected_systems                         Json?
+  affected_data                            Json?
+  business_impact                          security_events_business_impact  @default(minimal)
+  response_actions                         Json?
+  assigned_to                              Int?                             @db.UnsignedInt
+  investigation_notes                      String?                          @db.Text
+  detected_at                              DateTime                         @db.DateTime(0)
+  first_seen_at                            DateTime?                        @db.DateTime(0)
+  last_seen_at                             DateTime?                        @db.DateTime(0)
+  acknowledged_at                          DateTime?                        @db.DateTime(0)
+  resolved_at                              DateTime?                        @db.DateTime(0)
+  parent_event_id                          String?                          @db.Char(36)
+  correlation_id                           String?                          @db.VarChar(100)
+  audit_log_id                             String?                          @db.Char(36)
+  external_event_id                        String?                          @db.VarChar(100)
+  external_system                          String?                          @db.VarChar(100)
+  occurrence_count                         Int                              @default(1)
+  notification_sent                        Boolean                          @default(false)
+  escalated                                Boolean                          @default(false)
+  is_encrypted                             Boolean                          @default(false)
+  retention_period                         Int                              @default(2555)
+  created_at                               DateTime                         @db.DateTime(0)
+  updated_at                               DateTime                         @db.DateTime(0)
+  loginAttempts                            login_attempts[]
+  affectedUser                             users?                           @relation("SecurityEventUser", fields: [user_id], references: [id], map: "security_events_ibfk_1")
+  assignee                                 users?                           @relation("SecurityEventAssignee", fields: [assigned_to], references: [id], map: "security_events_ibfk_2")
+  parentEvent                              security_events?                 @relation("SecurityEventHierarchy", fields: [parent_event_id], references: [id], map: "security_events_ibfk_3")
+  childEvents                              security_events[]                @relation("SecurityEventHierarchy")
+  auditLog                                 audit_logs?                      @relation(fields: [audit_log_id], references: [id], map: "security_events_ibfk_4")
+
+  @@index([audit_log_id], map: "audit_log_id")
+  @@index([parent_event_id], map: "parent_event_id")
+  @@index([assigned_to], map: "security_events_assigned_to")
+  @@index([correlation_id, parent_event_id], map: "security_events_correlation")
+  @@index([correlation_id], map: "security_events_correlation_id")
+  @@index([detected_at], map: "security_events_detected_at")
+  @@index([event_type], map: "security_events_event_type")
+  @@index([assigned_to, status, severity], map: "security_events_investigation")
+  @@index([severity, status, detected_at], map: "security_events_monitoring")
+  @@index([severity], map: "security_events_severity")
+  @@index([source_ip], map: "security_events_source_ip")
+  @@index([status], map: "security_events_status")
+  @@index([user_id], map: "security_events_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model system_health {
+  id            Int                      @id @default(autoincrement()) @db.UnsignedInt
+  check_type    system_health_check_type
+  check_name    String                   @db.VarChar(100)
+  status        system_health_status     @default(unknown)
+  response_time Int?
+  error_message String?                  @db.Text
+  details       Json?
+  metrics       Json?
+  checked_at    DateTime                 @db.DateTime(0)
+  created_at    DateTime                 @db.DateTime(0)
+  updated_at    DateTime                 @db.DateTime(0)
+
+  @@index([check_type, check_name], map: "system_health_check_type_check_name")
+  @@index([check_type, checked_at], map: "system_health_check_type_checked_at")
+  @@index([checked_at], map: "system_health_checked_at")
+  @@index([status], map: "system_health_status")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_behaviors {
+  id                       Int                          @id @default(autoincrement()) @db.UnsignedInt
+  user_id                  Int                          @db.UnsignedInt
+  book_id                  Int?                         @db.UnsignedInt
+  behavior_type            user_behaviors_behavior_type
+  intensity                Float                        @default(1) @db.Float
+  duration                 Int?
+  context                  Json?
+  search_query             String?                      @db.VarChar(500)
+  rating_value             Float?                       @db.Float
+  recommendation_id        Int?                         @db.UnsignedInt
+  recommendation_algorithm String?                      @db.VarChar(100)
+  recommendation_position  Int?
+  feedback                 user_behaviors_feedback?
+  session_info             Json?
+  experiment_id            String?                      @db.VarChar(100)
+  experiment_variant       String?                      @db.VarChar(50)
+  ip_address               String?                      @db.VarChar(45)
+  user_agent               String?                      @db.Text
+  processed                Boolean                      @default(false)
+  processed_at             DateTime?                    @db.DateTime(0)
+  is_implicit              Boolean                      @default(true)
+  confidence_score         Float?                       @db.Float
+  is_anomaly               Boolean                      @default(false)
+  metadata                 Json?
+  created_at               DateTime                     @db.DateTime(0)
+  updated_at               DateTime                     @db.DateTime(0)
+  user                     users                        @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_behaviors_ibfk_1")
+  book                     books?                       @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "user_behaviors_ibfk_2")
+  recommendation           recommendations?             @relation(fields: [recommendation_id], references: [id], map: "user_behaviors_ibfk_3")
+
+  @@index([behavior_type], map: "user_behaviors_behavior_type")
+  @@index([book_id], map: "user_behaviors_book_id")
+  @@index([created_at], map: "user_behaviors_created_at")
+  @@index([experiment_id], map: "user_behaviors_experiment_id")
+  @@index([is_anomaly], map: "user_behaviors_is_anomaly")
+  @@index([processed], map: "user_behaviors_processed")
+  @@index([recommendation_id], map: "user_behaviors_recommendation_id")
+  @@index([user_id], map: "user_behaviors_user_id")
+  @@index([user_id, behavior_type], map: "user_behaviors_user_id_behavior_type")
+  @@index([user_id, book_id], map: "user_behaviors_user_id_book_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_points {
+  user_id                Int       @id @db.UnsignedInt
+  balance                Int       @default(0)
+  total_earned           Int?      @default(0) @db.UnsignedInt
+  total_spent            Int?      @default(0) @db.UnsignedInt
+  level                  String    @default("NEWCOMER") @db.VarChar(20)
+  level_name             String    @default("新手读者") @db.VarChar(50)
+  next_level_points      Int?      @db.UnsignedInt
+  progress_to_next_level Decimal?  @default(0.00) @db.Decimal(5, 2)
+  last_transaction_at    DateTime? @db.DateTime(0)
+  borrow_points          Int?      @default(0) @db.UnsignedInt
+  review_points          Int?      @default(0) @db.UnsignedInt
+  bonus_points           Int?      @default(0) @db.UnsignedInt
+  penalty_points         Int?      @default(0) @db.UnsignedInt
+  badge_count            Int?      @default(0) @db.UnsignedInt
+  rank_position          Int?      @db.UnsignedInt
+  last_rank_update       DateTime? @db.DateTime(0)
+  created_at             DateTime  @db.DateTime(0)
+  updated_at             DateTime  @db.DateTime(0)
+  user                   users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_points_ibfk_1")
+
+  @@index([balance], map: "user_points_balance")
+  @@index([last_transaction_at], map: "user_points_last_transaction_at")
+  @@index([level], map: "user_points_level")
+  @@index([rank_position], map: "user_points_rank_position")
+  @@index([total_earned], map: "user_points_total_earned")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_preferences {
+  id                       Int                                  @id @default(autoincrement()) @db.UnsignedInt
+  user_id                  Int                                  @unique(map: "user_id") @db.UnsignedInt
+  preference_type          user_preferences_preference_type     @default(hybrid)
+  category_preferences     Json?
+  author_preferences       Json?
+  tag_preferences          Json?
+  language_preferences     Json?
+  publish_year_preferences Json?
+  page_count_preferences   Json?
+  rating_preferences       Json?
+  popularity_preferences   Json?
+  diversity_preferences    Json?
+  temporal_preferences     Json?
+  contextual_preferences   Json?
+  social_preferences       Json?
+  negative_preferences     Json?
+  learning_parameters      Json?
+  personalization_strength Float                                @default(0.5) @db.Float
+  confidence_score         Float                                @default(0.1) @db.Float
+  data_quality_score       Float?                               @db.Float
+  last_update_source       user_preferences_last_update_source?
+  user_profile             Json?
+  behavior_patterns        Json?
+  interest_evolution       Json?
+  similar_users            Json?
+  recommendation_stats     Json?
+  feedback_history         Json?
+  cold_start_info          Json?
+  privacy_settings         Json?
+  experiment_config        Json?
+  last_computed_at         DateTime?                            @db.DateTime(0)
+  next_update_at           DateTime?                            @db.DateTime(0)
+  needs_recomputation      Boolean                              @default(true)
+  computation_version      String?                              @db.VarChar(50)
+  metadata                 Json?
+  created_at               DateTime                             @db.DateTime(0)
+  updated_at               DateTime                             @db.DateTime(0)
+  user                     users                                @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_preferences_ibfk_1")
+
+  @@index([confidence_score], map: "user_preferences_confidence_score")
+  @@index([last_computed_at], map: "user_preferences_last_computed_at")
+  @@index([needs_recomputation], map: "user_preferences_needs_recomputation")
+  @@index([next_update_at], map: "user_preferences_next_update_at")
+  @@index([personalization_strength], map: "user_preferences_personalization_strength")
+  @@index([preference_type], map: "user_preferences_preference_type")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                                                            Int                        @id @default(autoincrement()) @db.UnsignedInt
+  username                                                      String                     @unique(map: "username") @db.VarChar(50)
+  email                                                         String?                    @unique(map: "email") @db.VarChar(100)
+  password_hash                                                 String?                    @db.VarChar(255)
+  real_name                                                     String?                    @db.VarChar(50)
+  phone                                                         String?                    @db.VarChar(20)
+  avatar                                                        String?                    @db.VarChar(255)
+  bio                                                           String?                    @db.Text
+  gender                                                        users_gender?
+  birthday                                                      DateTime?                  @db.DateTime(0)
+  student_id                                                    String?                    @db.VarChar(50)
+  department                                                    String?                    @db.VarChar(100)
+  points_balance                                                Int                        @default(0) @db.UnsignedInt
+  borrow_permission                                             Json?
+  borrow_limit                                                  Int                        @default(10) @db.UnsignedInt
+  wechat_openid                                                 String?                    @unique(map: "wechat_openid") @db.VarChar(128)
+  wechat_unionid                                                String?                    @unique(map: "wechat_unionid") @db.VarChar(128)
+  role                                                          users_role                 @default(patron)
+  status                                                        users_status               @default(active)
+  email_verified                                                Boolean?                   @default(false)
+  email_verification_token                                      String?                    @db.VarChar(255)
+  phone_verified                                                Boolean?                   @default(false)
+  last_login_at                                                 DateTime?                  @db.DateTime(0)
+  last_login_ip                                                 String?                    @db.VarChar(45)
+  login_count                                                   Int?                       @default(0) @db.UnsignedInt
+  preferences                                                   Json?
+  is_deleted                                                    Boolean?                   @default(false)
+  deleted_at                                                    DateTime?                  @db.DateTime(0)
+  created_at                                                    DateTime                   @db.DateTime(0)
+  updated_at                                                    DateTime                   @db.DateTime(0)
+  acknowledgedAlerts                                            alerts[]                   @relation("AlertAcknowledger")
+  resolvedAlerts                                                alerts[]                   @relation("AlertResolver")
+  auditLogs                                                     audit_logs[]
+  triggeredBackupJobs                                           backup_jobs[]
+  createdBackupSchedules                                        backup_schedules[]         @relation("BackupScheduleCreator")
+  updatedBackupSchedules                                        backup_schedules[]         @relation("BackupScheduleUpdater")
+  createdBackupStorages                                         backup_storages[]          @relation("BackupStorageCreator")
+  updatedBackupStorages                                         backup_storages[]          @relation("BackupStorageUpdater")
+  userBorrows                                                   borrows[]                  @relation("UserBorrows")
+  processedBorrows                                              borrows[]                  @relation("BorrowProcessor")
+  uploadedFiles                                                 import_files[]
+  loginAttempts                                                 login_attempts[]
+  pointsTransactions                                            points_transactions[]      @relation("UserPointsTransactions")
+  processedPointsTransactions                                   points_transactions[]      @relation("PointsTransactionProcessor")
+  recommendationFeedbacks                                       recommendation_feedbacks[]
+  createdRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelCreator")
+  updatedRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelUpdater")
+  recommendations                                               recommendations[]
+  triggeredRestoreOperations                                    restore_operations[]       @relation("RestoreTriggeredBy")
+  approvedRestoreOperations                                     restore_operations[]       @relation("RestoreApprovedBy")
+  userReviews                                                   reviews[]                  @relation("UserReviews")
+  moderatedReviews                                              reviews[]                  @relation("ReviewModerator")
+  affectedBySecurityEvents                                      security_events[]          @relation("SecurityEventUser")
+  assignedSecurityEvents                                        security_events[]          @relation("SecurityEventAssignee")
+  userBehaviors                                                 user_behaviors[]
+  userPoints                                                    user_points?
+  userPreferences                                               user_preferences?
+
+  @@index([email], map: "users_email")
+  @@index([is_deleted], map: "users_is_deleted")
+  @@index([last_login_at], map: "users_last_login_at")
+  @@index([role], map: "users_role")
+  @@index([status], map: "users_status")
+  @@index([username], map: "users_username")
+  @@index([wechat_openid], map: "users_wechat_openid")
+}
+
+enum alerts_alert_type {
+  health_check_failed
+  performance_degraded
+  resource_usage_high
+  service_unavailable
+  database_connection
+  elasticsearch_error
+  disk_space_low
+  memory_usage_high
+  cpu_usage_high
+  api_response_slow
+  security_incident
+  backup_failed
+  custom
+}
+
+enum backup_jobs_backup_type {
+  full
+  incremental
+  differential
+  database_only
+  files_only
+  custom
+}
+
+enum security_events_event_type {
+  authentication_failure
+  authorization_failure
+  suspicious_login
+  account_lockout
+  privilege_escalation
+  data_access_violation
+  brute_force_attack
+  sql_injection_attempt
+  xss_attempt
+  csrf_attempt
+  malicious_file_upload
+  suspicious_user_agent
+  rate_limit_exceeded
+  geo_location_anomaly
+  unusual_access_pattern
+  data_exfiltration
+  configuration_change
+  system_intrusion
+  malware_detected
+  security_policy_violation
+  other
+}
+
+enum system_health_check_type {
+  database
+  elasticsearch
+  memory
+  cpu
+  disk
+  redis
+  api_response
+  websocket
+  external_api
+  custom
+}
+
+enum alerts_severity {
+  low
+  medium
+  high
+  critical
+}
+
+enum backup_jobs_status {
+  pending
+  running
+  completed
+  failed
+  cancelled
+  expired
+}
+
+enum backup_storages_type {
+  local
+  s3
+  azure
+  gcs
+  ftp
+  sftp
+  dropbox
+  onedrive
+  webdav
+  nfs
+  smb
+  custom
+}
+
+enum health_check_templates_check_type {
+  database
+  elasticsearch
+  memory
+  cpu
+  disk
+  redis
+  api_response
+  websocket
+  external_api
+  custom
+}
+
+enum notifications_type {
+  system
+  borrow_reminder
+  return_reminder
+  overdue_warning
+  reservation
+  review_reply
+  points_change
+  book_available
+  maintenance
+  announcement
+  chat_message
+  admin_alert
+}
+
+enum recommendation_models_type {
+  collaborative_filtering
+  content_based
+  matrix_factorization
+  deep_learning
+  hybrid
+  knowledge_based
+  demographic
+  contextual
+  sequential
+  multi_armed_bandit
+  reinforcement_learning
+  neural_collaborative
+  autoencoders
+  factorization_machines
+  wide_and_deep
+}
+
+enum restore_operations_restore_type {
+  full
+  database_only
+  files_only
+  selective
+  point_in_time
+  partial
+}
+
+enum security_events_severity {
+  low
+  medium
+  high
+  critical
+}
+
+enum user_preferences_preference_type {
+  explicit
+  implicit
+  learned
+  hybrid
+}
+
+enum notification_templates_type {
+  system
+  borrow_reminder
+  return_reminder
+  overdue_warning
+  reservation
+  review_reply
+  points_change
+  book_available
+  maintenance
+  announcement
+  chat_message
+  admin_alert
+}
+
+enum restore_operations_status {
+  pending
+  preparing
+  running
+  completed
+  failed
+  cancelled
+  rolled_back
+}
+
+enum security_events_status {
+  new
+  investigating
+  confirmed
+  false_positive
+  resolved
+  closed
+}
+
+enum system_health_status {
+  healthy
+  warning
+  critical
+  unknown
+}
+
+enum user_behaviors_behavior_type {
+  view
+  search
+  borrow
+  return
+  review
+  rate
+  bookmark
+  share
+  download
+  read
+  click
+  hover
+  scroll
+  recommendation_click
+  recommendation_dismiss
+}
+
+enum backup_schedules_backup_type {
+  full
+  incremental
+  differential
+  database_only
+  files_only
+  custom
+}
+
+enum recommendation_feedbacks_feedback_type {
+  explicit
+  implicit
+  rating
+  thumbs
+  survey
+  interaction
+  behavioral
+  contextual
+}
+
+enum alerts_status {
+  active
+  acknowledged
+  resolved
+  suppressed
+}
+
+enum login_attempts_failure_reason {
+  invalid_credentials
+  user_not_found
+  account_disabled
+  account_locked
+  password_expired
+  too_many_attempts
+  suspicious_activity
+  geo_location_blocked
+  device_not_trusted
+  mfa_required
+  mfa_failed
+  session_expired
+  maintenance_mode
+  rate_limited
+  captcha_failed
+  other
+}
+
+enum notifications_priority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum points_transactions_transaction_type {
+  BORROW_BOOK
+  RETURN_ON_TIME
+  RETURN_LATE
+  WRITE_REVIEW
+  COMPLETE_TUTORIAL
+  ADMIN_ADJUSTMENT
+  PENALTY_DEDUCTION
+  BONUS_REWARD
+  REDEEM_REWARD
+}
+
+enum notifications_status {
+  pending
+  sent
+  read
+  archived
+}
+
+enum borrows_status {
+  borrowed
+  returned
+  overdue
+  lost
+  damaged
+}
+
+enum import_files_status {
+  uploaded
+  processing
+  validation_passed
+  validation_failed
+  importing
+  completed
+  failed
+}
+
+enum recommendations_recommendation_type {
+  personalized
+  similar_items
+  popular
+  trending
+  collaborative
+  content_based
+  cold_start
+  diversity
+  serendipity
+  contextual
+  sequential
+  cross_domain
+  social
+  location_based
+  time_aware
+}
+
+enum recommendations_scenario {
+  homepage
+  book_detail
+  user_profile
+  search_results
+  category_browse
+  email_campaign
+  mobile_app
+  notification
+  after_borrow
+  after_return
+  reading_list
+  wishlist
+  social_share
+}
+
+enum users_gender {
+  male
+  female
+  other
+}
+
+enum recommendations_status {
+  generated
+  displayed
+  clicked
+  dismissed
+  borrowed
+  rated
+  shared
+  expired
+}
+
+enum recommendation_feedbacks_feedback_motivation {
+  voluntary
+  prompted
+  required
+  incentivized
+  passive
+  survey_based
+  experiment
+}
+
+enum recommendation_models_training_status {
+  not_trained
+  training
+  trained
+  updating
+  failed
+  deprecated
+}
+
+enum login_attempts_login_method {
+  password
+  oauth
+  sso
+  api_key
+  token
+  biometric
+  other
+}
+
+enum notification_templates_priority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum reviews_status {
+  pending
+  published
+  hidden
+  deleted
+}
+
+enum points_transactions_status {
+  pending
+  completed
+  failed
+  reversed
+}
+
+enum user_behaviors_feedback {
+  positive
+  negative
+  neutral
+}
+
+enum backup_storages_connection_status {
+  connected
+  disconnected
+  error
+  testing
+  unknown
+}
+
+enum borrows_condition {
+  good
+  damaged
+  lost
+}
+
+enum audit_logs_result {
+  success
+  failure
+  partial
+  error
+}
+
+enum backup_schedules_last_run_status {
+  success
+  failed
+  timeout
+  cancelled
+  skipped
+}
+
+enum audit_logs_risk_level {
+  low
+  medium
+  high
+  critical
+}
+
+enum recommendation_feedbacks_verification_status {
+  unverified
+  verified
+  suspicious
+  flagged
+  validated
+}
+
+enum users_role {
+  admin
+  librarian
+  patron
+}
+
+enum backup_jobs_storage_backend {
+  local
+  s3
+  ftp
+  sftp
+  azure
+  gcs
+  dropbox
+  custom
+}
+
+enum recommendation_feedbacks_processing_status {
+  pending
+  processing
+  processed
+  incorporated
+  ignored
+  flagged
+}
+
+enum security_events_detection_method {
+  rule_based
+  ml_based
+  manual
+  third_party
+  automated
+}
+
+enum users_status {
+  active
+  inactive
+  suspended
+  banned
+}
+
+enum health_check_templates_last_check_status {
+  healthy
+  warning
+  critical
+  unknown
+}
+
+enum login_attempts_threat_type {
+  brute_force
+  credential_stuffing
+  dictionary_attack
+  bot
+  malware
+  other
+}
+
+enum user_preferences_last_update_source {
+  explicit_feedback
+  implicit_behavior
+  batch_learning
+  real_time_update
+  manual_adjustment
+  model_inference
+}
+
+enum books_status {
+  available
+  borrowed
+  reserved
+  maintenance
+  retired
+}
+
+enum login_attempts_mfa_method {
+  sms
+  email
+  app
+  hardware_token
+  biometric
+}
+
+enum restore_operations_trigger {
+  manual
+  scheduled
+  api
+  emergency
+  test
+}
+
+enum recommendations_source {
+  system
+  manual
+  api
+  batch_job
+  real_time
+  hybrid
+  fallback
+}
+
+enum security_events_business_impact {
+  none
+  minimal
+  moderate
+  significant
+  severe
+}
+
+enum backup_jobs_trigger {
+  manual
+  scheduled
+  api
+  event
+  auto
+}
+
+enum restore_operations_priority {
+  low
+  normal
+  high
+  critical
+}
+
+enum books_condition {
+  new
+  good
+  fair
+  poor
+  damaged
+}

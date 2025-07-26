@@ -1,0 +1,47 @@
+# 依赖目录
+node_modules/
+
+# 生产构建目录
+dist/
+build/
+
+# 配置文件
+vite.config.js
+*.config.js
+
+# 自动生成的文件
+*.d.ts
+auto-imports.d.ts
+components.d.ts
+.eslintrc-auto-import.json
+
+# 日志文件
+*.log
+logs/
+
+# 测试覆盖率
+coverage/
+
+# 编辑器配置
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+*.cache
+
+# 文档
+*.md
+docs/
+
+# 公共资源
+public/
+
+# 特定文件类型
+*.min.js
+*.min.css

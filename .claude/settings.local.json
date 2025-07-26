@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "Bash(rmdir:*)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(del publiclogo.png publiclogo-mini.png)",
+      "Bash(rm:*)",
+      "Bash(pkill:*)",
+      "Bash(taskkill:*)",
+      "Bash(kill:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(sed:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(timeout:*)",
+      "Bash(mysql:*)",
+      "Bash(powershell:*)",
+      "Bash(rg:*)",
+      "Bash(npm start)",
+      "Bash(npx sequelize-cli:*)",
+      "Bash(npm run:*)",
+      "Bash(awk:*)",
+      "Bash(tasklist:*)",
+      "Bash(sc query:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker:*)",
+      "Bash(start:*)",
+      "Bash(where mysql)",
+      "Bash(cmd /c \"start \"\"Docker Desktop\"\" \"\"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe\"\"\")",
+      "Bash(cmd /c:*)"
+    ],
+    "deny": []
+  }
+}

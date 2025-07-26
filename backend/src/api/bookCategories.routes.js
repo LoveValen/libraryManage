@@ -1,0 +1,64 @@
+const express = require('express');
+const router = express.Router();
+const bookCategoriesController = require('../controllers/bookCategories.controller');
+const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { validateId } = require('../middlewares/validation.middleware');
+
+/**
+ * 图书分类路由
+ */
+
+// 获取分类树（公开接口）
+router.get(
+  '/tree',
+  bookCategoriesController.getCategoryTree
+);
+
+// 获取分类列表（公开接口）
+router.get(
+  '/',
+  bookCategoriesController.getAllCategories
+);
+
+// 获取单个分类详情（公开接口）
+router.get(
+  '/:id',
+  validateId(),
+  bookCategoriesController.getCategoryById
+);
+
+// 创建分类（需要管理员权限）
+router.post(
+  '/',
+  authenticate,
+  authorize(['admin']),
+  bookCategoriesController.createCategory
+);
+
+// 更新分类（需要管理员权限）
+router.put(
+  '/:id',
+  authenticate,
+  authorize(['admin']),
+  validateId(),
+  bookCategoriesController.updateCategory
+);
+
+// 删除分类（需要管理员权限）
+router.delete(
+  '/:id',
+  authenticate,
+  authorize(['admin']),
+  validateId(),
+  bookCategoriesController.deleteCategory
+);
+
+// 初始化默认分类（需要管理员权限）
+router.post(
+  '/initialize',
+  authenticate,
+  authorize(['admin']),
+  bookCategoriesController.initializeDefaultCategories
+);
+
+module.exports = router;

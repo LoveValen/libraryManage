@@ -1,0 +1,390 @@
+const prisma = require('../utils/prisma');
+const UserService = require('./user.service');
+const { 
+  generateAccessToken, 
+  generateRefreshToken, 
+  verifyRefreshToken 
+} = require('../middlewares/auth.middleware');
+const { 
+  UnauthorizedError, 
+  ConflictError, 
+  BadRequestError,
+  WechatError,
+  NotFoundError 
+} = require('../utils/apiError');
+const { logBusinessOperation, logSecurityEvent } = require('../utils/logger');
+const config = require('../config');
+
+/**
+ * Authentication Service using Prisma
+ */
+class AuthService {
+  /**
+   * User registration
+   */
+  async register(userData) {
+    const { username, email, password, realName, phone } = userData;
+
+    // Check if username exists
+    if (await UserService.isUsernameExists(username)) {
+      throw new ConflictError('Username already exists');
+    }
+
+    // Check if email exists
+    if (email && await UserService.isEmailExists(email)) {
+      throw new ConflictError('Email already exists');
+    }
+
+    // Check if phone exists
+    if (phone) {
+      const existingPhone = await prisma.users.findFirst({
+        where: { phone, is_deleted: false }
+      });
+      if (existingPhone) {
+        throw new ConflictError('Phone number already exists');
+      }
+    }
+
+    // Create user with transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await UserService.create({
+        username,
+        email,
+        password,
+        real_name: realName,
+        phone,
+        role: 'patron',
+        status: 'active'
+      });
+
+      // Create user points record
+      await tx.userPoints.create({
+        data: {
+          user_id: user.id,
+          balance: 0,
+          total_earned: 0,
+          total_spent: 0,
+          level: 'NEWCOMER',
+          level_name: '新手读者'
+        }
+      });
+
+      logBusinessOperation('USER_REGISTER', user.id, {
+        username: user.username,
+        email: user.email
+      });
+
+      return user;
+    });
+
+    return {
+      user: UserService.toSafeJSON(result),
+      message: 'User registered successfully'
+    };
+  }
+
+  /**
+   * User login
+   */
+  async login(username, password, ip, userAgent) {
+    // Find user
+    const user = await UserService.findByIdentifier(username);
+
+    if (!user) {
+      logSecurityEvent('LOGIN_FAILED_USER_NOT_FOUND', { ip }, {
+        username,
+        userAgent
+      });
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    // Validate password
+    const isPasswordValid = await UserService.validatePassword(user, password);
+
+    if (!isPasswordValid) {
+      logSecurityEvent('LOGIN_FAILED_INVALID_PASSWORD', { ip }, {
+        userId: user.id,
+        username: user.username,
+        userAgent
+      });
+      throw new UnauthorizedError('Invalid credentials');
+    }
+
+    // Check user status
+    if (!UserService.isActive(user)) {
+      logSecurityEvent('LOGIN_FAILED_INACTIVE_USER', { ip }, {
+        userId: user.id,
+        username: user.username,
+        status: user.status,
+        userAgent
+      });
+      throw new UnauthorizedError('Account is inactive or suspended');
+    }
+
+    // Update login info
+    await UserService.updateLoginInfo(user.id, ip);
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    logBusinessOperation('USER_LOGIN', user.id, {
+      ip,
+      userAgent,
+      loginMethod: 'password'
+    });
+
+    return {
+      user: UserService.toSafeJSON(user),
+      tokens: {
+        accessToken,
+        refreshToken,
+        expiresIn: config.jwt.jwtConfig.expiresIn
+      },
+      message: 'Login successful'
+    };
+  }
+
+  /**
+   * WeChat mini program login
+   */
+  async wechatLogin(code, userInfo = {}, ip, userAgent) {
+    try {
+      // Get WeChat user data
+      const wechatData = await this.getWechatUserData(code);
+
+      // Find or create user
+      let user = await UserService.findByWechatOpenid(wechatData.openid);
+      let isNewUser = false;
+
+      if (!user) {
+        // Create new user
+        user = await UserService.createWechatUser(wechatData, userInfo);
+        isNewUser = true;
+
+        // Create user points record
+        await prisma.userPoints.create({
+          data: {
+            user_id: user.id,
+            balance: 0,
+            total_earned: 0,
+            total_spent: 0,
+            level: 'NEWCOMER',
+            level_name: '新手读者'
+          }
+        });
+
+        logBusinessOperation('USER_REGISTER_WECHAT', user.id, {
+          openid: wechatData.openid,
+          unionid: wechatData.unionid,
+          ip
+        });
+      } else {
+        // Update existing user's WeChat info
+        if (wechatData.unionid && user.wechat_unionid !== wechatData.unionid) {
+          await UserService.update(user.id, {
+            wechat_unionid: wechatData.unionid
+          });
+        }
+
+        // Update login info
+        await UserService.updateLoginInfo(user.id, ip);
+      }
+
+      // Check user status
+      if (!UserService.isActive(user)) {
+        logSecurityEvent('WECHAT_LOGIN_FAILED_INACTIVE_USER', { ip }, {
+          userId: user.id,
+          openid: wechatData.openid,
+          status: user.status
+        });
+        throw new UnauthorizedError('Account is inactive or suspended');
+      }
+
+      // Generate tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+
+      logBusinessOperation('USER_LOGIN', user.id, {
+        ip,
+        userAgent,
+        loginMethod: 'wechat',
+        openid: wechatData.openid
+      });
+
+      return {
+        user: UserService.toSafeJSON(user),
+        tokens: {
+          accessToken,
+          refreshToken,
+          expiresIn: config.jwt.jwtConfig.expiresIn
+        },
+        isNewUser,
+        message: 'Login successful'
+      };
+    } catch (error) {
+      if (error instanceof WechatError) {
+        throw error;
+      }
+      logSecurityEvent('WECHAT_LOGIN_ERROR', { ip }, {
+        error: error.message,
+        code
+      });
+      throw new WechatError('WeChat login failed', error.message);
+    }
+  }
+
+  /**
+   * Refresh access token
+   */
+  async refreshToken(refreshToken) {
+    try {
+      // Verify refresh token
+      const decoded = verifyRefreshToken(refreshToken);
+
+      // Find user
+      const user = await UserService.findById(decoded.userId);
+
+      if (!user) {
+        throw new UnauthorizedError('User not found');
+      }
+
+      if (!UserService.isActive(user)) {
+        throw new UnauthorizedError('Account is inactive or suspended');
+      }
+
+      // Generate new access token
+      const accessToken = generateAccessToken(user);
+
+      return {
+        accessToken,
+        expiresIn: config.jwt.jwtConfig.expiresIn,
+        message: 'Token refreshed successfully'
+      };
+    } catch (error) {
+      throw new UnauthorizedError('Invalid refresh token');
+    }
+  }
+
+  /**
+   * User logout
+   */
+  async logout(user, token) {
+    // Log the logout action
+    logBusinessOperation('USER_LOGOUT', user.id, {
+      tokenInfo: {
+        issuedAt: new Date(token.iat * 1000),
+        expiresAt: new Date(token.exp * 1000)
+      }
+    });
+
+    // In a real implementation, you might want to blacklist the token
+    // or store it in a cache to prevent reuse
+
+    return {
+      message: 'Logged out successfully'
+    };
+  }
+
+  /**
+   * Change password
+   */
+  async changePassword(user, currentPassword, newPassword) {
+    // Get fresh user data
+    const freshUser = await UserService.findById(user.id);
+
+    // Validate current password
+    const isPasswordValid = await UserService.validatePassword(freshUser, currentPassword);
+
+    if (!isPasswordValid) {
+      throw new BadRequestError('Current password is incorrect');
+    }
+
+    // Update password
+    await UserService.update(user.id, { password: newPassword });
+
+    logBusinessOperation('USER_CHANGE_PASSWORD', user.id, {});
+
+    return {
+      message: 'Password changed successfully'
+    };
+  }
+
+  /**
+   * Reset password (forgot password)
+   */
+  async resetPassword(email) {
+    const user = await prisma.users.findFirst({
+      where: { email, is_deleted: false }
+    });
+
+    if (!user) {
+      throw new NotFoundError('User with this email does not exist');
+    }
+
+    // Generate reset token (in a real implementation)
+    // const resetToken = generateResetToken();
+    // await UserService.update(user.id, { reset_token: resetToken });
+
+    // Send reset email (placeholder)
+    // await emailService.sendPasswordResetEmail(user.email, resetToken);
+
+    logBusinessOperation('USER_PASSWORD_RESET_REQUEST', user.id, { email });
+
+    return {
+      message: 'Password reset instructions sent to your email'
+    };
+  }
+
+  /**
+   * Get current user info
+   */
+  async getCurrentUser(userId) {
+    const user = await UserService.getFullProfile(userId);
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    return UserService.toSafeJSON(user);
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(user, updateData) {
+    // Remove fields that shouldn't be updated through this endpoint
+    delete updateData.password;
+    delete updateData.password_hash;
+    delete updateData.role;
+    delete updateData.status;
+    delete updateData.points_balance;
+
+    const updatedUser = await UserService.update(user.id, updateData);
+
+    logBusinessOperation('USER_UPDATE_PROFILE', user.id, {
+      updatedFields: Object.keys(updateData)
+    });
+
+    return {
+      user: UserService.toSafeJSON(updatedUser),
+      message: 'Profile updated successfully'
+    };
+  }
+
+  /**
+   * Get WeChat user data (placeholder)
+   */
+  async getWechatUserData(code) {
+    // In a real implementation, this would call WeChat API
+    // For now, return mock data
+    return {
+      openid: `mock_openid_${code}`,
+      unionid: `mock_unionid_${code}`,
+      session_key: 'mock_session_key'
+    };
+  }
+}
+
+module.exports = new AuthService();
