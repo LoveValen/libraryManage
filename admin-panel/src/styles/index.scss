@@ -2,6 +2,11 @@
 @use './variables.scss' as *;
 @use './mixins.scss' as *;
 
+// TailwindCSS
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 // 重置样式
 * {
   margin: 0;
@@ -139,6 +144,18 @@ button {
 .text-warning { color: var(--el-color-warning); }
 .text-danger { color: var(--el-color-danger); }
 .text-info { color: var(--el-color-info); }
+
+// 主题色动态应用
+:root {
+  // 确保主题色变量生效
+  --el-color-primary: var(--color-primary, #409eff);
+  --el-color-primary-light-3: var(--color-primary-300, #79bbff);
+  --el-color-primary-light-5: var(--color-primary-200, #a0cfff);
+  --el-color-primary-light-7: var(--color-primary-100, #c6e2ff);
+  --el-color-primary-light-8: var(--color-primary-50, #d9ecff);
+  --el-color-primary-light-9: var(--color-primary-50, #ecf5ff);
+  --el-color-primary-dark-2: var(--color-primary-600, #337ecc);
+}
 
 .text-regular { color: var(--el-text-color-regular); }
 .text-secondary { color: var(--el-text-color-secondary); }

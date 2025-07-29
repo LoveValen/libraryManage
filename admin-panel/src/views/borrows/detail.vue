@@ -1,15 +1,19 @@
 <template>
   <div class="borrow-detail-container">
     <!-- 页面头部 -->
-    <PageHeader
-      title="借阅详情"
-      :description="`借阅记录 #${borrowRecord?.id || ''} 的详细信息`"
-      icon="DocumentCopy"
-      :show-back="true"
-      :actions="headerActions"
-      @back="handleBack"
-      @action="handleHeaderAction"
-    />
+    <div class="page-header">
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" @click="handleBack" type="text" size="large">返回</el-button>
+        <div class="header-info">
+          <h1>借阅详情</h1>
+          <p class="description">借阅记录 #{{ borrowRecord?.id || '' }} 的详细信息</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <el-button type="default" :icon="Refresh" @click="loadBorrowDetail">刷新</el-button>
+        <el-button type="default" :icon="Printer" @click="() => window.print()">打印</el-button>
+      </div>
+    </div>
 
     <div v-loading="loading" class="detail-content">
       <template v-if="borrowRecord">
@@ -385,6 +389,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import {
   DocumentCopy,
+  ArrowLeft,
+  Printer,
   Info,
   User,
   Phone,
@@ -401,7 +407,7 @@ import {
   Warning,
   CircleCheck
 } from '@element-plus/icons-vue'
-import { PageHeader, StatusTag } from '@/components/common'
+import { StatusTag } from '@/components/common'
 import ContactUser from './components/ContactUser.vue'
 import {
   getBorrowDetail,
@@ -435,21 +441,6 @@ const activeRelatedTab = ref('userHistory')
 // 每日罚金费率
 const DAILY_FINE_RATE = 0.5
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'refresh',
-    label: '刷新',
-    type: 'default',
-    icon: 'Refresh'
-  },
-  {
-    key: 'print',
-    label: '打印',
-    type: 'default',
-    icon: 'Printer'
-  }
-]
 
 // 借阅状态配置
 const borrowStatusConfig = {
@@ -528,16 +519,6 @@ const loadBookBorrowHistory = async () => {
   }
 }
 
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'refresh':
-      loadBorrowDetail()
-      break
-    case 'print':
-      window.print()
-      break
-  }
-}
 
 const handleBack = () => {
   router.push({ name: 'BorrowList' })
@@ -757,6 +738,44 @@ onMounted(() => {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .header-info {
+      h1 {
+        margin: 0 0 4px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .description {
+        margin: 0;
+        color: var(--el-text-color-regular);
+        font-size: 14px;
+      }
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
 }
 
 .detail-content {

@@ -1,7 +1,15 @@
 <template>
   <div class="borrow-form-container">
     <!-- 页面头部 -->
-    <PageHeader title="新增借阅" description="创建新的图书借阅记录" icon="Plus" :show-back="true" @back="handleBack" />
+    <div class="page-header">
+      <div class="header-left">
+        <el-button :icon="ArrowLeft" @click="handleBack" type="text" size="large">返回</el-button>
+        <div class="header-info">
+          <h1>新增借阅</h1>
+          <p class="description">创建新的图书借阅记录</p>
+        </div>
+      </div>
+    </div>
 
     <!-- 快速操作提示 -->
     <el-card shadow="never" class="quick-tips-card">
@@ -131,8 +139,8 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
-import { Plus, Lightning, DocumentAdd, QrCode, Clock, Refresh, View, Check } from '@element-plus/icons-vue'
-import { PageHeader, StatusTag } from '@/components/common'
+import { Plus, Lightning, DocumentAdd, QrCode, Clock, Refresh, View, Check, ArrowLeft } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/common'
 import BorrowForm from './components/BorrowForm.vue'
 import ScanBorrowDialog from './components/ScanBorrowDialog.vue'
 import { getBorrows, returnBook } from '@/api/borrows'
@@ -314,6 +322,36 @@ onUnmounted(() => {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .header-info {
+      h1 {
+        margin: 0 0 4px 0;
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+      }
+
+      .description {
+        margin: 0;
+        color: var(--el-text-color-regular);
+        font-size: 14px;
+      }
+    }
+  }
 }
 
 .quick-tips-card {

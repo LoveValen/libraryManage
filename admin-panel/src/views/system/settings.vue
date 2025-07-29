@@ -1,13 +1,24 @@
 <template>
   <div class="system-settings-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="系统设置"
-      description="配置图书馆管理系统的各项参数和规则"
-      icon="Setting"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
+    <!-- 自定义头部 -->
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="header-title">系统设置</h1>
+          <p class="header-subtitle">配置图书馆管理系统的各项参数和规则</p>
+        </div>
+        <div class="header-actions">
+          <el-button type="default" @click="exportSettings">
+            <el-icon><Download /></el-icon>
+            导出配置
+          </el-button>
+          <el-button type="default" @click="importSettings">
+            <el-icon><Upload /></el-icon>
+            导入配置
+          </el-button>
+        </div>
+      </div>
+    </div>
 
     <!-- 设置导航 -->
     <el-card shadow="never" class="settings-nav-card">
@@ -505,8 +516,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
-import { Setting, Reading, Medal, Bell, Lock, Tools } from '@element-plus/icons-vue'
-import { PageHeader } from '@/components/common'
+import { Setting, Reading, Medal, Bell, Lock, Tools, Download, Upload } from '@element-plus/icons-vue'
 import BackupSettingsDialog from './components/BackupSettingsDialog.vue'
 
 // 响应式数据
@@ -594,33 +604,7 @@ const securitySettings = reactive({
   ipWhitelist: ''
 })
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'export',
-    label: '导出配置',
-    type: 'default',
-    icon: 'Download'
-  },
-  {
-    key: 'import',
-    label: '导入配置',
-    type: 'default',
-    icon: 'Upload'
-  }
-]
-
 // 方法
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'export':
-      exportSettings()
-      break
-    case 'import':
-      importSettings()
-      break
-  }
-}
 
 const handleTabChange = tab => {
   console.log('切换到标签页:', tab)
@@ -853,6 +837,43 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .system-settings-container {
   padding: 20px;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  padding: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.header-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .settings-nav-card {

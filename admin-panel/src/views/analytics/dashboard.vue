@@ -1,13 +1,5 @@
 <template>
   <div class="analytics-dashboard">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="高级分析仪表板"
-      description="全面的图书馆运营数据分析和洞察"
-      icon="TrendCharts"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
     <!-- 时间范围选择器 -->
     <el-card shadow="never" class="time-selector-card">
@@ -59,25 +51,6 @@
       </div>
     </el-card>
 
-    <!-- 关键指标概览 -->
-    <div class="overview-section">
-      <div class="metrics-grid">
-        <StatCard
-          v-for="metric in overviewMetrics"
-          :key="metric.key"
-          :title="metric.label"
-          :value="metric.value"
-          :icon="metric.icon"
-          :type="metric.type"
-          :trend="metric.trend"
-          :show-trend="true"
-          :count-up="true"
-          :loading="loading"
-          @click="handleMetricClick(metric.key)"
-          class="cursor-pointer"
-        />
-      </div>
-    </div>
 
     <!-- 趋势图表 -->
     <el-row :gutter="20">
@@ -358,7 +331,6 @@ import {
   Reading,
   Star
 } from '@element-plus/icons-vue'
-import { PageHeader, StatCard } from '@/components/common'
 import {
   getDashboardAnalytics,
   getOverviewStats,
@@ -392,7 +364,6 @@ const selectedUserMetric = ref('topBorrowers')
 
 // 数据状态
 const dashboardData = ref({})
-const overviewMetrics = ref([])
 const trendsData = ref([])
 const topBooks = ref([])
 const activeUsers = ref([])
@@ -408,21 +379,6 @@ const quickFilters = [
   { key: '1y', label: '最近1年', days: 365 }
 ]
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'export',
-    label: '导出报告',
-    type: 'primary',
-    icon: 'Download'
-  },
-  {
-    key: 'settings',
-    label: '设置',
-    type: 'default',
-    icon: 'Setting'
-  }
-]
 
 // 计算属性
 const currentDateRange = computed(() => {
@@ -449,16 +405,6 @@ const handleDateRangeChange = () => {
   loadDashboardData()
 }
 
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'export':
-      exportReport()
-      break
-    case 'settings':
-      showSettings()
-      break
-  }
-}
 
 const loadDashboardData = async () => {
   loading.value = true
@@ -473,7 +419,6 @@ const loadDashboardData = async () => {
     ])
 
     dashboardData.value = dashboard.data
-    updateOverviewMetrics(dashboard.data.overview)
     updateTrendsData(dashboard.data.trends)
     updateTopBooks(dashboard.data.topBooks)
     updateActiveUsers(dashboard.data.activeUsers)
@@ -491,42 +436,6 @@ const loadDashboardData = async () => {
   }
 }
 
-const updateOverviewMetrics = overview => {
-  overviewMetrics.value = [
-    {
-      key: 'totalBooks',
-      label: '总图书数',
-      value: overview.totals.books,
-      icon: 'Reading',
-      type: 'primary',
-      trend: { value: 0, isUp: true }
-    },
-    {
-      key: 'totalUsers',
-      label: '总用户数',
-      value: overview.totals.users,
-      icon: 'User',
-      type: 'success',
-      trend: { value: overview.period.userGrowth, isUp: overview.period.userGrowth >= 0 }
-    },
-    {
-      key: 'activeBorrows',
-      label: '活跃借阅',
-      value: overview.current.activeBorrows,
-      icon: 'DocumentCopy',
-      type: 'warning',
-      trend: { value: overview.period.borrowGrowth, isUp: overview.period.borrowGrowth >= 0 }
-    },
-    {
-      key: 'returnRate',
-      label: '归还率',
-      value: `${overview.current.returnRate}%`,
-      icon: 'CircleCheck',
-      type: 'info',
-      trend: { value: 0, isUp: true }
-    }
-  ]
-}
 
 const updateTrendsData = trends => {
   trendsData.value = trends
@@ -697,10 +606,6 @@ const loadActiveUsers = async () => {
   updateActiveUsers(dashboardData.value.activeUsers)
 }
 
-const handleMetricClick = metricKey => {
-  // 根据指标类型跳转到相应的详细页面
-  console.log('Metric clicked:', metricKey)
-}
 
 const viewBookDetail = bookId => {
   window.open(`/books/detail/${bookId}`, '_blank')
@@ -936,15 +841,6 @@ onUnmounted(() => {
   }
 }
 
-.overview-section {
-  margin-bottom: 20px;
-
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-  }
-}
 
 .trends-card,
 .category-chart-card {
@@ -1181,9 +1077,6 @@ onUnmounted(() => {
     }
   }
 
-  .metrics-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
 
   .book-item,
   .user-item {

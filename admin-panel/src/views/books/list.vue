@@ -1,61 +1,51 @@
 <template>
   <div class="books-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="图书管理"
-      description="管理图书馆中的所有图书信息"
-      icon="Reading"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
     <!-- 搜索筛选区域 -->
-    <SearchFilter
+    <SearchFilterSimple
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
+      :collapsible="false"
       @search="handleSearch"
       @reset="handleReset"
     />
 
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <StatCard
-          v-for="stat in statsData"
-          :key="stat.key"
-          :title="stat.label"
-          :value="stat.value"
-          :icon="stat.icon"
-          :type="stat.type"
-          :trend="stat.trend"
-          :show-trend="true"
-          :count-up="true"
-        />
-      </div>
-    </div>
 
-    <!-- 显示模式切换 -->
-    <div class="view-modes">
-      <el-card shadow="never">
-        <div class="view-controls">
-          <div class="view-mode-switch">
-            <el-radio-group v-model="viewMode" @change="handleViewModeChange">
-              <el-radio-button value="grid">
-                <el-icon><Grid /></el-icon>
-                卡片视图
-              </el-radio-button>
-              <el-radio-button value="table">
-                <el-icon><List /></el-icon>
-                表格视图
-              </el-radio-button>
-            </el-radio-group>
+    <!-- 图书列表卡片 -->
+    <el-card shadow="never" class="books-card">
+      <!-- 视图控制栏 -->
+      <div class="view-controls">
+        <div class="view-controls-left">
+          <el-radio-group v-model="viewMode" @change="handleViewModeChange" size="default">
+            <el-radio-button value="grid">
+              <el-icon><Grid /></el-icon>
+              <span class="view-label">卡片视图</span>
+            </el-radio-button>
+            <el-radio-button value="table">
+              <el-icon><List /></el-icon>
+              <span class="view-label">表格视图</span>
+            </el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <div class="view-controls-right">
+          <div class="control-group">
+            <span class="control-label">显示选项:</span>
+            <el-checkbox v-model="showCover" size="small">封面</el-checkbox>
+            <el-checkbox v-model="showStock" size="small">库存</el-checkbox>
           </div>
-
-          <div class="view-options">
-            <el-checkbox v-model="showCover">显示封面</el-checkbox>
-            <el-checkbox v-model="showStock">显示库存</el-checkbox>
-            <el-select v-model="sortBy" placeholder="排序方式" style="width: 140px">
+          
+          <el-divider direction="vertical" />
+          
+          <div class="sort-controls">
+            <span class="control-label">排序:</span>
+            <el-select 
+              v-model="sortBy" 
+              placeholder="选择排序字段" 
+              size="small"
+              style="width: 140px"
+            >
               <el-option label="添加时间" value="createdAt" />
               <el-option label="更新时间" value="updatedAt" />
               <el-option label="书名" value="title" />
@@ -63,139 +53,260 @@
               <el-option label="借阅次数" value="borrowCount" />
               <el-option label="评分" value="rating" />
             </el-select>
-            <el-button @click="toggleSortOrder">
-              <el-icon><component :is="sortOrder === 'desc' ? 'SortDown' : 'SortUp'" /></el-icon>
-            </el-button>
+            <el-tooltip :content="sortOrder === 'desc' ? '降序排列' : '升序排列'">
+              <el-button 
+                @click="toggleSortOrder" 
+                size="small"
+                :type="sortOrder === 'desc' ? 'primary' : 'default'"
+              >
+                <el-icon>
+                  <component :is="sortOrder === 'desc' ? 'SortDown' : 'SortUp'" />
+                </el-icon>
+              </el-button>
+            </el-tooltip>
           </div>
         </div>
-      </el-card>
-    </div>
+      </div>
 
-    <!-- 图书列表 - 卡片视图 -->
-    <div v-if="viewMode === 'grid'" class="books-grid">
-      <el-row :gutter="20" v-loading="loading">
-        <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
-          <div class="book-card" @click="handleView(book)">
-            <div class="book-cover-container">
-              <img :src="book.cover" :alt="book.title" class="book-cover" />
-              <div class="book-overlay">
-                <div class="book-actions">
-                  <el-button type="primary" circle @click.stop="handleView(book)">
-                    <el-icon><View /></el-icon>
-                  </el-button>
-                  <el-button type="success" circle @click.stop="handleEdit(book)">
-                    <el-icon><Edit /></el-icon>
-                  </el-button>
-                  <el-button type="warning" circle @click.stop="handleBorrow(book)">
-                    <el-icon><Reading /></el-icon>
-                  </el-button>
+      <!-- 图书列表内容 -->
+      <div class="books-content">
+        <!-- 图书列表 - 卡片视图 -->
+        <div v-if="viewMode === 'grid'" class="books-grid">
+          <el-row :gutter="20" v-loading="loading">
+            <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
+              <div class="book-card" @click="handleView(book)">
+                <div class="book-cover-container">
+                  <img :src="book.cover" :alt="book.title" class="book-cover" />
+                  <div class="book-overlay">
+                    <div class="book-actions">
+                      <el-button type="primary" circle @click.stop="handleView(book)">
+                        <el-icon><View /></el-icon>
+                      </el-button>
+                      <el-button type="success" circle @click.stop="handleEdit(book)">
+                        <el-icon><Edit /></el-icon>
+                      </el-button>
+                      <el-button type="warning" circle @click.stop="handleBorrow(book)">
+                        <el-icon><Reading /></el-icon>
+                      </el-button>
+                    </div>
+                  </div>
+                  <StatusTag :status="book.status" :preset="'book'" size="small" class="book-status-tag" />
+                </div>
+
+                <div class="book-info">
+                  <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
+                  <p class="book-author">{{ book.author }}</p>
+                  <div class="book-meta">
+                    <div class="book-category">
+                      <StatusTag :status="book.categoryId" :text="getCategoryName(book.categoryId)" size="small" />
+                    </div>
+                    <div class="book-rating">
+                      <el-rate v-model="book.rating" disabled size="small" show-score />
+                    </div>
+                  </div>
+                  <div class="book-stats">
+                    <div class="stat-item">
+                      <el-icon><Reading /></el-icon>
+                      <span>{{ book.borrowCount || 0 }}次借阅</span>
+                    </div>
+                    <div class="stat-item" v-if="showStock">
+                      <el-icon><Box /></el-icon>
+                      <span>{{ book.stock || 0 }}本库存</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <StatusTag :status="book.status" :preset="'book'" size="small" class="book-status-tag" />
-            </div>
+            </el-col>
+          </el-row>
+        </div>
 
-            <div class="book-info">
-              <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
-              <p class="book-author">{{ book.author }}</p>
-              <div class="book-meta">
-                <div class="book-category">
-                  <StatusTag :status="book.categoryId" :text="getCategoryName(book.categoryId)" size="small" />
-                </div>
-                <div class="book-rating">
-                  <el-rate v-model="book.rating" disabled size="small" show-score />
+        <!-- 图书列表 - 表格视图 -->
+        <div v-else class="table-section">
+          <el-card shadow="never" class="table-card">
+            <!-- 表格工具栏 -->
+            <div class="flex justify-between items-center mb-4">
+              <div class="toolbar-left">
+                    <el-button type="primary" @click="handleAdd">
+                      新增
+                    </el-button>
+                  <el-button 
+                    type="danger" 
+                    :disabled="selectedBooks.length === 0" 
+                    @click="handleBatchDelete"
+                  >
+                    删除
+                  </el-button>
+              </div>
+              
+              <div class="toolbar-right">
+                <div class="toolbar-actions">
+                  <el-tooltip content="刷新数据" placement="top">
+                    <el-button 
+                      icon="Refresh" 
+                      :loading="loading"
+                      @click="fetchBooks" 
+                    />
+                  </el-tooltip>
+                  <el-tooltip content="导出全部数据" placement="top">
+                    <el-button 
+                      icon="Download" 
+                      :loading="exportLoading"
+                      @click="handleExport" 
+                    />
+                  </el-tooltip>
+                  <el-tooltip content="列显示设置" placement="top">
+                    <el-button 
+                      icon="Setting" 
+                      @click="showColumnSettings = true" 
+                    />
+                  </el-tooltip>
                 </div>
               </div>
-              <div class="book-stats">
-                <div class="stat-item">
-                  <el-icon><Reading /></el-icon>
-                  <span>{{ book.borrowCount || 0 }}次借阅</span>
-                </div>
-                <div class="stat-item" v-if="showStock">
-                  <el-icon><Box /></el-icon>
-                  <span>{{ book.stock || 0 }}本库存</span>
-                </div>
-              </div>
             </div>
-          </div>
-        </el-col>
-      </el-row>
-    </div>
 
-    <!-- 图书列表 - 表格视图 -->
-    <div v-else class="books-table">
-      <DataTable
-        v-model:pagination="pagination"
-        :data="bookList"
-        :columns="tableColumns"
-        :loading="loading"
-        :selectable="true"
-        :batch-actions="batchActions"
-        :toolbar-actions="toolbarActions"
-        @selection-change="handleSelectionChange"
-        @sort-change="handleSortChange"
-        @batch-action="handleBatchAction"
-        @toolbar-action="handleToolbarAction"
-        @row-action="handleRowAction"
-      >
-        <!-- 自定义插槽 -->
-        <template #cover="{ row }">
-          <img v-if="showCover" :src="row.cover" :alt="row.title" class="book-cover-small" />
-        </template>
+            <!-- 数据表格 -->
+            <el-table
+              ref="tableRef"
+              v-loading="loading"
+              :data="bookList"
+              stripe
+              border
+              height="600"
+              @selection-change="handleSelectionChange"
+              @sort-change="handleSortChange"
+            >
+              <el-table-column type="selection" width="50" fixed="left" />
+              <el-table-column label="序号" type="index" width="60" fixed="left" />
 
-        <template #book-info="{ row }">
-          <div class="book-info-cell">
-            <img v-if="showCover" :src="row.cover" :alt="row.title" class="book-cover-small" />
-            <div class="book-details">
-              <div class="book-title-cell">{{ row.title }}</div>
-              <div class="book-author-cell">{{ row.author }}</div>
-              <div class="book-isbn-cell">ISBN: {{ row.isbn }}</div>
+              <el-table-column label="图书信息" min-width="300" fixed="left">
+                <template #default="{ row }">
+                  <div class="book-info-cell">
+                    <img v-if="showCover" :src="row.cover" :alt="row.title" class="book-cover-small" />
+                    <div class="book-details">
+                      <div class="book-title-cell">{{ row.title }}</div>
+                      <div class="book-author-cell">{{ row.author }}</div>
+                      <div class="book-isbn-cell">ISBN: {{ row.isbn }}</div>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="分类" width="120" sortable="custom" prop="categoryId">
+                <template #default="{ row }">
+                  <StatusTag :status="row.categoryId" :text="getCategoryName(row.categoryId)" size="small" />
+                </template>
+              </el-table-column>
+
+              <el-table-column label="状态" width="100" sortable="custom" prop="status">
+                <template #default="{ row }">
+                  <StatusTag :status="row.status" :preset="'book'" size="small" />
+                </template>
+              </el-table-column>
+
+              <el-table-column label="位置" width="150">
+                <template #default="{ row }">
+                  <div class="location-info">
+                    <el-icon><Position /></el-icon>
+                    <span>{{ row.location }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column v-if="showStock" label="库存信息" width="120">
+                <template #default="{ row }">
+                  <div class="stock-info">
+                    <div class="stock-item">
+                      <span class="stock-label">库存:</span>
+                      <span class="stock-value">{{ row.stock || 0 }}</span>
+                    </div>
+                    <div class="stock-item">
+                      <span class="stock-label">在借:</span>
+                      <span class="borrowed-value">{{ row.borrowedCount || 0 }}</span>
+                    </div>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="评分" width="150" sortable="custom" prop="rating">
+                <template #default="{ row }">
+                  <div class="rating-info">
+                    <el-rate v-model="row.rating" disabled size="small" />
+                    <span class="rating-count">({{ row.reviewCount || 0 }})</span>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="添加时间" width="160" sortable="custom" prop="createdAt">
+                <template #default="{ row }">
+                  <div class="time-info">
+                    <div>{{ formatDate(row.createdAt) }}</div>
+                    <div class="time-ago">{{ formatTimeAgo(row.createdAt) }}</div>
+                  </div>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="操作" width="200" fixed="right">
+                <template #default="{ row }">
+                  <div class="action-buttons">
+                    <el-button type="primary" link size="small" @click="handleView(row)">
+                      <el-icon><View /></el-icon>
+                      查看
+                    </el-button>
+                    <el-button type="success" link size="small" @click="handleEdit(row)">
+                      <el-icon><Edit /></el-icon>
+                      编辑
+                    </el-button>
+                    <el-dropdown @command="command => handleAction(command, row)">
+                      <el-button type="info" link size="small">
+                        更多
+                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item command="copy">
+                            <el-icon><CopyDocument /></el-icon>
+                            复制
+                          </el-dropdown-item>
+                          <el-dropdown-item command="toggleStatus">
+                            <el-icon><Switch /></el-icon>
+                            {{ row.status === 'available' ? '下架' : '上架' }}
+                          </el-dropdown-item>
+                          <el-dropdown-item command="viewBorrows">
+                            <el-icon><Reading /></el-icon>
+                            借阅记录
+                          </el-dropdown-item>
+                          <el-dropdown-item command="viewReviews">
+                            <el-icon><ChatDotRound /></el-icon>
+                            查看评价
+                          </el-dropdown-item>
+                          <el-dropdown-item command="delete" divided>
+                            <el-icon><Delete /></el-icon>
+                            删除图书
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </div>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <!-- 分页 -->
+            <div class="pagination-wrapper">
+              <el-pagination
+                v-model:current-page="pagination.page"
+                v-model:page-size="pagination.size"
+                :page-sizes="[10, 20, 50, 100]"
+                :total="pagination.total"
+                layout="total, sizes, prev, pager, next, jumper"
+                @size-change="handleSizeChange"
+                @current-change="handlePageChange"
+              />
             </div>
-          </div>
-        </template>
-
-        <template #category="{ row }">
-          <StatusTag :status="row.categoryId" :text="getCategoryName(row.categoryId)" size="small" />
-        </template>
-
-        <template #status="{ row }">
-          <StatusTag :status="row.status" :preset="'book'" size="small" />
-        </template>
-
-        <template #location="{ row }">
-          <div class="location-info">
-            <el-icon><Position /></el-icon>
-            <span>{{ row.location }}</span>
-          </div>
-        </template>
-
-        <template #stock="{ row }" v-if="showStock">
-          <div class="stock-info">
-            <div class="stock-item">
-              <span class="stock-label">库存:</span>
-              <span class="stock-value">{{ row.stock || 0 }}</span>
-            </div>
-            <div class="stock-item">
-              <span class="stock-label">在借:</span>
-              <span class="borrowed-value">{{ row.borrowedCount || 0 }}</span>
-            </div>
-          </div>
-        </template>
-
-        <template #rating="{ row }">
-          <div class="rating-info">
-            <el-rate v-model="row.rating" disabled size="small" />
-            <span class="rating-count">({{ row.reviewCount || 0 }})</span>
-          </div>
-        </template>
-
-        <template #date="{ row }">
-          <div class="time-info">
-            <div>{{ formatDate(row.createdAt) }}</div>
-            <div class="time-ago">{{ formatTimeAgo(row.createdAt) }}</div>
-          </div>
-        </template>
-      </DataTable>
-    </div>
+          </el-card>
+        </div>
+      </div>
+    </el-card>
 
     <!-- 分类管理对话框 -->
     <el-dialog v-model="showCategoryManager" title="分类管理" width="800px" destroy-on-close>
@@ -238,9 +349,33 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { 
+  Grid, 
+  List, 
+  SortDown, 
+  SortUp,
+  Check,
+  Delete,
+  Switch,
+  ArrowDown,
+  Plus,
+  Download,
+  FolderOpened,
+  Collection,
+  Refresh,
+  Setting,
+  View,
+  Edit,
+  CopyDocument,
+  Reading,
+  ChatDotRound,
+  Position,
+  Box
+} from '@element-plus/icons-vue'
 import { bookApi } from '@/api/book'
 import { formatDate, formatTimeAgo } from '@/utils/date'
-import { PageHeader, SearchFilter, StatCard, DataTable, StatusTag, PRESETS } from '@/components/common'
+import { DataTable, StatusTag, PRESETS } from '@/components/common'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
 import CategoryManager from './components/CategoryManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
@@ -277,6 +412,57 @@ const searchForm = reactive({
   dateRange: null
 })
 
+// 搜索字段配置
+const searchFields = [
+  {
+    key: 'keyword',
+    type: 'input',
+    label: '关键词',
+    placeholder: '搜索书名、作者、ISBN',
+    inputWidth: '250px'
+  },
+  {
+    key: 'category',
+    type: 'select',
+    label: '分类',
+    placeholder: '选择分类',
+    options: computed(() => 
+      categories.value?.filter(cat => cat && cat.name && cat.id)
+        .map(cat => ({ label: cat.name, value: cat.id })) || []
+    )
+  },
+  {
+    key: 'status',
+    type: 'select',
+    label: '状态',
+    placeholder: '选择状态',
+    options: [
+      { label: '可借', value: 'available' },
+      { label: '已借出', value: 'borrowed' },
+      { label: '维修中', value: 'maintenance' },
+      { label: '已下架', value: 'offline' }
+    ]
+  },
+  {
+    key: 'location',
+    type: 'select',
+    label: '位置',
+    placeholder: '选择位置',
+    options: computed(() => 
+      locations.value?.filter(loc => loc && typeof loc === 'string')
+        .map(loc => ({ label: loc, value: loc })) || []
+    )
+  },
+  {
+    key: 'dateRange',
+    type: 'date',
+    dateType: 'daterange',
+    label: '添加时间',
+    startPlaceholder: '开始日期',
+    endPlaceholder: '结束日期'
+  }
+]
+
 // 分页信息
 const pagination = reactive({
   page: 1,
@@ -308,13 +494,6 @@ const columnOptions = [
   { label: '添加时间', value: 'createTime' }
 ]
 
-// 统计数据
-const statsData = ref([
-  { key: 'total', label: '图书总数', value: 0, trend: 5.2, type: 'primary', icon: 'Reading' },
-  { key: 'available', label: '可借图书', value: 0, trend: 2.1, type: 'success', icon: 'Check' },
-  { key: 'borrowed', label: '已借出', value: 0, trend: 8.5, type: 'warning', icon: 'DocumentCopy' },
-  { key: 'popular', label: '热门图书', value: 0, trend: 12.3, type: 'info', icon: 'Star' }
-])
 
 // 计算属性
 const isIndeterminateChecked = computed(() => {
@@ -382,8 +561,6 @@ const fetchBooks = async () => {
     bookList.value = data.books
     pagination.total = data.total
 
-    // 更新统计数据
-    updateStatsData(data.stats)
   } catch (error) {
     console.error('获取图书列表失败:', error)
     ElMessage.error('获取图书列表失败')
@@ -401,14 +578,6 @@ const fetchCategories = async () => {
   }
 }
 
-const updateStatsData = stats => {
-  if (stats) {
-    statsData.value[0].value = stats.total || 0
-    statsData.value[1].value = stats.available || 0
-    statsData.value[2].value = stats.borrowed || 0
-    statsData.value[3].value = stats.popular || 0
-  }
-}
 
 const handleSearch = () => {
   pagination.page = 1
@@ -477,23 +646,11 @@ const handleSelectAll = checked => {
   }
 }
 
-// 页面头部操作处理
-const handleHeaderAction = actionKey => {
-  switch (actionKey) {
-    case 'add':
-      handleAdd()
-      break
-    case 'import':
-      handleImport()
-      break
-    case 'export':
-      handleExport()
-      break
-    case 'category':
-      showCategoryManager.value = true
-      break
-  }
+const clearSelection = () => {
+  tableRef.value?.clearSelection()
+  selectedBooks.value = []
 }
+
 
 // 批量操作处理
 const handleBatchAction = async (actionKey, selectedRows) => {
@@ -760,21 +917,11 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .books-container {
-  padding: 20px;
   background-color: var(--content-bg-color);
 }
 
-.stats-section {
-  margin-bottom: 20px;
-}
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.view-modes {
+.books-card {
   margin-bottom: 20px;
 }
 
@@ -782,12 +929,47 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 20px;
 }
 
-.view-options {
+.view-controls-left {
+  display: flex;
+  align-items: center;
+}
+
+.view-controls-right {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.view-label {
+  margin-left: 6px;
+  font-size: 13px;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.books-content {
+  padding: 0 20px 20px;
 }
 
 .books-grid {
@@ -1049,31 +1231,25 @@ onMounted(() => {
 
 // 响应式设计
 @media (max-width: 768px) {
-  .books-container {
-    padding: 16px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-
   .view-controls {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
   }
 
-  .view-options {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
+  .view-controls-left,
+  .view-controls-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .view-controls-right {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
 
   .book-info-cell {
     .book-cover-small {

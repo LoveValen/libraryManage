@@ -563,7 +563,7 @@ watch(visible, newValue => {
 .pagination-wrapper {
   margin-top: 20px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .dialog-footer {

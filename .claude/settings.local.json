@@ -34,7 +34,8 @@
       "Bash(start:*)",
       "Bash(where mysql)",
       "Bash(cmd /c \"start \"\"Docker Desktop\"\" \"\"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe\"\"\")",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(cmd //c:*)"
     ],
     "deny": []
   }

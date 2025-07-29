@@ -1,32 +1,6 @@
 <template>
   <div class="points-overview-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="积分管理"
-      description="管理用户积分系统，查看积分统计和操作记录"
-      icon="Medal"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
-    <!-- 积分统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <StatCard
-          v-for="stat in statsData"
-          :key="stat.key"
-          :title="stat.label"
-          :value="stat.value"
-          :icon="stat.icon"
-          :type="stat.type"
-          :trend="stat.trend"
-          :show-trend="true"
-          :count-up="true"
-          @click="handleStatCardClick(stat.key)"
-          class="cursor-pointer"
-        />
-      </div>
-    </div>
 
     <!-- 快速操作区域 -->
     <el-card shadow="never" class="quick-actions-card">
@@ -249,7 +223,6 @@ import {
   Coin,
   Star
 } from '@element-plus/icons-vue'
-import { PageHeader, StatCard } from '@/components/common'
 import PointsOperationDialog from './components/PointsOperationDialog.vue'
 import PointsTransferDialog from './components/PointsTransferDialog.vue'
 import PointsStatisticsDialog from './components/PointsStatisticsDialog.vue'
@@ -275,76 +248,9 @@ const leaderboardPeriod = ref('all')
 const pointsRules = ref({})
 const userLevels = ref({})
 
-// 统计数据
-const statsData = ref([
-  {
-    key: 'totalTransactions',
-    label: '总交易数',
-    value: 0,
-    icon: 'DocumentCopy',
-    type: 'primary',
-    trend: { value: 0, isUp: true }
-  },
-  {
-    key: 'totalPointsAwarded',
-    label: '累计发放',
-    value: 0,
-    icon: 'Gift',
-    type: 'success',
-    trend: { value: 0, isUp: true }
-  },
-  {
-    key: 'totalPointsSpent',
-    label: '累计消费',
-    value: 0,
-    icon: 'Coin',
-    type: 'warning',
-    trend: { value: 0, isUp: false }
-  },
-  {
-    key: 'recentActivity',
-    label: '近期活跃',
-    value: 0,
-    icon: 'Star',
-    type: 'info',
-    trend: { value: 0, isUp: true }
-  }
-])
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'refresh',
-    label: '刷新数据',
-    type: 'default',
-    icon: 'Refresh'
-  },
-  {
-    key: 'export',
-    label: '导出报告',
-    type: 'default',
-    icon: 'Download'
-  }
-]
 
 // 方法
-const loadStatistics = async () => {
-  loading.value = true
-  try {
-    const response = await getPointsStatistics()
-    const stats = response.data
-
-    statsData.value[0].value = stats.totalTransactions
-    statsData.value[1].value = stats.totalPointsAwarded
-    statsData.value[2].value = stats.totalPointsSpent
-    statsData.value[3].value = stats.recentActivity
-  } catch (error) {
-    console.error('加载统计数据失败:', error)
-    ElMessage.error('加载统计数据失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 const loadLeaderboard = async () => {
   leaderboardLoading.value = true
@@ -392,34 +298,7 @@ const loadPointsRules = async () => {
   }
 }
 
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'refresh':
-      loadAllData()
-      break
-    case 'export':
-      exportReport()
-      break
-  }
-}
 
-const handleStatCardClick = key => {
-  // 根据统计卡片点击跳转到相应的详细页面
-  switch (key) {
-    case 'totalTransactions':
-      showStatisticsDialog.value = true
-      break
-    case 'totalPointsAwarded':
-      showAddPointsDialog.value = true
-      break
-    case 'totalPointsSpent':
-      showDeductPointsDialog.value = true
-      break
-    case 'recentActivity':
-      loadRecentTransactions()
-      break
-  }
-}
 
 const handleOperationSuccess = () => {
   ElNotification.success({
@@ -432,7 +311,6 @@ const handleOperationSuccess = () => {
 }
 
 const loadAllData = () => {
-  loadStatistics()
   loadLeaderboard()
   loadRecentTransactions()
 }
@@ -489,15 +367,6 @@ onMounted(() => {
   padding: 20px;
 }
 
-.stats-section {
-  margin-bottom: 20px;
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-  }
-}
 
 .quick-actions-card {
   margin-bottom: 20px;
@@ -769,9 +638,6 @@ onMounted(() => {
 
 // 响应式设计
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   .quick-actions {
     justify-content: center;

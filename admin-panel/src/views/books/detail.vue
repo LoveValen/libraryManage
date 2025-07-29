@@ -1410,7 +1410,7 @@ onMounted(() => {
     .pagination-wrapper {
       margin-top: 16px;
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
     }
   }
 }
@@ -1564,6 +1564,12 @@ onMounted(() => {
       }
     }
   }
+}
+
+.reviews-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .current-stock {

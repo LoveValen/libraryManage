@@ -553,7 +553,7 @@ defineExpose({
   .pagination-wrapper {
     margin-top: 16px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     padding: 16px 20px;
     background: white;
     border-radius: 8px;

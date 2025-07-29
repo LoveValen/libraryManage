@@ -1,13 +1,14 @@
 <template>
   <div class="books-import-container">
     <!-- 页面头部 -->
-    <PageHeader
-      title="批量导入图书"
-      description="支持Excel、CSV格式的图书数据批量导入"
-      icon="Upload"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
+    <div class="page-header">
+      <h1>批量导入图书</h1>
+      <p class="description">支持Excel、CSV格式的图书数据批量导入</p>
+      <div class="header-actions">
+        <el-button type="default" :icon="Download" @click="downloadTemplate">下载模板</el-button>
+        <el-button type="default" :icon="QuestionFilled" @click="showHelp">使用帮助</el-button>
+      </div>
+    </div>
 
     <!-- 导入步骤 -->
     <el-card shadow="never" class="steps-card">
@@ -402,7 +403,6 @@ import {
   CircleCheck,
   SuccessFilled
 } from '@element-plus/icons-vue'
-import { PageHeader } from '@/components/common'
 import { useAuthStore } from '@/stores/auth'
 import { importBooks, downloadImportTemplate } from '@/api/books'
 
@@ -463,21 +463,6 @@ const importOptions = reactive({
 // 导入结果
 const importResult = ref({})
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'template',
-    label: '下载模板',
-    type: 'default',
-    icon: 'Download'
-  },
-  {
-    key: 'help',
-    label: '使用帮助',
-    type: 'default',
-    icon: 'QuestionFilled'
-  }
-]
 
 // 计算属性
 const canProceed = computed(() => {
@@ -536,16 +521,6 @@ const mappingSummary = computed(() => {
 })
 
 // 方法
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'template':
-      downloadTemplate()
-      break
-    case 'help':
-      showHelp()
-      break
-  }
-}
 
 const beforeUpload = file => {
   const isValidType = [
@@ -852,6 +827,33 @@ onMounted(() => {
 <style lang="scss" scoped>
 .books-import-container {
   padding: 20px;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .description {
+    margin: 0 0 16px 0;
+    color: var(--el-text-color-regular);
+    font-size: 14px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
 }
 
 .steps-card {

@@ -1,32 +1,6 @@
 <template>
   <div class="borrows-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="借阅管理"
-      description="管理图书借阅记录，处理借阅、归还、续借等操作"
-      icon="DocumentCopy"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <StatCard
-          v-for="stat in statsData"
-          :key="stat.key"
-          :title="stat.label"
-          :value="stat.value"
-          :icon="stat.icon"
-          :type="stat.type"
-          :trend="stat.trend"
-          :show-trend="true"
-          :count-up="true"
-          @click="handleStatCardClick(stat.key)"
-          class="cursor-pointer"
-        />
-      </div>
-    </div>
 
     <!-- 快速操作区域 -->
     <el-card shadow="never" class="quick-actions-card">
@@ -50,175 +24,241 @@
     </el-card>
 
     <!-- 搜索筛选区域 -->
-    <SearchFilter
+    <SearchFilterSimple
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
+      :collapsible="false"
       @search="handleSearch"
       @reset="handleReset"
     />
 
     <!-- 借阅记录表格 -->
-    <el-card shadow="never" class="borrows-table-card">
-      <template #header>
-        <div class="card-header">
-          <div class="header-title">
-            <el-icon><List /></el-icon>
-            借阅记录 ({{ pagination.total }})
+    <div class="table-section">
+      <el-card shadow="never" class="table-card">
+        <!-- 表格工具栏 -->
+        <div class="table-toolbar">
+          <div class="toolbar-left">
+            <div v-if="selectedBorrows.length > 0" class="selection-info">
+              <el-icon><Check /></el-icon>
+              <span>已选择 <strong>{{ selectedBorrows.length }}</strong> 项</span>
+            </div>
+            <div class="batch-actions" :class="{ 'show': selectedBorrows.length > 0 }">
+              <el-button type="success" :disabled="selectedBorrows.length === 0" @click="batchReturn">
+                <el-icon><Check /></el-icon>
+                批量归还
+                <el-badge v-if="canBatchReturnCount > 0" :value="canBatchReturnCount" class="action-badge" />
+              </el-button>
+              <el-button type="warning" :disabled="selectedBorrows.length === 0" @click="batchRenew">
+                <el-icon><RefreshLeft /></el-icon>
+                批量续借
+                <el-badge v-if="canBatchRenewCount > 0" :value="canBatchRenewCount" class="action-badge" />
+              </el-button>
+              <el-button type="info" :disabled="selectedBorrows.length === 0" @click="batchSendReminder">
+                <el-icon><Bell /></el-icon>
+                批量提醒
+              </el-button>
+              <el-button type="danger" :disabled="selectedBorrows.length === 0" @click="batchMarkLost">
+                <el-icon><Warning /></el-icon>
+                标记丢失
+              </el-button>
+              <el-button @click="clearSelection" v-if="selectedBorrows.length > 0">
+                取消选择
+              </el-button>
+            </div>
           </div>
-          <div class="header-actions">
-            <el-button type="primary" :icon="Refresh" @click="loadBorrows" :loading="loading">刷新</el-button>
-            <el-button type="default" :icon="Download" @click="exportBorrows">导出</el-button>
+          <div class="toolbar-right">
+            <el-tooltip content="刷新数据">
+              <el-button icon="Refresh" @click="loadBorrows" :loading="loading" />
+            </el-tooltip>
+            <el-tooltip content="导出数据">
+              <el-button icon="Download" @click="exportBorrows" />
+            </el-tooltip>
+            <el-tooltip content="数据分析">
+              <el-button icon="TrendCharts" @click="showTrendsDialog = true" />
+            </el-tooltip>
+            <el-tooltip content="列设置">
+              <el-button icon="Setting" @click="showColumnSettings = true" />
+            </el-tooltip>
           </div>
         </div>
-      </template>
 
-      <DataTable
-        v-loading="loading"
-        :data="borrows"
-        :columns="tableColumns"
-        :pagination="pagination"
-        :selection="true"
-        @selection-change="handleSelectionChange"
-        @sort-change="handleSortChange"
-        @page-change="handlePageChange"
-        @size-change="handleSizeChange"
-      >
-        <!-- 用户信息列 -->
-        <template #user="{ row }">
-          <div class="user-info">
-            <el-avatar :src="row.user?.avatar" :size="32" class="user-avatar">
-              {{ row.user?.realName?.charAt(0) || row.user?.username?.charAt(0) }}
-            </el-avatar>
-            <div class="user-details">
-              <div class="user-name">{{ row.user?.realName || row.user?.username }}</div>
-              <div class="user-meta">{{ row.user?.email }}</div>
-            </div>
-          </div>
-        </template>
+        <!-- 数据表格 -->
+        <el-table
+          ref="tableRef"
+          v-loading="loading"
+          :data="borrows"
+          stripe
+          border
+          height="600"
+          @selection-change="handleSelectionChange"
+          @sort-change="handleSortChange"
+        >
+          <el-table-column type="selection" width="50" fixed="left" />
+          <el-table-column label="序号" type="index" width="60" fixed="left" />
 
-        <!-- 图书信息列 -->
-        <template #book="{ row }">
-          <div class="book-info">
-            <el-image
-              :src="row.book?.coverImage"
-              :preview-src-list="[row.book?.coverImage]"
-              class="book-cover"
-              fit="cover"
-            >
-              <template #error>
-                <div class="book-cover-placeholder">
-                  <el-icon><Reading /></el-icon>
+          <el-table-column label="用户信息" min-width="200" fixed="left">
+            <template #default="{ row }">
+              <div class="user-info">
+                <el-avatar :src="row.user?.avatar" :size="32" class="user-avatar">
+                  {{ row.user?.realName?.charAt(0) || row.user?.username?.charAt(0) }}
+                </el-avatar>
+                <div class="user-details">
+                  <div class="user-name">{{ row.user?.realName || row.user?.username }}</div>
+                  <div class="user-meta">{{ row.user?.email }}</div>
                 </div>
-              </template>
-            </el-image>
-            <div class="book-details">
-              <div class="book-title">{{ row.book?.title }}</div>
-              <div class="book-meta">
-                作者: {{ Array.isArray(row.book?.authors) ? row.book.authors.join(', ') : row.book?.authors }}
               </div>
-              <div class="book-meta">ISBN: {{ row.book?.isbn }}</div>
-            </div>
-          </div>
-        </template>
+            </template>
+          </el-table-column>
 
-        <!-- 状态列 -->
-        <template #status="{ row }">
-          <StatusTag :value="row.status" :config="borrowStatusConfig" :show-icon="true" />
-          <div v-if="row.isCurrentlyOverdue" class="overdue-info">
-            <el-tag type="danger" size="small" class="mt-1">逾期 {{ row.currentOverdueDays }} 天</el-tag>
-          </div>
-        </template>
+          <el-table-column label="图书信息" min-width="250">
+            <template #default="{ row }">
+              <div class="book-info">
+                <el-image
+                  :src="row.book?.coverImage"
+                  :preview-src-list="[row.book?.coverImage]"
+                  class="book-cover"
+                  fit="cover"
+                >
+                  <template #error>
+                    <div class="book-cover-placeholder">
+                      <el-icon><Reading /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
+                <div class="book-details">
+                  <div class="book-title">{{ row.book?.title }}</div>
+                  <div class="book-meta">
+                    作者: {{ Array.isArray(row.book?.authors) ? row.book.authors.join(', ') : row.book?.authors }}
+                  </div>
+                  <div class="book-meta">ISBN: {{ row.book?.isbn }}</div>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
 
-        <!-- 借阅时间列 -->
-        <template #borrowDate="{ row }">
-          <div class="date-info">
-            <div>{{ formatDate(row.borrowDate) }}</div>
-            <div class="date-meta">{{ formatRelativeTime(row.borrowDate) }}</div>
-          </div>
-        </template>
+          <el-table-column label="状态" width="120" sortable="custom" prop="status">
+            <template #default="{ row }">
+              <StatusTag :value="row.status" :config="borrowStatusConfig" :show-icon="true" />
+              <div v-if="row.isCurrentlyOverdue" class="overdue-info">
+                <el-tag type="danger" size="small" class="mt-1">逾期 {{ row.currentOverdueDays }} 天</el-tag>
+              </div>
+            </template>
+          </el-table-column>
 
-        <!-- 应还时间列 -->
-        <template #dueDate="{ row }">
-          <div class="date-info">
-            <div :class="getDueDateClass(row)">
-              {{ formatDate(row.dueDate) }}
-            </div>
-            <div class="date-meta">
-              <span v-if="row.status === 'borrowed'" :class="getDaysRemainingClass(row)">
-                {{ getDaysRemainingText(row) }}
-              </span>
-              <span v-else>-</span>
-            </div>
-          </div>
-        </template>
+          <el-table-column label="借阅时间" width="160" sortable="custom" prop="borrowDate">
+            <template #default="{ row }">
+              <div class="date-info">
+                <div>{{ formatDate(row.borrowDate) }}</div>
+                <div class="date-meta">{{ formatRelativeTime(row.borrowDate) }}</div>
+              </div>
+            </template>
+          </el-table-column>
 
-        <!-- 归还时间列 -->
-        <template #returnDate="{ row }">
-          <div v-if="row.returnDate" class="date-info">
-            <div>{{ formatDate(row.returnDate) }}</div>
-            <div class="date-meta">{{ formatRelativeTime(row.returnDate) }}</div>
-          </div>
-          <span v-else class="text-muted">-</span>
-        </template>
+          <el-table-column label="应还时间" width="160" sortable="custom" prop="dueDate">
+            <template #default="{ row }">
+              <div class="date-info">
+                <div :class="getDueDateClass(row)">
+                  {{ formatDate(row.dueDate) }}
+                </div>
+                <div class="date-meta">
+                  <span v-if="row.status === 'borrowed'" :class="getDaysRemainingClass(row)">
+                    {{ getDaysRemainingText(row) }}
+                  </span>
+                  <span v-else>-</span>
+                </div>
+              </div>
+            </template>
+          </el-table-column>
 
-        <!-- 续借次数列 -->
-        <template #renewalCount="{ row }">
-          <el-tag :type="getRenewalTagType(row.renewalCount, row.maxRenewals)" size="small">
-            {{ row.renewalCount }}/{{ row.maxRenewals }}
-          </el-tag>
-        </template>
+          <el-table-column label="归还时间" width="160" sortable="custom" prop="returnDate">
+            <template #default="{ row }">
+              <div v-if="row.returnDate" class="date-info">
+                <div>{{ formatDate(row.returnDate) }}</div>
+                <div class="date-meta">{{ formatRelativeTime(row.returnDate) }}</div>
+              </div>
+              <span v-else class="text-muted">-</span>
+            </template>
+          </el-table-column>
 
-        <!-- 操作列 -->
-        <template #actions="{ row }">
-          <div class="action-buttons">
-            <el-button-group>
-              <el-button type="primary" :icon="View" @click="viewBorrowDetail(row)" size="small" title="查看详情" />
-              <el-button
-                v-if="row.status === 'borrowed' && row.canRenew"
-                type="warning"
-                :icon="RefreshLeft"
-                @click="renewBorrow(row)"
-                size="small"
-                title="续借"
-              />
-              <el-button
-                v-if="['borrowed', 'overdue'].includes(row.status)"
-                type="success"
-                :icon="Check"
-                @click="returnBorrow(row)"
-                size="small"
-                title="归还"
-              />
-              <el-dropdown @command="command => handleRowAction(command, row)" trigger="click">
-                <el-button type="default" :icon="MoreFilled" size="small" title="更多操作" />
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item
-                      :command="{ action: 'markLost', row }"
-                      :icon="Warning"
-                      v-if="['borrowed', 'overdue'].includes(row.status)"
-                    >
-                      标记丢失
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="{ action: 'sendReminder', row }"
-                      :icon="Bell"
-                      v-if="['borrowed', 'overdue'].includes(row.status)"
-                    >
-                      发送提醒
-                    </el-dropdown-item>
-                    <el-dropdown-item :command="{ action: 'viewHistory', row }" :icon="Timer">
-                      借阅历史
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </el-button-group>
-          </div>
-        </template>
-      </DataTable>
-    </el-card>
+          <el-table-column label="续借次数" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getRenewalTagType(row.renewalCount, row.maxRenewals)" size="small">
+                {{ row.renewalCount }}/{{ row.maxRenewals }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="200" fixed="right">
+            <template #default="{ row }">
+              <div class="action-buttons">
+                <el-button type="primary" link size="small" @click="viewBorrowDetail(row)">
+                  <el-icon><View /></el-icon>
+                  查看
+                </el-button>
+                <el-button
+                  v-if="row.status === 'borrowed' && row.canRenew"
+                  type="warning" link size="small"
+                  @click="renewBorrow(row)"
+                >
+                  <el-icon><RefreshLeft /></el-icon>
+                  续借
+                </el-button>
+                <el-button
+                  v-if="['borrowed', 'overdue'].includes(row.status)"
+                  type="success" link size="small"
+                  @click="returnBorrow(row)"
+                >
+                  <el-icon><Check /></el-icon>
+                  归还
+                </el-button>
+                <el-dropdown @command="command => handleRowAction(command, row)">
+                  <el-button type="info" link size="small">
+                    更多
+                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item
+                        :command="{ action: 'markLost', row }"
+                        v-if="['borrowed', 'overdue'].includes(row.status)"
+                      >
+                        <el-icon><Warning /></el-icon>
+                        标记丢失
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        :command="{ action: 'sendReminder', row }"
+                        v-if="['borrowed', 'overdue'].includes(row.status)"
+                      >
+                        <el-icon><Bell /></el-icon>
+                        发送提醒
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="{ action: 'viewHistory', row }">
+                        <el-icon><Timer /></el-icon>
+                        借阅历史
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.size"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </el-card>
+    </div>
 
     <!-- 批量操作工具栏 -->
     <div v-if="selectedBorrows.length > 0" class="batch-toolbar">
@@ -276,9 +316,12 @@ import {
   Warning,
   Bell,
   Timer,
-  Reading
+  Reading,
+  Setting,
+  ArrowDown
 } from '@element-plus/icons-vue'
-import { PageHeader, StatCard, SearchFilter, DataTable, StatusTag } from '@/components/common'
+import { DataTable, StatusTag } from '@/components/common'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QuickReturnDialog from './components/QuickReturnDialog.vue'
 import OverdueDialog from './components/OverdueDialog.vue'
@@ -301,6 +344,7 @@ const showBorrowDialog = ref(false)
 const showQuickReturnDialog = ref(false)
 const showOverdueDialog = ref(false)
 const showTrendsDialog = ref(false)
+const showColumnSettings = ref(false)
 
 // 搜索表单
 const searchForm = reactive({
@@ -322,57 +366,7 @@ const pagination = reactive({
   total: 0
 })
 
-// 统计数据
-const statsData = ref([
-  {
-    key: 'total',
-    label: '总借阅量',
-    value: 0,
-    icon: 'DocumentCopy',
-    type: 'primary',
-    trend: { value: 0, isUp: true }
-  },
-  {
-    key: 'active',
-    label: '借阅中',
-    value: 0,
-    icon: 'Reading',
-    type: 'success',
-    trend: { value: 0, isUp: true }
-  },
-  {
-    key: 'overdue',
-    label: '逾期未还',
-    value: 0,
-    icon: 'Warning',
-    type: 'danger',
-    trend: { value: 0, isUp: false }
-  },
-  {
-    key: 'today',
-    label: '今日借阅',
-    value: 0,
-    icon: 'Calendar',
-    type: 'info',
-    trend: { value: 0, isUp: true }
-  }
-])
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'refresh',
-    label: '刷新数据',
-    type: 'default',
-    icon: 'Refresh'
-  },
-  {
-    key: 'export',
-    label: '导出数据',
-    type: 'default',
-    icon: 'Download'
-  }
-]
 
 // 搜索字段配置
 const searchFields = [
@@ -408,7 +402,8 @@ const searchFields = [
   },
   {
     key: 'dateRange',
-    type: 'daterange',
+    type: 'date',
+    dateType: 'daterange',
     label: '借阅时间',
     startPlaceholder: '开始日期',
     endPlaceholder: '结束日期'
@@ -489,6 +484,14 @@ const canBatchRenew = computed(() => {
   return selectedBorrows.value.some(borrow => borrow.status === 'borrowed' && borrow.canRenew)
 })
 
+const canBatchReturnCount = computed(() => {
+  return selectedBorrows.value.filter(borrow => ['borrowed', 'overdue'].includes(borrow.status)).length
+})
+
+const canBatchRenewCount = computed(() => {
+  return selectedBorrows.value.filter(borrow => borrow.status === 'borrowed' && borrow.canRenew).length
+})
+
 // 方法
 const loadBorrows = async () => {
   loading.value = true
@@ -516,50 +519,8 @@ const loadBorrows = async () => {
   }
 }
 
-const loadStatistics = async () => {
-  try {
-    const response = await getBorrowStatistics()
-    const stats = response.data.statistics
 
-    statsData.value[0].value = stats.total
-    statsData.value[1].value = stats.active
-    statsData.value[2].value = stats.overdue
-    statsData.value[3].value = stats.todayBorrows
-  } catch (error) {
-    console.error('加载统计数据失败:', error)
-  }
-}
 
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'refresh':
-      loadBorrows()
-      loadStatistics()
-      break
-    case 'export':
-      exportBorrows()
-      break
-  }
-}
-
-const handleStatCardClick = key => {
-  // 根据统计卡片点击设置筛选条件
-  switch (key) {
-    case 'active':
-      searchForm.status = 'borrowed'
-      break
-    case 'overdue':
-      searchForm.status = 'overdue'
-      break
-    case 'today':
-      const today = new Date()
-      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-      searchForm.dateRange = [startOfDay, endOfDay]
-      break
-  }
-  handleSearch()
-}
 
 const handleSearch = () => {
   pagination.page = 1
@@ -630,7 +591,6 @@ const returnBorrow = async borrow => {
     })
 
     loadBorrows()
-    loadStatistics()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('归还图书失败:', error)
@@ -692,7 +652,6 @@ const markBorrowAsLost = async borrow => {
     })
 
     loadBorrows()
-    loadStatistics()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('标记丢失失败:', error)
@@ -743,7 +702,6 @@ const batchReturn = async () => {
 
     clearSelection()
     loadBorrows()
-    loadStatistics()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量归还失败:', error)
@@ -828,7 +786,6 @@ const batchMarkLost = async () => {
 
     clearSelection()
     loadBorrows()
-    loadStatistics()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量标记丢失失败:', error)
@@ -840,13 +797,11 @@ const batchMarkLost = async () => {
 const handleBorrowSuccess = () => {
   showBorrowDialog.value = false
   loadBorrows()
-  loadStatistics()
   ElMessage.success('借阅记录创建成功')
 }
 
 const handleQuickReturnSuccess = () => {
   loadBorrows()
-  loadStatistics()
   ElMessage.success('快速归还成功')
 }
 
@@ -890,24 +845,13 @@ const getRenewalTagType = (renewalCount, maxRenewals) => {
 // 生命周期
 onMounted(() => {
   loadBorrows()
-  loadStatistics()
 })
 </script>
 
 <style lang="scss" scoped>
 .borrows-container {
-  padding: 20px;
 }
 
-.stats-section {
-  margin-bottom: 20px;
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-  }
-}
 
 .quick-actions-card {
   margin-bottom: 20px;
@@ -1088,10 +1032,81 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+
+    .selection-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--el-color-primary);
+      font-weight: 500;
+      animation: slideIn 0.3s ease;
+
+      .el-icon {
+        font-size: 16px;
+      }
+    }
+
+    .batch-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transform: translateX(-10px);
+      transition: all 0.3s ease;
+
+      &.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .action-badge {
+        .el-badge__content {
+          background-color: var(--el-color-warning);
+          border: none;
+        }
+      }
+    }
   }
+
+  .toolbar-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+@media (max-width: 768px) {
 
   .quick-actions {
     justify-content: center;

@@ -1,39 +1,16 @@
 <template>
   <div class="users-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="用户管理"
-      description="管理系统中的所有用户信息"
-      icon="UserFilled"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
     <!-- 搜索筛选区域 -->
-    <SearchFilter
+    <SearchFilterSimple
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
+      :collapsible="false"
       @search="handleSearch"
       @reset="handleReset"
     />
 
-    <!-- 统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <StatCard
-          v-for="stat in statsData"
-          :key="stat.key"
-          :title="stat.label"
-          :value="stat.value"
-          :icon="stat.icon"
-          :type="stat.type"
-          :trend="stat.trend"
-          :show-trend="true"
-          :count-up="true"
-        />
-      </div>
-    </div>
 
     <!-- 用户表格 -->
     <div class="table-section">
@@ -41,21 +18,15 @@
         <!-- 表格工具栏 -->
         <div class="table-toolbar">
           <div class="toolbar-left">
-            <el-checkbox v-model="selectAll" :indeterminate="isIndeterminate" @change="handleSelectAll">
-              全选
-            </el-checkbox>
-            <el-button type="danger" size="small" :disabled="selectedUsers.length === 0" @click="handleBatchDelete">
-              <el-icon><Delete /></el-icon>
-              批量删除
+            <el-button type="danger" :disabled="selectedUsers.length === 0" @click="handleBatchDelete">
+              删除
             </el-button>
             <el-button
               type="warning"
-              size="small"
               :disabled="selectedUsers.length === 0"
               @click="handleBatchToggleStatus"
             >
-              <el-icon><Switch /></el-icon>
-              批量启用/禁用
+              启用/禁用
             </el-button>
           </div>
           <div class="toolbar-right">
@@ -256,9 +227,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import { userApi } from '@/api/user'
 import { formatDate, formatTimeAgo } from '@/utils/date'
-import PageHeader from '@/components/common/PageHeader.vue'
-import SearchFilter from '@/components/common/SearchFilter.vue'
-import StatCard from '@/components/common/StatCard.vue'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
 import StatusTag from '@/components/common/StatusTag.vue'
 
 const router = useRouter()
@@ -294,43 +263,19 @@ const sortInfo = reactive({
   order: ''
 })
 
-// 页面头部操作按钮
-const headerActions = [
-  {
-    key: 'create',
-    label: '新增用户',
-    type: 'primary',
-    icon: 'Plus',
-    permission: 'user:create'
-  },
-  {
-    key: 'export',
-    label: '导出用户',
-    type: 'default',
-    icon: 'Download',
-    permission: 'user:export'
-  },
-  {
-    key: 'import',
-    label: '批量导入',
-    type: 'default',
-    icon: 'Upload',
-    permission: 'user:import'
-  }
-]
 
 // 搜索字段配置
 const searchFields = [
   {
     type: 'input',
-    field: 'keyword',
+    key: 'keyword',
     label: '关键词',
     placeholder: '请输入用户名、真实姓名或邮箱',
     clearable: true
   },
   {
     type: 'select',
-    field: 'role',
+    key: 'role',
     label: '用户角色',
     placeholder: '请选择角色',
     options: [
@@ -341,7 +286,7 @@ const searchFields = [
   },
   {
     type: 'select',
-    field: 'status',
+    key: 'status',
     label: '账户状态',
     placeholder: '请选择状态',
     options: [
@@ -350,10 +295,11 @@ const searchFields = [
     ]
   },
   {
-    type: 'daterange',
-    field: 'dateRange',
+    type: 'date',
+    key: 'dateRange',
     label: '注册时间',
-    placeholder: ['开始时间', '结束时间']
+    placeholder: ['开始时间', '结束时间'],
+    dateType: 'daterange'
   }
 ]
 
@@ -391,13 +337,6 @@ const statusOptions = [
   { label: '禁用', value: 'inactive' }
 ]
 
-// 统计数据
-const statsData = ref([
-  { key: 'total', label: '总用户数', value: 0, trend: 5.2, type: 'primary', icon: 'User' },
-  { key: 'active', label: '活跃用户', value: 0, trend: 12.5, type: 'success', icon: 'UserFilled' },
-  { key: 'new', label: '新增用户', value: 0, trend: -2.8, type: 'warning', icon: 'Plus' },
-  { key: 'borrowing', label: '借阅用户', value: 0, trend: 8.9, type: 'info', icon: 'Reading' }
-])
 
 // 计算属性
 const isIndeterminateChecked = computed(() => {
@@ -469,8 +408,6 @@ const fetchUsers = async () => {
       userList.value = data.users || []
       pagination.total = data.total || 0
 
-      // 更新统计数据
-      updateStatsData(data.stats)
     } else {
       throw new Error('Invalid response data')
     }
@@ -489,14 +426,6 @@ const fetchUsers = async () => {
   }
 }
 
-const updateStatsData = stats => {
-  if (stats) {
-    statsData.value[0].value = stats.total || 0
-    statsData.value[1].value = stats.active || 0
-    statsData.value[2].value = stats.newThisMonth || 0
-    statsData.value[3].value = stats.borrowing || 0
-  }
-}
 
 const handleSearch = () => {
   pagination.page = 1
@@ -538,30 +467,6 @@ const handleSelectionChange = selection => {
 
   selectAll.value = selectedCount === totalCount && totalCount > 0
   isIndeterminate.value = selectedCount > 0 && selectedCount < totalCount
-}
-
-const handleSelectAll = checked => {
-  if (checked) {
-    tableRef.value.toggleAllSelection()
-  } else {
-    tableRef.value.clearSelection()
-  }
-}
-
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'create':
-      handleAdd()
-      break
-    case 'export':
-      handleExport()
-      break
-    case 'import':
-      handleImport()
-      break
-    default:
-      console.warn('Unknown action:', action.key)
-  }
 }
 
 const handleAdd = () => {
@@ -757,42 +662,9 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .users-container {
-  padding: 20px;
   background-color: var(--content-bg-color);
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.header-left {
-  .page-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin: 0 0 8px 0;
-  }
-
-  .page-description {
-    color: var(--el-text-color-secondary);
-    margin: 0;
-  }
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
 
 .search-section {
   margin-bottom: 20px;
@@ -810,94 +682,6 @@ onMounted(() => {
   }
 }
 
-.stats-section {
-  margin-bottom: 20px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  }
-}
-
-.stat-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16px;
-
-  .el-icon {
-    font-size: 24px;
-    color: white;
-  }
-
-  &--primary {
-    background: linear-gradient(135deg, #409eff, #5d73e7);
-  }
-
-  &--success {
-    background: linear-gradient(135deg, #67c23a, #85ce61);
-  }
-
-  &--warning {
-    background: linear-gradient(135deg, #e6a23c, #f0a020);
-  }
-
-  &--info {
-    background: linear-gradient(135deg, #909399, #b1b3b8);
-  }
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 14px;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 6px;
-}
-
-.stat-trend {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-size: 12px;
-
-  &.positive {
-    color: #67c23a;
-  }
-
-  &.negative {
-    color: #f56c6c;
-  }
-}
 
 .table-section {
   .table-card {
@@ -1016,7 +800,7 @@ onMounted(() => {
   padding: 16px 20px;
   border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 .column-settings {
@@ -1045,9 +829,6 @@ onMounted(() => {
     }
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
 }
 
 @media (max-width: 767px) {
@@ -1055,9 +836,6 @@ onMounted(() => {
     padding: 16px;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
 
   .table-toolbar {
     flex-direction: column;

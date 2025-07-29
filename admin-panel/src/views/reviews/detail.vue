@@ -1,6 +1,9 @@
 <template>
   <div class="review-detail">
-    <PageHeader title="书评详情" subtitle="查看书评详细信息" />
+    <div class="page-header">
+      <h1>书评详情</h1>
+      <p class="description">查看书评详细信息</p>
+    </div>
 
     <div class="content">
       <el-card>
@@ -15,7 +18,6 @@
 
 <script setup>
 import { View } from '@element-plus/icons-vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 </script>
 
 <style scoped>

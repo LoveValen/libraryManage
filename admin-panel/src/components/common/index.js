@@ -2,39 +2,35 @@
 
 // 数据展示组件
 export { default as DataTable } from './DataTable.vue'
-export { default as StatCard } from './StatCard.vue'
 export { default as StatusTag } from './StatusTag.vue'
 export { default as DetailTabs } from './DetailTabs.vue'
 
 // 表单组件
-export { default as SearchFilter } from './SearchFilter.vue'
 export { default as FormCard } from './FormCard.vue'
 export { default as FileUpload } from './FileUpload.vue'
 
-// 布局组件
-export { default as PageHeader } from './PageHeader.vue'
-
 // 交互组件
 export { default as ConfirmDialog } from './ConfirmDialog.vue'
+
+// 主题管理
+export { default as ThemeManager } from './ThemeManager.vue'
 
 // 批量注册函数
 export function registerCommonComponents(app) {
   // 数据展示组件
   app.component('DataTable', () => import('./DataTable.vue'))
-  app.component('StatCard', () => import('./StatCard.vue'))
   app.component('StatusTag', () => import('./StatusTag.vue'))
   app.component('DetailTabs', () => import('./DetailTabs.vue'))
 
   // 表单组件
-  app.component('SearchFilter', () => import('./SearchFilter.vue'))
   app.component('FormCard', () => import('./FormCard.vue'))
   app.component('FileUpload', () => import('./FileUpload.vue'))
 
-  // 布局组件
-  app.component('PageHeader', () => import('./PageHeader.vue'))
-
   // 交互组件
   app.component('ConfirmDialog', () => import('./ConfirmDialog.vue'))
+
+  // 主题管理
+  app.component('ThemeManager', () => import('./ThemeManager.vue'))
 }
 
 // 组件配置常量
@@ -51,15 +47,6 @@ export const COMPONENT_CONFIGS = {
     columnSettings: true
   },
 
-  // 统计卡片默认配置
-  STAT_CARD: {
-    type: 'default',
-    size: 'default',
-    shadow: 'hover',
-    countUp: false,
-    showTrend: false,
-    showProgress: false
-  },
 
   // 状态标签默认配置
   STATUS_TAG: {
@@ -97,13 +84,6 @@ export const COMPONENT_CONFIGS = {
     persist: false
   },
 
-  // 页面头部默认配置
-  PAGE_HEADER: {
-    showBack: false,
-    compact: false,
-    size: 'default',
-    breadcrumbSeparator: '/'
-  },
 
   // 文件上传默认配置
   FILE_UPLOAD: {
@@ -508,25 +488,21 @@ export const PRESETS = {
 
 // 导入组件用于默认导出
 import DataTable from './DataTable.vue'
-import StatCard from './StatCard.vue'
 import StatusTag from './StatusTag.vue'
 import DetailTabs from './DetailTabs.vue'
-import SearchFilter from './SearchFilter.vue'
 import FormCard from './FormCard.vue'
 import FileUpload from './FileUpload.vue'
-import PageHeader from './PageHeader.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
+import ThemeManager from './ThemeManager.vue'
 
 export default {
   DataTable,
-  StatCard,
   StatusTag,
   DetailTabs,
-  SearchFilter,
   FormCard,
   FileUpload,
-  PageHeader,
   ConfirmDialog,
+  ThemeManager,
   registerCommonComponents,
   COMPONENT_CONFIGS,
   COMPONENT_UTILS,

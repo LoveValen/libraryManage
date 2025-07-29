@@ -11,6 +11,7 @@ npm install              # Install dependencies
 npm run dev             # Start development server with nodemon
 npm start               # Start production server
 npm test                # Run Jest tests
+npm test -- --testNamePattern="pattern"  # Run specific test by name pattern
 npm run test:watch      # Run tests in watch mode
 npm run test:coverage   # Run tests with coverage
 npm run lint            # Run ESLint
@@ -18,15 +19,13 @@ npm run lint:fix        # Fix ESLint issues
 npm run format          # Format code with Prettier
 ```
 
-### Database Commands (Sequelize)
+### Database Commands (Prisma)
 ```bash
 cd backend
-npm run db:create       # Create database
-npm run db:migrate      # Run migrations
-npm run db:migrate:undo # Undo last migration
-npm run db:seed         # Run seed data
-npm run db:seed:undo    # Undo seed data
-npm run db:drop         # Drop database
+npm run db:generate     # Generate Prisma client
+npm run db:push         # Push schema to database
+npm run db:migrate      # Run migrations (create and apply)
+npm run db:studio       # Open Prisma Studio (database GUI)
 ```
 
 ### Frontend (Vue.js 3)
@@ -39,6 +38,7 @@ npm run preview        # Preview production build
 npm run lint           # Run ESLint
 npm run format         # Format code with Prettier
 npm run test           # Run Vitest tests
+npm run test -- --run "pattern"  # Run specific test by name pattern
 npm run test:ui        # Run tests with UI
 npm run test:coverage  # Run tests with coverage
 ```
@@ -68,7 +68,7 @@ library-management-system/
 
 ### Backend Architecture (Port 3000)
 - **Framework**: Express.js with enterprise-grade middleware
-- **Database**: MySQL 8.0 with Sequelize ORM (Port 3307)
+- **Database**: MySQL 8.0 with Prisma ORM (Port 3307)
 - **Cache**: Redis (Port 6379)
 - **Authentication**: JWT with role-based access control
 - **Real-time**: Socket.IO WebSocket integration
@@ -162,6 +162,29 @@ Allowed headers include `x-request-id` for request tracing.
 3. Start frontend: `cd admin-panel && npm run dev` (runs on port 8080)
 4. Access admin panel at http://localhost:8080
 
+#### Port Conflict Resolution
+If ports 8080 (frontend) or 3000 (backend) are occupied, stop the conflicting process first:
+
+**Windows:**
+```bash
+# Check what's using the port
+netstat -ano | findstr :8080
+netstat -ano | findstr :3000
+
+# Kill process by PID
+taskkill /PID <PID> /F
+```
+
+**Mac/Linux:**
+```bash
+# Check what's using the port
+lsof -i :8080
+lsof -i :3000
+
+# Kill process by PID
+kill -9 <PID>
+```
+
 ### Testing Strategy
 - **Backend**: Jest for unit tests, Supertest for API tests
 - **Frontend**: Vitest for unit tests, Vue Test Utils for components
@@ -174,7 +197,7 @@ Allowed headers include `x-request-id` for request tracing.
 - Rate limiting on all endpoints
 - Comprehensive audit logging
 - Input validation with Joi
-- SQL injection prevention via Sequelize
+- SQL injection prevention via Prisma
 - XSS protection via Helmet
 
 ### Performance Optimizations

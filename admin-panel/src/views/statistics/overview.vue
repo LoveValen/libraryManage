@@ -1,6 +1,9 @@
 <template>
   <div class="statistics-overview">
-    <PageHeader title="统计概览" subtitle="系统整体数据统计" />
+    <div class="page-header">
+      <h1>统计概览</h1>
+      <p class="description">系统整体数据统计</p>
+    </div>
 
     <div class="content">
       <el-card>
@@ -15,13 +18,35 @@
 
 <script setup>
 import { DataBoard } from '@element-plus/icons-vue'
-import PageHeader from '@/components/common/PageHeader.vue'
 </script>
 
 <style scoped>
 .statistics-overview {
   padding: 20px;
 }
+
+.page-header {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-lighter);
+
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+
+  .description {
+    margin: 0;
+    color: var(--el-text-color-regular);
+    font-size: 14px;
+  }
+}
+
 .content {
   margin-top: 20px;
 }

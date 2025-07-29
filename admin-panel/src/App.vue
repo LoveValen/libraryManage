@@ -1,6 +1,8 @@
 <template>
   <div id="app" class="library-admin">
     <RouterView />
+    <!-- 主题管理器 -->
+    <ThemeManager />
   </div>
 </template>
 
@@ -8,6 +10,7 @@
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
+import ThemeManager from '@/components/common/ThemeManager.vue'
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
@@ -186,5 +189,81 @@ onMounted(async () => {
   &.danger {
     background: linear-gradient(135deg, var(--el-color-danger) 0%, var(--el-color-danger-light-3) 100%);
   }
+}
+
+// Element Plus 按钮主题色覆盖
+.el-button--primary {
+  --el-button-bg-color: var(--el-color-primary);
+  --el-button-border-color: var(--el-color-primary);
+  --el-button-hover-bg-color: var(--el-color-primary-light-3);
+  --el-button-hover-border-color: var(--el-color-primary-light-3);
+  --el-button-active-bg-color: var(--el-color-primary-dark-2);
+  --el-button-active-border-color: var(--el-color-primary-dark-2);
+}
+
+// Element Plus 链接主题色
+.el-link--primary {
+  --el-link-text-color: var(--el-color-primary);
+  --el-link-hover-text-color: var(--el-color-primary-light-3);
+}
+
+// Element Plus 标签主题色
+.el-tag--primary {
+  --el-tag-bg-color: var(--el-color-primary-light-9);
+  --el-tag-border-color: var(--el-color-primary-light-7);
+  --el-tag-text-color: var(--el-color-primary);
+}
+
+// Element Plus 输入框聚焦色
+.el-input__wrapper.is-focus {
+  --el-input-focus-border-color: var(--el-color-primary);
+}
+
+// Element Plus 选择器下拉选中项
+.el-select-dropdown__item.is-selected {
+  color: var(--el-color-primary);
+}
+
+// Element Plus 复选框
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+
+// Element Plus 单选按钮
+.el-radio__input.is-checked .el-radio__inner {
+  border-color: var(--el-color-primary);
+  
+  &::after {
+    background-color: var(--el-color-primary);
+  }
+}
+
+// Element Plus 开关
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--el-color-primary);
+}
+
+// Element Plus 分页器
+.el-pagination .el-pager li.is-active {
+  background-color: var(--el-color-primary);
+}
+
+.el-pagination button:hover {
+  color: var(--el-color-primary);
+}
+
+// Element Plus 进度条
+.el-progress-bar__inner {
+  background-color: var(--el-color-primary);
+}
+
+// Element Plus 滑块
+.el-slider__runway .el-slider__bar {
+  background-color: var(--el-color-primary);
+}
+
+.el-slider__button {
+  border-color: var(--el-color-primary);
 }
 </style>

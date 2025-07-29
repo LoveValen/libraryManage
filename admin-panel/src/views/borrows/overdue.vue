@@ -1,61 +1,6 @@
 <template>
   <div class="overdue-container">
-    <!-- 页面头部 -->
-    <PageHeader
-      title="逾期管理"
-      description="管理逾期未还的图书借阅记录，处理逾期费用和催还"
-      icon="Warning"
-      :actions="headerActions"
-      @action="handleHeaderAction"
-    />
 
-    <!-- 逾期统计卡片 -->
-    <div class="stats-section">
-      <div class="stats-grid">
-        <StatCard
-          title="逾期总数"
-          :value="statistics.total"
-          icon="Warning"
-          type="danger"
-          :show-trend="false"
-          class="cursor-pointer"
-          @click="filterByOverdueDays(0)"
-        />
-        <StatCard
-          title="轻微逾期"
-          :value="statistics.mild"
-          icon="Clock"
-          type="warning"
-          :show-trend="false"
-          class="cursor-pointer"
-          @click="filterByOverdueDays(1, 7)"
-        >
-          <template #footer>1-7天</template>
-        </StatCard>
-        <StatCard
-          title="严重逾期"
-          :value="statistics.severe"
-          icon="Timer"
-          type="danger"
-          :show-trend="false"
-          class="cursor-pointer"
-          @click="filterByOverdueDays(8, 30)"
-        >
-          <template #footer>8-30天</template>
-        </StatCard>
-        <StatCard
-          title="超长逾期"
-          :value="statistics.extreme"
-          icon="CircleClose"
-          type="danger"
-          :show-trend="false"
-          class="cursor-pointer"
-          @click="filterByOverdueDays(31)"
-        >
-          <template #footer>30天以上</template>
-        </StatCard>
-      </div>
-    </div>
 
     <!-- 快速操作区域 -->
     <el-card shadow="never" class="quick-actions-card">
@@ -89,7 +34,7 @@
     </el-card>
 
     <!-- 搜索筛选区域 -->
-    <SearchFilter
+    <SearchFilterSimple
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
@@ -269,7 +214,8 @@ import {
   Timer,
   Close
 } from '@element-plus/icons-vue'
-import { PageHeader, StatCard, SearchFilter, DataTable } from '@/components/common'
+import { DataTable } from '@/components/common'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
 import NotificationCenter from './components/NotificationCenter.vue'
 import FineManagement from './components/FineManagement.vue'
 import ContactUser from './components/ContactUser.vue'
@@ -313,21 +259,6 @@ const statistics = reactive({
 // 每日罚金费率（元）
 const DAILY_FINE_RATE = 0.5
 
-// 头部操作按钮
-const headerActions = [
-  {
-    key: 'refresh',
-    label: '刷新数据',
-    type: 'default',
-    icon: 'Refresh'
-  },
-  {
-    key: 'export',
-    label: '导出报告',
-    type: 'default',
-    icon: 'Download'
-  }
-]
 
 // 搜索字段配置
 const searchFields = [
@@ -419,8 +350,6 @@ const loadOverdueRecords = async () => {
     // 更新分页信息
     pagination.total = response.data.total
 
-    // 更新统计信息
-    updateStatistics()
   } catch (error) {
     console.error('加载逾期记录失败:', error)
     ElMessage.error('加载逾期记录失败')
@@ -429,30 +358,8 @@ const loadOverdueRecords = async () => {
   }
 }
 
-const updateStatistics = () => {
-  const records = overdueRecords.value
-  statistics.total = records.length
-  statistics.mild = records.filter(r => r.currentOverdueDays >= 1 && r.currentOverdueDays <= 7).length
-  statistics.severe = records.filter(r => r.currentOverdueDays >= 8 && r.currentOverdueDays <= 30).length
-  statistics.extreme = records.filter(r => r.currentOverdueDays > 30).length
-}
 
-const handleHeaderAction = action => {
-  switch (action.key) {
-    case 'refresh':
-      loadOverdueRecords()
-      break
-    case 'export':
-      exportOverdueReport()
-      break
-  }
-}
 
-const filterByOverdueDays = (min, max) => {
-  searchForm.minOverdueDays = min
-  searchForm.maxOverdueDays = max || ''
-  handleSearch()
-}
 
 const handleSearch = () => {
   pagination.page = 1
@@ -719,15 +626,6 @@ onMounted(() => {
   padding: 20px;
 }
 
-.stats-section {
-  margin-bottom: 20px;
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-  }
-}
 
 .quick-actions-card {
   margin-bottom: 20px;
@@ -920,9 +818,6 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
   .quick-actions {
     justify-content: center;

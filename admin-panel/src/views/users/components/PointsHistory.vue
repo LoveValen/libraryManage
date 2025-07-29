@@ -411,7 +411,7 @@ onMounted(() => {
   padding: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
 // 响应式设计
