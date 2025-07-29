@@ -27,13 +27,26 @@
       </div>
 
       <!-- 通知 -->
-      <div class="header-item">
-        <el-badge :value="notificationCount" :hidden="notificationCount === 0">
-          <el-icon class="header-icon" @click="handleNotification">
-            <Bell />
-          </el-icon>
-        </el-badge>
-      </div>
+      <el-popover
+        placement="bottom"
+        :width="380"
+        trigger="click"
+        popper-class="notification-popover"
+        :show-arrow="false"
+        :offset="8"
+        persistent
+      >
+        <template #reference>
+          <div class="header-item notification-trigger">
+            <el-badge :value="notificationCount" :hidden="notificationCount === 0">
+              <el-icon class="header-icon">
+                <Bell />
+              </el-icon>
+            </el-badge>
+          </div>
+        </template>
+        <NotificationPanel ref="notificationPanelRef" />
+      </el-popover>
 
       <!-- 全屏切换 -->
       <div class="header-item">
@@ -113,6 +126,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useRouter } from 'vue-router'
 import Breadcrumb from './Breadcrumb.vue'
+import NotificationPanel from './NotificationPanel.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -120,7 +134,7 @@ const appStore = useAppStore()
 
 // 响应式数据
 const searchKeyword = ref('')
-const notificationCount = ref(3)
+const notificationPanelRef = ref()
 const isFullscreen = ref(false)
 
 // 计算属性
@@ -132,6 +146,11 @@ const userName = computed(() => authStore.userName)
 const userAvatar = computed(() => authStore.userAvatar)
 const theme = computed(() => appStore.theme)
 const language = computed(() => appStore.language)
+
+// 通知数量计算属性
+const notificationCount = computed(() => {
+  return notificationPanelRef.value?.unreadCount || 0
+})
 
 // 语言选项
 const languages = [
@@ -159,10 +178,6 @@ const handleSearchClear = () => {
   searchKeyword.value = ''
 }
 
-const handleNotification = () => {
-  // 显示通知列表
-  console.log('显示通知')
-}
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -302,6 +317,7 @@ document.addEventListener('fullscreenchange', () => {
       font-size: 18px;
       color: var(--el-text-color-primary);
     }
+
   }
 
   .language-selector {
@@ -382,6 +398,45 @@ document.addEventListener('fullscreenchange', () => {
   &.is-active {
     color: var(--el-color-primary);
     background-color: var(--el-color-primary-light-9);
+  }
+}
+
+// 通知弹窗样式
+:deep(.notification-popover) {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  background: var(--el-bg-color) !important;
+  max-height: 500px !important;
+  overflow: hidden !important;
+  z-index: 2000 !important;
+  
+  .el-popover__arrow {
+    display: none !important;
+  }
+}
+
+// 通知触发器样式优化
+.notification-trigger {
+  position: relative;
+  .el-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    :deep(.el-badge__content) {
+      background-color: var(--el-color-danger) !important;
+      border: 2px solid var(--header-bg-color, #ffffff) !important;
+      font-size: 10px !important;
+      height: 16px !important;
+      min-width: 16px !important;
+      line-height: 12px !important;
+      padding: 0 4px !important;
+      top: -5px !important;
+      right: 0px !important;
+      z-index: 10 !important;
+    }
   }
 }
 </style>

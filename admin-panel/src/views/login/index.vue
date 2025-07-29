@@ -167,17 +167,7 @@ const handleLogin = async () => {
 
 
     // 调用登录接口
-    const result = await authStore.login(loginData)
-
-    if (result.success) {
-      ElMessage.success('登录成功！')
-
-      // 跳转到首页或原来要访问的页面
-      const redirect = router.currentRoute.value.query.redirect || '/dashboard'
-      await router.replace(redirect)
-    } else {
-      ElMessage.error(result.message || '登录失败，请检查用户名和密码')
-    }
+    await authStore.login(loginData)
   } catch (error) {
     console.error('登录错误:', error)
 

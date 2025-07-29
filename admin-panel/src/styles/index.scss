@@ -350,3 +350,48 @@ button {
     margin: 0;
   }
 }
+
+// 全局通知弹窗样式覆盖
+.notification-popover.el-popover {
+  padding: 0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid var(--el-border-color-light) !important;
+  background: var(--el-bg-color) !important;
+  max-height: 500px !important;
+  overflow: hidden !important;
+  z-index: 2000 !important;
+  transform-origin: top right !important;
+  
+  // 入场动画
+  &[data-popper-placement^="bottom"] {
+    animation: notificationSlideDown 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+  
+  &.el-popper {
+    min-width: 380px !important;
+  }
+  
+  // 隐藏箭头
+  .el-popper__arrow {
+    display: none !important;
+  }
+  
+  // 确保内容区域正确显示
+  .el-popover__content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+// 通知弹窗动画
+@keyframes notificationSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
