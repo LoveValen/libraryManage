@@ -1,5 +1,9 @@
 <template>
   <div class="login-container">
+    <div class="particles"></div>
+    <div class="particles-extra">
+      <div class="particle" v-for="n in 20" :key="n" :style="getParticleStyle(n)"></div>
+    </div>
     <div class="login-wrapper">
       <!-- 左侧背景区域 -->
       <div class="login-background">
@@ -239,6 +243,47 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown)
 })
 
+// 生成粒子样式
+const getParticleStyle = (index) => {
+  // 生成随机位置
+  const generateRandomPosition = () => ({
+    left: Math.random() * 90 + 5 + '%',
+    top: Math.random() * 90 + 5 + '%'
+  })
+  
+  // 预定义位置 + 随机位置
+  const basePositions = [
+    { left: '10%', top: '20%' },
+    { left: '85%', top: '15%' },
+    { left: '25%', top: '70%' },
+    { left: '70%', top: '60%' },
+    { left: '5%', top: '80%' },
+    { left: '90%', top: '75%' },
+    { left: '50%', top: '10%' },
+    { left: '15%', top: '45%' },
+    { left: '75%', top: '30%' },
+    { left: '30%', top: '85%' },
+    { left: '60%', top: '25%' },
+    { left: '20%', top: '55%' },
+    { left: '80%', top: '90%' },
+    { left: '40%', top: '15%' },
+    { left: '95%', top: '50%' },
+    { left: '12%', top: '65%' }
+  ]
+  
+  const position = basePositions[index - 1] || generateRandomPosition()
+  const size = Math.random() * 5 + 2 // 2-7px
+  const delay = Math.random() * 20 // 0-20s
+  
+  return {
+    left: position.left,
+    top: position.top,
+    width: size + 'px',
+    height: size + 'px',
+    animationDelay: delay + 's'
+  }
+}
+
 // 监听表单变化，保存记住我状态
 watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 </script>
@@ -247,36 +292,369 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 .login-container {
   width: 100%;
   min-height: 100vh;
-  background: #fefefe;
+  background: linear-gradient(135deg, 
+              #f0f9ff 0%, 
+              #e0f2fe 25%, 
+              #bae6fd 50%, 
+              #7dd3fc 75%, 
+              #38bdf8 100%);
+  background-size: 400% 400%;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   position: relative;
   overflow: hidden;
+  animation: gradientShift 8s ease-in-out infinite;
 
-  // 背景动画
+  // 浮动粒子背景
   &::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="30" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="80" cy="60" r="1" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-    animation: float 20s ease-in-out infinite;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="particles" x="0" y="0" width="15" height="15" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.15)" opacity="0.9"><animate attributeName="opacity" values="0.4;0.9;0.4" dur="3s" repeatCount="indefinite"/></circle><circle cx="13" cy="13" r="0.8" fill="rgba(56,189,248,0.2)" opacity="0.7"><animate attributeName="opacity" values="0.3;0.8;0.3" dur="5s" repeatCount="indefinite"/></circle><circle cx="8" cy="12" r="0.6" fill="rgba(125,211,252,0.18)" opacity="0.6"><animate attributeName="opacity" values="0.2;0.7;0.2" dur="7s" repeatCount="indefinite"/></circle><circle cx="5" cy="8" r="0.4" fill="rgba(255,255,255,0.12)" opacity="0.5"><animate attributeName="opacity" values="0.1;0.6;0.1" dur="9s" repeatCount="indefinite"/></circle><circle cx="11" cy="4" r="0.7" fill="rgba(14,165,233,0.16)" opacity="0.8"><animate attributeName="opacity" values="0.3;0.9;0.3" dur="4s" repeatCount="indefinite"/></circle><circle cx="14" cy="7" r="0.3" fill="rgba(255,255,255,0.1)" opacity="0.4"><animate attributeName="opacity" values="0.1;0.5;0.1" dur="6s" repeatCount="indefinite"/></circle></pattern></defs><rect width="100" height="100" fill="url(%23particles)"/></svg>');
+    animation: particleFloat 12s linear infinite;
     pointer-events: none;
+    opacity: 0.8;
+  }
+  
+  // 光晕效果
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, 
+                rgba(255, 255, 255, 0.1) 0%, 
+                rgba(255, 255, 255, 0.05) 30%, 
+                transparent 70%);
+    transform: translate(-50%, -50%);
+    animation: pulse 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  
+  // 额外粒子层
+  .particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      animation: floatParticle1 15s linear infinite;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.7),
+                  0 0 30px rgba(255, 255, 255, 0.4);
+    }
+    
+    &::before {
+      top: 20%;
+      left: 10%;
+      animation-delay: -2s;
+    }
+    
+    &::after {
+      top: 60%;
+      right: 15%;
+      animation-delay: -8s;
+      animation-name: floatParticle2;
+      background: rgba(56, 189, 248, 0.9);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.8),
+                  0 0 40px rgba(56, 189, 248, 0.5);
+    }
+  }
+  
+  // Vue循环生成的粒子
+  .particles-extra {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    
+    .particle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      animation: randomFloat 18s linear infinite;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5),
+                  0 0 20px rgba(255, 255, 255, 0.3);
+      
+      &:nth-child(2n) {
+        background: rgba(56, 189, 248, 0.8);
+        animation-name: randomFloat2;
+        animation-duration: 22s;
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.6),
+                    0 0 30px rgba(56, 189, 248, 0.4);
+      }
+      
+      &:nth-child(3n) {
+        background: rgba(125, 211, 252, 0.85);
+        animation-name: randomFloat3;
+        animation-duration: 16s;
+        box-shadow: 0 0 12px rgba(125, 211, 252, 0.7),
+                    0 0 25px rgba(125, 211, 252, 0.4);
+      }
+      
+      &:nth-child(4n) {
+        background: linear-gradient(45deg, rgba(255,255,255,0.9), rgba(56,189,248,0.7));
+        animation-name: sparkle;
+        animation-duration: 20s;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.8),
+                    0 0 40px rgba(56, 189, 248, 0.5);
+      }
+      
+      &:nth-child(5n) {
+        background: rgba(14, 165, 233, 0.7);
+        box-shadow: 0 0 18px rgba(14, 165, 233, 0.8),
+                    0 0 35px rgba(14, 165, 233, 0.4);
+      }
+    }
   }
 }
 
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
   }
-
   50% {
-    transform: translateY(-20px) rotate(10deg);
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px);
+  }
+  50% {
+    transform: translateY(-5px) translateX(-3px);
+  }
+  75% {
+    transform: translateY(-15px) translateX(8px);
+  }
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.15;
+  }
+}
+
+@keyframes borderFlow {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes innerGlow {
+  0%, 100% {
+    opacity: 0.1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes inputGlow {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes floatParticle1 {
+  0% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(-50px) translateX(30px) scale(1.2);
+  }
+  40% {
+    transform: translateY(-120px) translateX(-20px) scale(0.8);
+  }
+  60% {
+    transform: translateY(-180px) translateX(40px) scale(1.1);
+  }
+  80% {
+    transform: translateY(-240px) translateX(-10px) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-300px) translateX(20px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes floatParticle2 {
+  0% {
+    transform: translateY(0px) translateX(0px) scale(1) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  25% {
+    transform: translateY(-60px) translateX(-40px) scale(1.3) rotate(45deg);
+  }
+  45% {
+    transform: translateY(-140px) translateX(25px) scale(0.7) rotate(90deg);
+  }
+  65% {
+    transform: translateY(-200px) translateX(-30px) scale(1.2) rotate(180deg);
+  }
+  85% {
+    transform: translateY(-280px) translateX(15px) scale(0.8) rotate(270deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-350px) translateX(-20px) scale(1) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes randomFloat {
+  0% {
+    transform: translateY(100vh) translateX(0px) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  30% {
+    transform: translateY(70vh) translateX(50px) scale(1);
+  }
+  50% {
+    transform: translateY(40vh) translateX(-30px) scale(0.8);
+  }
+  70% {
+    transform: translateY(20vh) translateX(40px) scale(1.2);
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-10vh) translateX(-20px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes randomFloat2 {
+  0% {
+    transform: translateY(100vh) translateX(0px) scale(0.3) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  35% {
+    transform: translateY(65vh) translateX(-40px) scale(1.1) rotate(120deg);
+  }
+  55% {
+    transform: translateY(35vh) translateX(60px) scale(0.6) rotate(240deg);
+  }
+  75% {
+    transform: translateY(15vh) translateX(-50px) scale(1.3) rotate(300deg);
+  }
+  95% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-15vh) translateX(30px) scale(0.4) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes randomFloat3 {
+  0% {
+    transform: translateY(100vh) translateX(0px) scale(0.8);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(75vh) translateX(20px) scale(1.2);
+  }
+  40% {
+    transform: translateY(50vh) translateX(-35px) scale(0.9);
+  }
+  60% {
+    transform: translateY(25vh) translateX(45px) scale(1.4);
+  }
+  80% {
+    transform: translateY(5vh) translateX(-25px) scale(0.7);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-20vh) translateX(15px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkle {
+  0% {
+    transform: translateY(100vh) translateX(0px) scale(0.2) rotate(0deg);
+    opacity: 0;
+    filter: brightness(1);
+  }
+  10% {
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+  25% {
+    transform: translateY(70vh) translateX(30px) scale(1.5) rotate(90deg);
+    filter: brightness(2);
+  }
+  50% {
+    transform: translateY(40vh) translateX(-20px) scale(0.8) rotate(180deg);
+    filter: brightness(1.2);
+  }
+  75% {
+    transform: translateY(15vh) translateX(35px) scale(1.8) rotate(270deg);
+    filter: brightness(1.8);
+  }
+  90% {
+    opacity: 0.8;
+    filter: brightness(1);
+  }
+  100% {
+    transform: translateY(-25vh) translateX(-15px) scale(0.1) rotate(360deg);
+    opacity: 0;
+    filter: brightness(0.5);
   }
 }
 
