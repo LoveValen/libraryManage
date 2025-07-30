@@ -414,6 +414,47 @@ const notificationSchemas = {
 };
 
 /**
+ * 分类相关验证模式
+ */
+const categorySchemas = {
+  // 创建分类
+  createCategory: Joi.object({
+    name: Joi.string().trim().min(1).max(50).required(),
+    nameEn: Joi.string().trim().max(50),
+    code: Joi.string().trim().max(20),
+    parentId: commonSchemas.optionalId,
+    parentName: Joi.string().trim().max(50),
+    description: Joi.string().max(500),
+    icon: Joi.string().max(50),
+    color: Joi.string().max(20),
+    sortOrder: Joi.number().integer().min(0),
+  }),
+
+  // 更新分类
+  updateCategory: Joi.object({
+    name: Joi.string().trim().min(1).max(50),
+    nameEn: Joi.string().trim().max(50),
+    code: Joi.string().trim().max(20),
+    description: Joi.string().max(500),
+    icon: Joi.string().max(50),
+    color: Joi.string().max(20),
+    sortOrder: Joi.number().integer().min(0),
+    isActive: Joi.boolean(),
+  }),
+
+  // 分类列表查询
+  getCategoryList: Joi.object({
+    page: commonSchemas.page,
+    limit: commonSchemas.limit,
+    search: commonSchemas.search,
+    parentId: commonSchemas.optionalId,
+    isActive: Joi.boolean(),
+    sortBy: Joi.string().valid('id', 'name', 'sort_order', 'created_at'),
+    sortOrder: commonSchemas.sortOrder,
+  }),
+};
+
+/**
  * 分析相关验证模式
  */
 const analyticsSchemas = {
@@ -511,7 +552,15 @@ const validate = (schema, target = 'body') => {
         value: detail.context?.value,
       }));
 
-      return res.apiValidationError(errors, 'Validation failed');
+      return res.status(422).json({
+        success: false,
+        status: 'error',
+        statusCode: 422,
+        message: 'Validation failed',
+        code: 'VALIDATION_ERROR',
+        errors: errors,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // 将验证后的值替换原始值
@@ -542,6 +591,7 @@ module.exports = {
   pointsSchemas,
   fileSchemas,
   notificationSchemas,
+  categorySchemas,
   analyticsSchemas,
   commonSchemas,
 

@@ -57,6 +57,35 @@
             </el-col>
           </el-row>
 
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="容量上限">
+                <InputNumber
+                  v-model="basicSettings.capacity"
+                  :min="100"
+                  :max="100000"
+                  :step="100"
+                  unit="本"
+                  text-align="right"
+                  placeholder="输入图书容量上限"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="年费标准">
+                <InputNumber
+                  v-model="basicSettings.annualFee"
+                  :min="0"
+                  :max="1000"
+                  :step="10"
+                  :precision="2"
+                  unit="元"
+                  placeholder="输入年费标准"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
           <el-form-item label="开放时间">
             <el-time-picker
               v-model="basicSettings.openTime"
@@ -91,20 +120,41 @@
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="最大借阅数">
-                <el-input-number v-model="borrowSettings.maxBooksPerUser" :min="1" :max="20" />
-                <span class="form-help">本</span>
+                <InputNumber
+                  v-model="borrowSettings.maxBooksPerUser"
+                  :min="1"
+                  :max="20"
+                  :step="1"
+                  unit="本"
+                  text-align="center"
+                  placeholder="输入最大借阅数"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="借阅天数">
-                <el-input-number v-model="borrowSettings.defaultBorrowDays" :min="1" :max="90" />
-                <span class="form-help">天</span>
+                <InputNumber
+                  v-model="borrowSettings.defaultBorrowDays"
+                  :min="1"
+                  :max="90"
+                  :step="1"
+                  unit="天"
+                  text-align="center"
+                  placeholder="输入借阅天数"
+                />
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="续借次数">
-                <el-input-number v-model="borrowSettings.maxRenewalTimes" :min="0" :max="5" />
-                <span class="form-help">次</span>
+                <InputNumber
+                  v-model="borrowSettings.maxRenewalTimes"
+                  :min="0"
+                  :max="5"
+                  :step="1"
+                  unit="次"
+                  text-align="center"
+                  placeholder="输入续借次数"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -112,18 +162,25 @@
           <el-row :gutter="20">
             <el-col :span="8">
               <el-form-item label="逾期罚金">
-                <el-input-number
+                <InputNumber
                   v-model="borrowSettings.overdueFineDailyRate"
                   :min="0"
+                  :max="100"
                   :step="0.1"
                   :precision="1"
+                  unit="元/天"
+                  text-align="center"
+                  placeholder="输入罚金费率"
                 />
-                <span class="form-help">元/天</span>
               </el-form-item>
             </el-col>
             <el-col :span="8">
               <el-form-item label="允许预约">
-                <el-switch v-model="borrowSettings.allowReservation" />
+                <el-switch 
+                  v-model="borrowSettings.allowReservation"
+                  active-text="开启"
+                  inactive-text="关闭"
+                />
               </el-form-item>
             </el-col>
           </el-row>
@@ -266,6 +323,7 @@ import {
   Document, 
   Delete 
 } from '@element-plus/icons-vue'
+import InputNumber from '@/components/InputNumber.vue'
 
 // 响应式数据
 const saving = ref(false)
@@ -287,6 +345,8 @@ const basicSettings = reactive({
   libraryName: '示例图书馆',
   contactEmail: 'admin@library.com',
   contactPhone: '010-12345678',
+  capacity: 10000,
+  annualFee: 50.00,
   openTime: '08:00',
   closeTime: '20:00'
 })
@@ -331,6 +391,8 @@ const resetSettings = () => {
       libraryName: '示例图书馆',
       contactEmail: 'admin@library.com',
       contactPhone: '010-12345678',
+      capacity: 10000,
+      annualFee: 50.00,
       openTime: '08:00',
       closeTime: '20:00'
     })
@@ -508,11 +570,6 @@ onUnmounted(() => {
   }
 }
 
-.form-help {
-  margin-left: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-}
 
 .system-info {
   .info-item {

@@ -15,121 +15,120 @@
       <!-- 页面标题区域 -->
       <div class="page-header">
         <div class="header-left">
-          <div class="title-icon">
-            <el-icon><Menu /></el-icon>
-          </div>
-          <div class="title-info">
-            <h2 class="page-title">分类管理</h2>
-            <p class="page-subtitle">共 {{ filteredCategories.length }} 个分类</p>
-          </div>
-        </div>
-        <div class="header-actions">
-          <el-tooltip content="刷新数据" placement="top">
-            <el-button :icon="Refresh" @click="loadCategories" :loading="loading">
-              刷新
-            </el-button>
-          </el-tooltip>
           <el-button type="primary" :icon="Plus" @click="handleAddCategory">
             新增分类
           </el-button>
+        </div>
+        <div class="header-actions">
+          <el-tooltip content="刷新数据" placement="top">
+            <el-button icon="Refresh" @click="loadCategories" :loading="loading" />
+          </el-tooltip>
+          <el-tooltip content="列设置" placement="top">
+            <el-button icon="Setting" @click="showColumnSettings = true" />
+          </el-tooltip>
         </div>
       </div>
 
       <!-- 分类内容区域 -->
       <div class="categories-content" v-loading="loading">
+
         <!-- 空状态 -->
         <el-empty v-if="!loading && categories.length === 0" description="暂无分类数据" image-size="120">
           <el-button type="primary" @click="loadCategories">重新加载</el-button>
         </el-empty>
 
-        <!-- 分类网格 -->
-        <div v-else class="categories-grid">
-        <div
-          v-for="(category, index) in filteredCategories"
-          :key="category.name"
-          class="category-card"
-          :class="{ 'category-selected': selectedCategories.includes(category.name) }"
-          @click="toggleCategorySelection(category.name)"
-        >
-          <!-- 卡片头部 -->
-          <div class="category-header">
-            <div class="category-icon-wrapper">
-              <div class="category-icon" :style="{ backgroundColor: getCategoryColor(index) + '20', color: getCategoryColor(index) }">
-                <el-icon><FolderOpened /></el-icon>
-              </div>
-            </div>
-            <div class="category-actions">
-              <el-dropdown @command="handleCategoryAction" trigger="click">
-                <el-button type="text" class="action-trigger">
-                  <el-icon><MoreFilled /></el-icon>
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item :command="{ action: 'viewBooks', category: category.name }" :icon="View">
-                      查看图书
-                    </el-dropdown-item>
-                    <el-dropdown-item :command="{ action: 'editCategory', category: category.name }" :icon="Edit">
-                      编辑分类
-                    </el-dropdown-item>
-                    <el-dropdown-item
-                      :command="{ action: 'deleteCategory', category: category.name }"
-                      :icon="Delete"
-                      divided
-                    >
-                      删除分类
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </div>
-          </div>
-
-          <!-- 分类信息 -->
-          <div class="category-info">
-            <h3 class="category-name">{{ category.name || '未分类' }}</h3>
-            <p class="category-description">
-              {{ getCategoryDescription(category.name) }}
-            </p>
-          </div>
-
-          <!-- 统计数据 -->
-          <div class="category-stats">
-            <div class="stat-item">
-              <div class="stat-icon total">
-                <el-icon><Reading /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ category.bookCount }}</div>
-                <div class="stat-label">总数</div>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon available">
-                <el-icon><View /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ category.availableCount }}</div>
-                <div class="stat-label">可借</div>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon borrowed">
-                <el-icon><Edit /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value">{{ category.borrowedCount }}</div>
-                <div class="stat-label">借出</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 卡片底部 -->
-          <div class="category-footer">
-            <el-tag :type="getCategoryTagType(category.bookCount)" size="small" class="level-tag">
-              {{ getCategoryLevel(category.bookCount) }}
-            </el-tag>
-            <span class="update-time">{{ formatDate(category.lastUpdated) }}</span>
-          </div>
+        <!-- 分类表格 -->
+        <div v-else class="categories-table">
+          <el-table
+            :data="paginatedCategories"
+            style="width: 100%"
+            row-key="name"
+            :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+            default-expand-all
+            stripe
+            border
+          >
+            <!-- 分类名称列 -->
+            <el-table-column prop="name" label="分类名称" min-width="280">
+              <template #default="scope">
+                <div class="category-name-cell">
+                  <div class="category-icon" :style="{ backgroundColor: getCategoryColor(scope.$index) + '20', color: getCategoryColor(scope.$index) }">
+                    <el-icon><FolderOpened /></el-icon>
+                  </div>
+                  <div class="category-info">
+                    <div class="name">{{ scope.row.name || '未分类' }}</div>
+                    <div class="description">{{ scope.row.description || '暂无描述' }}</div>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            
+            <!-- 图书统计列 -->
+            <el-table-column prop="bookCount" label="总数" width="100" align="center">
+              <template #default="scope">
+                <el-tag type="info" size="small">{{ scope.row.bookCount }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="availableCount" label="可借" width="100" align="center">
+              <template #default="scope">
+                <el-tag type="success" size="small">{{ scope.row.availableCount }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <el-table-column prop="borrowedCount" label="借出" width="100" align="center">
+              <template #default="scope">
+                <el-tag type="warning" size="small">{{ scope.row.borrowedCount }}</el-tag>
+              </template>
+            </el-table-column>
+            
+            <!-- 分类等级列 -->
+            <el-table-column label="分类等级" width="120" align="center">
+              <template #default="scope">
+                <el-tag :type="getCategoryTagType(scope.row.bookCount)" size="small">
+                  {{ getCategoryLevel(scope.row.bookCount) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            
+            <!-- 更新时间列 -->
+            <el-table-column prop="lastUpdated" label="更新时间" width="180" align="center">
+              <template #default="scope">
+                <span class="update-time">{{ formatDate(scope.row.lastUpdated) }}</span>
+              </template>
+            </el-table-column>
+            
+            <!-- 操作列 -->
+            <el-table-column label="操作" width="120" align="center" fixed="right">
+              <template #default="scope">
+                <el-dropdown @command="handleCategoryAction" trigger="click">
+                  <el-button type="text" class="action-trigger">
+                    <el-icon><MoreFilled /></el-icon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item :command="{ action: 'viewBooks', category: scope.row.name }" :icon="View">
+                        查看图书
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="{ action: 'addSubCategory', category: scope.row.name }" :icon="Plus">
+                        新增子分类
+                      </el-dropdown-item>
+                      <el-dropdown-item :command="{ action: 'editCategory', category: scope.row.name }" :icon="Edit">
+                        编辑分类
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        :command="{ action: 'deleteCategory', category: scope.row.name }"
+                        :icon="Delete"
+                        divided
+                      >
+                        删除分类
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
         
         <!-- 分页 -->
@@ -144,57 +143,17 @@
             @current-change="handlePageChange"
           />
         </div>
-        </div>
       </div>
     </el-card>
 
-    <!-- 批量操作工具栏 -->
-    <div v-if="selectedCategories.length > 0" class="batch-toolbar">
-      <div class="toolbar-content">
-        <div class="selected-info">
-          已选择
-          <strong>{{ selectedCategories.length }}</strong>
-          个分类
-        </div>
-        <div class="toolbar-actions">
-          <el-button @click="clearSelection">取消选择</el-button>
-          <el-button type="primary" :icon="Download" @click="exportSelectedCategories">导出数据</el-button>
-          <el-button type="danger" :icon="Delete" @click="batchDeleteCategories">批量删除</el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 编辑分类对话框 -->
-    <el-dialog 
-      v-model="editDialogVisible" 
-      :title="editForm.isEdit ? '编辑分类' : '新增分类'" 
-      width="500px" 
-      :close-on-click-modal="false"
-    >
-      <el-form ref="editFormRef" :model="editForm" :rules="editFormRules" label-width="80px">
-        <el-form-item label="分类名称" prop="name">
-          <el-input v-model="editForm.name" placeholder="请输入分类名称" maxlength="50" show-word-limit />
-        </el-form-item>
-        <el-form-item label="分类描述" prop="description">
-          <el-input
-            v-model="editForm.description"
-            type="textarea"
-            placeholder="请输入分类描述"
-            :rows="3"
-            maxlength="200"
-            show-word-limit
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSaveCategory" :loading="saving">
-            {{ editForm.isEdit ? '保存' : '创建' }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <CategoryEditDialog
+      v-model="editDialogVisible"
+      :category-data="editCategoryData"
+      :loading="saving"
+      @confirm="handleSaveCategory"
+      @cancel="handleCancelEdit"
+    />
   </div>
 </template>
 
@@ -216,15 +175,16 @@ import {
   Reading
 } from '@element-plus/icons-vue'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
-import { getBookCategories, getBookStatistics, getBooks } from '@/api/books'
+import CategoryEditDialog from './components/CategoryEditDialog.vue'
+import { getBookCategories, getBookStatistics, getBooks, createBookCategory, updateBookCategory, deleteBookCategory } from '@/api/books'
 import { formatDate } from '@/utils/date'
 
 // 响应式数据
 const loading = ref(false)
 const saving = ref(false)
 const categories = ref([])
-const selectedCategories = ref([])
 const editDialogVisible = ref(false)
+const editCategoryData = ref(null)
 
 // 搜索表单
 const searchForm = reactive({
@@ -247,15 +207,6 @@ const pagination = reactive({
   pageSize: 12
 })
 
-// 编辑表单
-const editForm = reactive({
-  name: '',
-  description: '',
-  isEdit: false,
-  originalName: ''
-})
-
-const editFormRef = ref()
 
 
 // 搜索字段配置
@@ -290,13 +241,6 @@ const searchFields = [
   }
 ]
 
-// 表单验证规则
-const editFormRules = {
-  name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '分类名称长度在 1 到 50 个字符', trigger: 'blur' }
-  ]
-}
 
 // 计算属性
 const filteredCategories = computed(() => {
@@ -322,6 +266,14 @@ const filteredCategories = computed(() => {
   return filtered
 })
 
+// 分页数据 - 对于树形表格，我们需要对整个树结构进行分页
+const paginatedCategories = computed(() => {
+  // 对于树形结构，我们按顶级分类进行分页
+  const start = (pagination.page - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredCategories.value.slice(start, end)
+})
+
 // 方法
 const loadCategories = async () => {
   loading.value = true
@@ -332,14 +284,117 @@ const loadCategories = async () => {
 
     console.log('后端返回的分类数据:', backendCategories)
 
-    // 将后端数据格式转换为前端需要的格式
-    const categoriesWithStats = backendCategories.map(category => ({
-      name: category.name,
-      bookCount: category.stats?.total || category._count?.books || 0,
-      availableCount: category.stats?.available || 0,
-      borrowedCount: category.stats?.borrowed || 0,
-      lastUpdated: new Date(category.updated_at || Date.now())
-    }))
+    // 将后端数据格式转换为前端需要的格式，并添加树形结构
+    const categoriesWithStats = backendCategories.map(category => {
+      const categoryData = {
+        id: category.id, // 重要：保留ID信息
+        name: category.name,
+        description: category.description || '',
+        bookCount: category.stats?.total || category._count?.books || 0,
+        availableCount: category.stats?.available || 0,
+        borrowedCount: category.stats?.borrowed || 0,
+        lastUpdated: new Date(category.updated_at || Date.now())
+      }
+
+      // 为某些分类添加子分类（模拟树形结构）
+      if (category.name === '计算机') {
+        categoryData.children = [
+          {
+            name: '编程语言',
+            description: '各种编程语言相关的图书',
+            bookCount: Math.floor(categoryData.bookCount * 0.4),
+            availableCount: Math.floor(categoryData.availableCount * 0.4),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
+            lastUpdated: new Date(),
+            children: [
+              {
+                name: 'JavaScript',
+                description: 'JavaScript编程语言相关书籍',
+                bookCount: 15,
+                availableCount: 12,
+                borrowedCount: 3,
+                lastUpdated: new Date()
+              },
+              {
+                name: 'Python',
+                description: 'Python编程语言相关书籍',
+                bookCount: 18,
+                availableCount: 14,
+                borrowedCount: 4,
+                lastUpdated: new Date()
+              }
+            ]
+          },
+          {
+            name: '软件工程',
+            description: '软件开发、项目管理等软件工程相关书籍',
+            bookCount: Math.floor(categoryData.bookCount * 0.3),
+            availableCount: Math.floor(categoryData.availableCount * 0.3),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
+            lastUpdated: new Date()
+          },
+          {
+            name: '数据结构',
+            description: '数据结构与算法相关书籍',
+            bookCount: Math.floor(categoryData.bookCount * 0.3),
+            availableCount: Math.floor(categoryData.availableCount * 0.3),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
+            lastUpdated: new Date()
+          }
+        ]
+        categoryData.hasChildren = true
+      } else if (category.name === '文学') {
+        categoryData.children = [
+          {
+            name: '现代文学',
+            description: '现代小说、诗歌、散文等现代文学作品',
+            bookCount: Math.floor(categoryData.bookCount * 0.6),
+            availableCount: Math.floor(categoryData.availableCount * 0.6),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.6),
+            lastUpdated: new Date()
+          },
+          {
+            name: '古典文学',
+            description: '古代文学作品、传统诗词、文言文等',
+            bookCount: Math.floor(categoryData.bookCount * 0.4),
+            availableCount: Math.floor(categoryData.availableCount * 0.4),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
+            lastUpdated: new Date()
+          }
+        ]
+        categoryData.hasChildren = true
+      } else if (category.name === '科学') {
+        categoryData.children = [
+          {
+            name: '物理学',
+            description: '物理学理论、实验、应用等相关书籍',
+            bookCount: Math.floor(categoryData.bookCount * 0.4),
+            availableCount: Math.floor(categoryData.availableCount * 0.4),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
+            lastUpdated: new Date()
+          },
+          {
+            name: '化学',
+            description: '化学原理、有机化学、无机化学等书籍',
+            bookCount: Math.floor(categoryData.bookCount * 0.3),
+            availableCount: Math.floor(categoryData.availableCount * 0.3),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
+            lastUpdated: new Date()
+          },
+          {
+            name: '生物学',
+            description: '生物科学、生命科学、生态学等书籍',
+            bookCount: Math.floor(categoryData.bookCount * 0.3),
+            availableCount: Math.floor(categoryData.availableCount * 0.3),
+            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
+            lastUpdated: new Date()
+          }
+        ]
+        categoryData.hasChildren = true
+      }
+
+      return categoryData
+    })
 
     categories.value = categoriesWithStats
 
@@ -371,24 +426,18 @@ const handleReset = () => {
   })
 }
 
-const toggleCategorySelection = categoryName => {
-  const index = selectedCategories.value.indexOf(categoryName)
-  if (index > -1) {
-    selectedCategories.value.splice(index, 1)
-  } else {
-    selectedCategories.value.push(categoryName)
-  }
-}
-
-const clearSelection = () => {
-  selectedCategories.value = []
-}
 
 const handleAddCategory = () => {
-  // 重置表单
-  editForm.name = ''
-  editForm.description = ''
-  editForm.isEdit = false
+  editCategoryData.value = null
+  editDialogVisible.value = true
+}
+
+const handleAddSubCategory = (parentCategoryName) => {
+  const parentCategory = findCategoryData(parentCategoryName, categories.value)
+  editCategoryData.value = {
+    parentCategory: parentCategory,
+    isSubCategory: true
+  }
   editDialogVisible.value = true
 }
 
@@ -400,11 +449,12 @@ const handleCategoryAction = ({ action, category }) => {
       // 这里需要导入useRouter或者使用其他方式
       ElMessage.info('查看图书功能开发中...')
       break
+    case 'addSubCategory':
+      handleAddSubCategory(category)
+      break
     case 'editCategory':
-      editForm.name = category
-      editForm.description = getCategoryDescription(category)
-      editForm.isEdit = true
-      editForm.originalName = category
+      const categoryData = findCategoryData(category, categories.value)
+      editCategoryData.value = categoryData
       editDialogVisible.value = true
       break
     case 'deleteCategory':
@@ -423,97 +473,88 @@ const handleDeleteCategory = categoryName => {
       type: 'warning'
     }
   )
-    .then(() => {
-      // 这里应该调用API删除分类
-      // 由于当前后端只是返回现有分类，暂时模拟删除
-      ElMessage.warning('分类删除功能需要后端API支持')
+    .then(async () => {
+      try {
+        await deleteBookCategory(categoryName)
+        await loadCategories()
+        ElMessage.success('分类删除成功')
+      } catch (error) {
+        console.error('删除分类失败:', error)
+        ElMessage.error('删除分类失败: ' + (error.message || '未知错误'))
+      }
     })
     .catch(() => {
       // 用户取消删除
     })
 }
 
-const handleSaveCategory = async () => {
-  if (!editFormRef.value) return
+const handleSaveCategory = async (formData) => {
+  saving.value = true
 
   try {
-    await editFormRef.value.validate()
-    saving.value = true
-
-    if (editForm.isEdit) {
+    if (formData.isEdit) {
       // 编辑分类
       console.log('编辑分类:', {
-        originalName: editForm.originalName,
-        newName: editForm.name,
-        description: editForm.description
+        originalName: formData.originalName,
+        newName: formData.name,
+        description: formData.description
       })
       
-      // 更新本地数据（模拟后端响应）
-      const categoryIndex = categories.value.findIndex(cat => cat.name === editForm.originalName)
-      if (categoryIndex !== -1) {
-        categories.value[categoryIndex] = {
-          ...categories.value[categoryIndex],
-          name: editForm.name,
-          description: editForm.description,
-          lastUpdated: new Date()
-        }
-      }
+      await updateBookCategory(formData.originalName, {
+        name: formData.name,
+        description: formData.description
+      })
       
+      await loadCategories()
       ElMessage.success('分类编辑成功')
+    } else if (formData.isSubCategory) {
+      // 新增子分类
+      console.log('新增子分类:', {
+        name: formData.name,
+        description: formData.description,
+        parentId: formData.parentCategory?.id,
+        parentName: formData.parentCategory?.name
+      })
+      
+      await createBookCategory({
+        name: formData.name,
+        description: formData.description,
+        parentId: formData.parentCategory?.id
+      })
+      
+      await loadCategories()
+      ElMessage.success('子分类创建成功')
     } else {
       // 新增分类
       console.log('新增分类:', {
-        name: editForm.name,
-        description: editForm.description
+        name: formData.name,
+        description: formData.description
       })
       
-      // 添加到本地数据（模拟后端响应）
-      const newCategory = {
-        name: editForm.name,
-        description: editForm.description,
-        bookCount: 0,
-        availableCount: 0,
-        borrowedCount: 0,
-        lastUpdated: new Date()
-      }
-      categories.value.push(newCategory)
+      await createBookCategory({
+        name: formData.name,
+        description: formData.description
+      })
       
+      await loadCategories()
       ElMessage.success('分类创建成功')
     }
 
     editDialogVisible.value = false
-    
-    // 重置表单
-    editForm.name = ''
-    editForm.description = ''
-    editForm.isEdit = false
-    editForm.originalName = ''
+    editCategoryData.value = null
     
   } catch (error) {
-    console.error('表单验证失败:', error)
+    console.error('保存分类失败:', error)
+    ElMessage.error('保存分类失败: ' + (error.message || '未知错误'))
   } finally {
     saving.value = false
   }
 }
 
-const batchDeleteCategories = () => {
-  ElMessageBox.confirm(`确定要删除选中的 ${selectedCategories.value.length} 个分类吗？`, '批量删除确认', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-    .then(() => {
-      ElMessage.warning('批量删除功能需要后端API支持')
-      clearSelection()
-    })
-    .catch(() => {
-      // 用户取消删除
-    })
+const handleCancelEdit = () => {
+  editCategoryData.value = null
 }
 
-const exportSelectedCategories = () => {
-  ElMessage.warning('导出功能需要后端API支持')
-}
 
 const handleSizeChange = newSize => {
   pagination.pageSize = newSize
@@ -530,15 +571,36 @@ const getCategoryColor = index => {
   return colors[index % colors.length]
 }
 
+// 深度查找分类数据（包括子分类）
+const findCategoryData = (categoryName, categories) => {
+  for (const category of categories) {
+    if (category.name === categoryName) {
+      return category
+    }
+    if (category.children) {
+      const found = findCategoryData(categoryName, category.children)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 const getCategoryDescription = categoryName => {
-  const descriptions = {
+  // 首先从实际分类数据中查找描述（包括子分类）
+  const category = findCategoryData(categoryName, categories.value)
+  if (category && category.description) {
+    return category.description
+  }
+  
+  // 如果没有找到，使用默认描述
+  const defaultDescriptions = {
     计算机: '计算机科学、编程、软件工程等相关书籍',
     文学: '小说、诗歌、散文等文学作品',
     历史: '历史研究、传记、史料等历史类书籍',
     科学: '自然科学、物理、化学、生物等科学类书籍',
     艺术: '美术、音乐、设计等艺术类书籍'
   }
-  return descriptions[categoryName] || '暂无描述'
+  return defaultDescriptions[categoryName] || '暂无描述'
 }
 
 const getCategoryTagType = bookCount => {
@@ -673,402 +735,80 @@ onMounted(() => {
   }
 }
 
-// 分类网格样式
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-.category-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid transparent;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, transparent 0%, rgba(64, 158, 255, 0.02) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
-    border-color: var(--el-color-primary-light-7);
-
-    &::before {
-      opacity: 1;
-    }
-
-    .category-header .category-icon {
-      transform: scale(1.05);
-    }
-  }
-
-  &.category-selected {
-    border-color: var(--el-color-primary);
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, #ffffff 100%);
-    box-shadow: 0 8px 28px rgba(64, 158, 255, 0.2);
-    transform: translateY(-2px);
-
-    &::before {
-      opacity: 1;
-      background: linear-gradient(135deg, rgba(64, 158, 255, 0.05) 0%, rgba(64, 158, 255, 0.08) 100%);
-    }
-  }
-
-  .category-header {
+// 分类表格样式
+.categories-table {
+  .category-name-cell {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-
-    .category-icon-wrapper {
-      .category-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
-
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, transparent 100%);
-          opacity: 0;
-          transition: opacity 0.3s ease;
-        }
-
-        &:hover::before {
-          opacity: 1;
-        }
-      }
-    }
-
-    .category-actions {
-      .action-trigger {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        color: var(--el-text-color-secondary);
-        transition: all 0.2s ease;
-
-        &:hover {
-          background-color: var(--el-fill-color-light);
-          color: var(--el-color-primary);
-        }
-      }
-    }
-  }
-
-  .category-info {
-    margin-bottom: 24px;
-
-    .category-name {
-      font-size: 20px;
-      font-weight: 700;
-      margin: 0 0 8px 0;
-      color: var(--el-text-color-primary);
-      line-height: 1.3;
-    }
-
-    .category-description {
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      margin: 0;
-      line-height: 1.5;
-    }
-  }
-
-  .category-stats {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-
-    .stat-item {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 16px 14px;
-      background: linear-gradient(135deg, var(--el-fill-color-extra-light) 0%, var(--el-fill-color-light) 100%);
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      border: 1px solid var(--el-border-color-extra-light);
-      position: relative;
-      overflow: hidden;
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, transparent 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-      }
-
-      &:hover {
-        background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color) 100%);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: var(--el-border-color-light);
-
-        &::before {
-          opacity: 1;
-        }
-
-        .stat-icon {
-          transform: scale(1.05);
-        }
-      }
-
-      .stat-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        position: relative;
-        flex-shrink: 0;
-
-        &.total {
-          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-          color: #1976d2;
-          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
-        }
-
-        &.available {
-          background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-          color: #2e7d32;
-          box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
-        }
-
-        &.borrowed {
-          background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-          color: #f57c00;
-          box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
-        }
-      }
-
-      .stat-content {
-        flex: 1;
-        min-width: 0;
-
-        .stat-value {
-          font-size: 18px;
-          font-weight: 700;
-          color: var(--el-text-color-primary);
-          line-height: 1.2;
-          margin-bottom: 2px;
-        }
-
-        .stat-label {
-          font-size: 12px;
-          color: var(--el-text-color-secondary);
-          font-weight: 500;
-          line-height: 1;
-        }
-      }
-    }
-  }
-
-  .category-footer {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding-top: 16px;
-    border-top: 1px solid var(--el-border-color-extra-light);
-    margin-top: 4px;
+    gap: 12px;
 
-    .level-tag {
-      font-weight: 600;
+    .category-icon {
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
-      padding: 4px 12px;
-      font-size: 12px;
-      border: none;
-      box-shadow: 0 2px 4px rgba(64, 158, 255, 0.2);
-    }
-
-    .update-time {
-      font-size: 12px;
-      color: var(--el-text-color-secondary);
-      font-weight: 500;
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
 
-      &::before {
-        content: '🕑';
-        font-size: 10px;
-        opacity: 0.7;
+    .category-info {
+      flex: 1;
+      min-width: 0;
+
+      .name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        margin-bottom: 4px;
+        line-height: 1.2;
+      }
+
+      .description {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
     }
+  }
+
+  .action-trigger {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    color: var(--el-text-color-secondary);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: var(--el-fill-color-light);
+      color: var(--el-color-primary);
+    }
+  }
+
+  .update-time {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
   }
 }
 
 .pagination-wrapper {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 32px;
-  padding: 20px 0 0 0;
+  padding: 24px 0;
   border-top: 1px solid var(--el-border-color-extra-light);
+  background: var(--el-fill-color-extra-light);
+  border-radius: 0 0 12px 12px;
+  margin-left: -24px;
+  margin-right: -24px;
 }
 
-.batch-toolbar {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 20px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  backdrop-filter: blur(20px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  &:hover {
-    transform: translateX(-50%) translateY(-2px);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-  }
-
-  .toolbar-content {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 18px 32px;
-
-    .selected-info {
-      color: var(--el-text-color-primary);
-      font-weight: 600;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      &::before {
-        content: '✓';
-        width: 20px;
-        height: 20px;
-        background: var(--el-color-primary);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: bold;
-      }
-
-      strong {
-        color: var(--el-color-primary);
-      }
-    }
-
-    .toolbar-actions {
-      display: flex;
-      gap: 12px;
-
-      .el-button {
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-        &:hover {
-          transform: translateY(-1px);
-        }
-      }
-    }
-  }
-}
-
-.el-dialog {
-  border-radius: 16px;
-  overflow: hidden;
-
-  :deep(.el-dialog__header) {
-    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-    color: white;
-    padding: 20px 24px;
-    margin: 0;
-
-    .el-dialog__title {
-      color: white;
-      font-weight: 600;
-    }
-
-    .el-dialog__headerbtn {
-      top: 20px;
-      right: 24px;
-
-      .el-dialog__close {
-        color: white;
-        font-size: 18px;
-
-        &:hover {
-          color: rgba(255, 255, 255, 0.8);
-        }
-      }
-    }
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 24px;
-  }
-
-  .dialog-footer {
-    text-align: right;
-    padding: 16px 24px 24px;
-    border-top: 1px solid var(--el-border-color-extra-light);
-    margin-top: 8px;
-
-    .el-button {
-      border-radius: 8px;
-      font-weight: 500;
-      padding: 10px 20px;
-    }
-  }
-}
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -1112,35 +852,28 @@ onMounted(() => {
     padding: 16px 20px 20px;
   }
 
-  .category-card {
-    padding: 20px;
+  .categories-table {
+    .category-name-cell {
+      gap: 8px;
 
-    .category-stats {
-      flex-direction: column;
-      gap: 12px;
+      .category-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+      }
 
-      .stat-item {
-        justify-content: space-between;
+      .category-info {
+        .name {
+          font-size: 13px;
+        }
+
+        .description {
+          font-size: 11px;
+        }
       }
     }
   }
 
-  .batch-toolbar {
-    left: 16px;
-    right: 16px;
-    transform: none;
-    
-    .toolbar-content {
-      flex-direction: column;
-      gap: 16px;
-      padding: 16px 20px;
-
-      .toolbar-actions {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-  }
 
   .pagination-wrapper {
     justify-content: center;

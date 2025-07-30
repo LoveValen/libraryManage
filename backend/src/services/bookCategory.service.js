@@ -62,6 +62,54 @@ class BookCategoryService {
   }
 
   /**
+   * Find category by name with stats
+   */
+  static async findByNameWithStats(name) {
+    const category = await prisma.book_categories.findFirst({
+      where: { name },
+      include: {
+        _count: {
+          select: {
+            books: {
+              where: { is_deleted: false }
+            }
+          }
+        },
+        books: {
+          where: { is_deleted: false },
+          select: {
+            status: true,
+            has_ebook: true
+          }
+        }
+      }
+    });
+
+    if (!category) return null;
+
+    const stats = {
+      total: category._count.books,
+      available: 0,
+      borrowed: 0,
+      hasEbook: 0
+    };
+
+    category.books.forEach(book => {
+      if (book.status === 'available') stats.available++;
+      if (book.status === 'borrowed') stats.borrowed++;
+      if (book.has_ebook) stats.hasEbook++;
+    });
+
+    // Remove the books array from response
+    const { books, ...categoryData } = category;
+
+    return {
+      ...categoryData,
+      stats
+    };
+  }
+
+  /**
    * Create new category
    */
   static async create(categoryData) {

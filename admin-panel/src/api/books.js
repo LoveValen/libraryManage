@@ -57,6 +57,31 @@ export function getBookCategories() {
 }
 
 /**
+ * 创建图书分类
+ * @param {Object} data - 分类数据
+ */
+export function createBookCategory(data) {
+  return request.post('/books/categories', data)
+}
+
+/**
+ * 更新图书分类
+ * @param {string} name - 分类名称
+ * @param {Object} data - 更新数据
+ */
+export function updateBookCategory(name, data) {
+  return request.put(`/books/categories/${encodeURIComponent(name)}`, data)
+}
+
+/**
+ * 删除图书分类
+ * @param {string} name - 分类名称
+ */
+export function deleteBookCategory(name) {
+  return request.delete(`/books/categories/${encodeURIComponent(name)}`)
+}
+
+/**
  * 更新图书库存
  * @param {number} id - 图书ID
  * @param {Object} data - 库存数据

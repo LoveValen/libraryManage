@@ -1,4 +1,4 @@
-const { ApiError, fromError } = require('../utils/apiError');
+const { ApiError, fromError, ValidationError } = require('../utils/apiError');
 const { logError } = require('../utils/logger');
 const config = require('../config');
 
@@ -120,7 +120,7 @@ const handleDatabaseError = (err, req, res, next) => {
  */
 const handleValidationError = (err, req, res, next) => {
   // 如果不是验证错误，传递给下一个中间件
-  if (err.name !== 'ValidationError' && !err.isJoi) {
+  if (err.name !== 'ValidationError' && !err.isJoi && !(err instanceof ValidationError)) {
     return next(err);
   }
 
@@ -128,6 +128,19 @@ const handleValidationError = (err, req, res, next) => {
     type: 'validation_error',
     validationDetails: err.details || err.errors,
   });
+
+  // 自定义ValidationError
+  if (err instanceof ValidationError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      status: 'error',
+      statusCode: err.statusCode,
+      message: err.message,
+      code: err.code,
+      errors: err.errors,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   // Joi验证错误
   if (err.isJoi) {
@@ -137,10 +150,10 @@ const handleValidationError = (err, req, res, next) => {
       value: detail.context?.value,
     }));
 
-    return res.status(400).json({
+    return res.status(422).json({
       success: false,
       status: 'error',
-      statusCode: 400,
+      statusCode: 422,
       message: 'Validation failed',
       code: 'VALIDATION_ERROR',
       errors: validationErrors,
@@ -156,10 +169,10 @@ const handleValidationError = (err, req, res, next) => {
       value: error.value,
     }));
 
-    return res.status(400).json({
+    return res.status(422).json({
       success: false,
       status: 'error',
-      statusCode: 400,
+      statusCode: 422,
       message: 'Validation failed',
       code: 'VALIDATION_ERROR',
       errors: validationErrors,

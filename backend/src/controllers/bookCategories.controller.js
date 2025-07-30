@@ -1,6 +1,6 @@
 const BookCategoryService = require('../services/bookCategory.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
-const { NotFoundError, BadRequestError, ConflictError } = require('../utils/apiError');
+const { NotFoundError, BadRequestError, ConflictError, ValidationError } = require('../utils/apiError');
 
 /**
  * Book categories controller using Prisma
@@ -11,7 +11,6 @@ class BookCategoriesController {
    * GET /api/v1/books/categories/tree
    */
   getCategoryTree = asyncHandler(async (req, res) => {
-    // For now, return a flat list as tree structure needs additional implementation
     const categories = await BookCategoryService.getCategoriesWithStats();
     
     res.json({
@@ -47,13 +46,26 @@ class BookCategoriesController {
   });
 
   /**
-   * Get category by ID
-   * GET /api/v1/books/categories/:id
+   * Get category by ID or Name
+   * GET /api/v1/books/categories/:identifier
    */
-  getCategoryById = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+  getCategoryByIdOrName = asyncHandler(async (req, res) => {
+    const { identifier } = req.params;
     
-    const category = await BookCategoryService.findById(parseInt(id), true);
+    let category = null;
+    
+    // 首先尝试作为ID解析
+    const numId = parseInt(identifier);
+    if (!isNaN(numId) && numId > 0) {
+      category = await BookCategoryService.findById(numId, true);
+    }
+    
+    // 如果按ID没找到，尝试按名称查找
+    if (!category) {
+      // URL解码中文字符
+      const decodedName = decodeURIComponent(identifier);
+      category = await BookCategoryService.findByNameWithStats(decodedName);
+    }
     
     if (!category) {
       return res.status(404).json({
@@ -65,11 +77,22 @@ class BookCategoriesController {
       });
     }
     
-    const categoryData = {
-      ...category,
-      bookCount: category._count?.books || 0,
-      fullPath: category.name // Simple implementation for now
-    };
+    let categoryData;
+    if (category.stats) {
+      // Data from findByNameWithStats
+      categoryData = {
+        ...category,
+        bookCount: category.stats.total || 0,
+        fullPath: category.name
+      };
+    } else {
+      // Data from findById
+      categoryData = {
+        ...category,
+        bookCount: category._count?.books || 0,
+        fullPath: category.name
+      };
+    }
     
     res.json({
       success: true,
@@ -83,35 +106,52 @@ class BookCategoriesController {
     });
   });
 
+
   /**
    * Create category
    * POST /api/v1/books/categories
    */
   createCategory = asyncHandler(async (req, res) => {
-    const { name, nameEn, code, parentId, description, icon, color, sortOrder } = req.body;
-    
+    const { name, nameEn, code, parentId, parentName, description, icon, color, sortOrder } = req.body;
+
     // Check if name already exists
-    const existingCategory = await BookCategoryService.findByName(name);
+    const existingCategory = await BookCategoryService.findByName(name.trim());
     if (existingCategory) {
-      return res.status(400).json({
-        success: false,
-        status: 'error',
-        statusCode: 400,
-        message: '分类名称已存在',
-        timestamp: new Date().toISOString(),
-      });
+      throw new ConflictError('分类名称已存在');
+    }
+    
+    let resolvedParentId = null;
+    let level = 1;
+    
+    // Handle parentId (preferred method)
+    if (parentId) {
+      const parentCategory = await BookCategoryService.findById(parentId);
+      if (!parentCategory) {
+        throw new NotFoundError('父分类不存在');
+      }
+      resolvedParentId = parentId;
+      level = (parentCategory.level || 1) + 1;
+    }
+    // Handle parentName (fallback for compatibility)
+    else if (parentName) {
+      const parentCategory = await BookCategoryService.findByName(parentName);
+      if (!parentCategory) {
+        throw new NotFoundError(`父分类 "${parentName}" 不存在`);
+      }
+      resolvedParentId = parentCategory.id;
+      level = (parentCategory.level || 1) + 1;
     }
     
     const categoryData = {
-      name,
-      name_en: nameEn,
-      code: code || name, // Use name as code if not provided
-      parent_id: parentId || null,
-      description,
-      icon,
-      color,
+      name: name.trim(),
+      name_en: nameEn?.trim(),
+      code: (code || name).trim(),
+      parent_id: resolvedParentId,
+      description: description?.trim(),
+      icon: icon?.trim(),
+      color: color?.trim(),
       sort_order: sortOrder,
-      level: 1, // Simple implementation - would need parent level + 1
+      level: level,
       is_active: true
     };
     
@@ -121,7 +161,7 @@ class BookCategoriesController {
       success: true,
       status: 'success',
       statusCode: 201,
-      message: '创建分类成功',
+      message: resolvedParentId ? '创建子分类成功' : '创建分类成功',
       data: {
         category: {
           id: category.id,
@@ -144,14 +184,25 @@ class BookCategoriesController {
   });
 
   /**
-   * Update category
+   * Update category by ID
    * PUT /api/v1/books/categories/:id
    */
   updateCategory = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, nameEn, description, icon, color, sortOrder, isActive } = req.body;
     
-    const category = await BookCategoryService.findById(parseInt(id));
+    const categoryId = parseInt(id);
+    if (isNaN(categoryId) || categoryId <= 0) {
+      return res.status(400).json({
+        success: false,
+        status: 'error',
+        statusCode: 400,
+        message: '无效的分类ID',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    const category = await BookCategoryService.findById(categoryId);
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -162,16 +213,41 @@ class BookCategoriesController {
       });
     }
     
+    // Validate name if provided
+    if (name !== undefined && (!name || name.trim() === '')) {
+      return res.status(400).json({
+        success: false,
+        status: 'error',
+        statusCode: 400,
+        message: '分类名称不能为空',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Check if new name already exists (excluding current category)
+    if (name !== undefined && name.trim() !== category.name) {
+      const existingCategory = await BookCategoryService.findByName(name.trim());
+      if (existingCategory && existingCategory.id !== categoryId) {
+        return res.status(400).json({
+          success: false,
+          status: 'error',
+          statusCode: 400,
+          message: '分类名称已存在',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
     const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (nameEn !== undefined) updateData.name_en = nameEn;
-    if (description !== undefined) updateData.description = description;
-    if (icon !== undefined) updateData.icon = icon;
-    if (color !== undefined) updateData.color = color;
+    if (name !== undefined) updateData.name = name.trim();
+    if (nameEn !== undefined) updateData.name_en = nameEn?.trim();
+    if (description !== undefined) updateData.description = description?.trim();
+    if (icon !== undefined) updateData.icon = icon?.trim();
+    if (color !== undefined) updateData.color = color?.trim();
     if (sortOrder !== undefined) updateData.sort_order = sortOrder;
     if (isActive !== undefined) updateData.is_active = isActive;
     
-    const updatedCategory = await BookCategoryService.update(parseInt(id), updateData);
+    const updatedCategory = await BookCategoryService.update(categoryId, updateData);
     
     res.json({
       success: true,
@@ -199,15 +275,38 @@ class BookCategoriesController {
     });
   });
 
+
   /**
-   * Delete category
+   * Delete category by ID
    * DELETE /api/v1/books/categories/:id
    */
   deleteCategory = asyncHandler(async (req, res) => {
     const { id } = req.params;
     
+    const categoryId = parseInt(id);
+    if (isNaN(categoryId) || categoryId <= 0) {
+      return res.status(400).json({
+        success: false,
+        status: 'error',
+        statusCode: 400,
+        message: '无效的分类ID',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    const category = await BookCategoryService.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        status: 'error',
+        statusCode: 404,
+        message: '分类不存在',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
     try {
-      await BookCategoryService.delete(parseInt(id));
+      await BookCategoryService.delete(categoryId);
       
       res.json({
         success: true,
@@ -230,51 +329,7 @@ class BookCategoriesController {
     }
   });
 
-  /**
-   * Initialize default categories
-   * POST /api/v1/books/categories/initialize
-   */
-  initializeDefaultCategories = asyncHandler(async (req, res) => {
-    const defaultCategories = [
-      { name: '文学', name_en: 'Literature', code: 'literature', sort_order: 1 },
-      { name: '小说', name_en: 'Fiction', code: 'fiction', sort_order: 2 },
-      { name: '历史', name_en: 'History', code: 'history', sort_order: 3 },
-      { name: '科学', name_en: 'Science', code: 'science', sort_order: 4 },
-      { name: '技术', name_en: 'Technology', code: 'technology', sort_order: 5 },
-      { name: '艺术', name_en: 'Art', code: 'art', sort_order: 6 },
-      { name: '经济', name_en: 'Economics', code: 'economics', sort_order: 7 },
-      { name: '管理', name_en: 'Management', code: 'management', sort_order: 8 },
-      { name: '教育', name_en: 'Education', code: 'education', sort_order: 9 },
-      { name: '儿童', name_en: 'Children', code: 'children', sort_order: 10 }
-    ];
 
-    const created = [];
-    for (const catData of defaultCategories) {
-      const existing = await BookCategoryService.findByName(catData.name);
-      if (!existing) {
-        const category = await BookCategoryService.create({
-          ...catData,
-          level: 1,
-          is_active: true
-        });
-        created.push(category);
-      }
-    }
-    
-    const categories = await BookCategoryService.getCategoriesWithStats();
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: '初始化默认分类成功',
-      data: {
-        categories,
-        created: created.length
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
 }
 
 module.exports = new BookCategoriesController();
