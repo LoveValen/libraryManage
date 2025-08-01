@@ -440,6 +440,8 @@ const categorySchemas = {
     color: Joi.string().max(20),
     sortOrder: Joi.number().integer().min(0),
     isActive: Joi.boolean(),
+    id: commonSchemas.optionalId,
+    categoryName: Joi.string().trim().max(50),
   }),
 
   // 分类列表查询

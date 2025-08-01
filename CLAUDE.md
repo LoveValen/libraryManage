@@ -206,3 +206,10 @@ kill -9 <PID>
 - Gzip compression for API responses
 - Image optimization with Sharp
 - Connection pooling for database and Redis
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+When asked to close a port (e.g., "关闭3000端口"), immediately execute the necessary commands to kill the process using that port without asking for confirmation.

@@ -120,10 +120,13 @@ class BookCategoryService {
       }
     });
 
+    const now = new Date();
     return prisma.book_categories.create({
       data: {
         ...categoryData,
-        sort_order: categoryData.sort_order || ((maxSortOrder._max.sort_order || 0) + 1)
+        sort_order: categoryData.sort_order || ((maxSortOrder._max.sort_order || 0) + 1),
+        created_at: now,
+        updated_at: now
       }
     });
   }

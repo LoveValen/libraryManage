@@ -113,6 +113,7 @@ class BookCategoriesController {
    */
   createCategory = asyncHandler(async (req, res) => {
     const { name, nameEn, code, parentId, parentName, description, icon, color, sortOrder } = req.body;
+    
 
     // Check if name already exists
     const existingCategory = await BookCategoryService.findByName(name.trim());
@@ -155,7 +156,13 @@ class BookCategoriesController {
       is_active: true
     };
     
-    const category = await BookCategoryService.create(categoryData);
+    
+    let category;
+    try {
+      category = await BookCategoryService.create(categoryData);
+    } catch (error) {
+      throw error;
+    }
     
     res.status(201).json({
       success: true,
@@ -184,25 +191,50 @@ class BookCategoriesController {
   });
 
   /**
-   * Update category by ID
-   * PUT /api/v1/books/categories/:id
+   * Update category by ID or Name
+   * PUT /api/v1/books/categories/:identifier
    */
   updateCategory = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { name, nameEn, description, icon, color, sortOrder, isActive } = req.body;
+    const { identifier } = req.params;
+    const { name, nameEn, description, icon, color, sortOrder, isActive, id, categoryName } = req.body;
     
-    const categoryId = parseInt(id);
-    if (isNaN(categoryId) || categoryId <= 0) {
-      return res.status(400).json({
-        success: false,
-        status: 'error',
-        statusCode: 400,
-        message: '无效的分类ID',
-        timestamp: new Date().toISOString(),
-      });
+    let category = null;
+    let categoryId = null;
+    
+    // 优先使用body中的参数来识别分类
+    if (id) {
+      // 使用body中的id
+      const numId = parseInt(id);
+      if (!isNaN(numId) && numId > 0) {
+        category = await BookCategoryService.findById(numId);
+        categoryId = numId;
+      }
+    } else if (categoryName) {
+      // 使用body中的categoryName（专门用于搜索）
+      category = await BookCategoryService.findByName(categoryName);
+      if (category) {
+        categoryId = category.id;
+      }
+    } else {
+      // 回退到使用URL参数
+      // 首先尝试作为ID解析
+      const numId = parseInt(identifier);
+      if (!isNaN(numId) && numId > 0) {
+        category = await BookCategoryService.findById(numId);
+        categoryId = numId;
+      }
+      
+      // 如果按ID没找到，尝试按名称查找
+      if (!category) {
+        // URL解码中文字符
+        const decodedName = decodeURIComponent(identifier);
+        category = await BookCategoryService.findByName(decodedName);
+        if (category) {
+          categoryId = category.id;
+        }
+      }
     }
     
-    const category = await BookCategoryService.findById(categoryId);
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -277,24 +309,32 @@ class BookCategoriesController {
 
 
   /**
-   * Delete category by ID
-   * DELETE /api/v1/books/categories/:id
+   * Delete category by ID or Name
+   * DELETE /api/v1/books/categories/:identifier
    */
   deleteCategory = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+    const { identifier } = req.params;
     
-    const categoryId = parseInt(id);
-    if (isNaN(categoryId) || categoryId <= 0) {
-      return res.status(400).json({
-        success: false,
-        status: 'error',
-        statusCode: 400,
-        message: '无效的分类ID',
-        timestamp: new Date().toISOString(),
-      });
+    let category = null;
+    let categoryId = null;
+    
+    // 首先尝试作为ID解析
+    const numId = parseInt(identifier);
+    if (!isNaN(numId) && numId > 0) {
+      category = await BookCategoryService.findById(numId);
+      categoryId = numId;
     }
     
-    const category = await BookCategoryService.findById(categoryId);
+    // 如果按ID没找到，尝试按名称查找
+    if (!category) {
+      // URL解码中文字符
+      const decodedName = decodeURIComponent(identifier);
+      category = await BookCategoryService.findByName(decodedName);
+      if (category) {
+        categoryId = category.id;
+      }
+    }
+    
     if (!category) {
       return res.status(404).json({
         success: false,

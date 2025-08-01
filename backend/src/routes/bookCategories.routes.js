@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bookCategoriesController = require('../controllers/bookCategories.controller');
 const { authenticate, authorize } = require('../middlewares/auth.middleware');
-const { validateId } = require('../middlewares/validation.middleware');
-const { validate: validateSchema, categorySchemas } = require('../utils/validation');
+const { validateId, validate } = require('../middlewares/validation.middleware');
+const { categorySchemas } = require('../utils/validation');
 
 /**
  * 图书分类路由
@@ -26,23 +26,23 @@ router.post(
   '/',
   authenticate,
   authorize(['admin']),
-  validateSchema(categorySchemas.createCategory),
+  validate(categorySchemas.createCategory),
   bookCategoriesController.createCategory
 );
 
 
 // 更新分类（需要管理员权限）
 router.put(
-  '/:id',
+  '/:identifier',
   authenticate,
   authorize(['admin']),
-  validateSchema(categorySchemas.updateCategory),
+  validate(categorySchemas.updateCategory),
   bookCategoriesController.updateCategory
 );
 
 // 删除分类（需要管理员权限）
 router.delete(
-  '/:id',
+  '/:identifier',
   authenticate,
   authorize(['admin']),
   bookCategoriesController.deleteCategory

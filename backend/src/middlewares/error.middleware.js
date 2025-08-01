@@ -40,10 +40,6 @@ const errorHandler = (err, req, res, next) => {
   if (config.app.environment === 'development') {
     errorResponse.stack = apiError.stack;
     errorResponse.originalError = err.message;
-    
-    if (apiError.errors) {
-      errorResponse.errors = apiError.errors;
-    }
   }
 
   // 在生产环境下，对内部服务器错误使用通用消息
@@ -53,9 +49,11 @@ const errorHandler = (err, req, res, next) => {
     delete errorResponse.originalError;
   }
 
-  // 如果有详细错误信息，添加到响应中
-  if (apiError.errors && config.app.environment !== 'production') {
+  // 如果有详细错误信息，添加到响应中（验证错误需要在生产环境也返回）
+  if (apiError.errors) {
     errorResponse.errors = apiError.errors;
+  } else {
+    errorResponse.errors = null;
   }
 
   // 发送错误响应

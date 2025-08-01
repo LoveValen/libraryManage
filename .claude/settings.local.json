@@ -36,7 +36,8 @@
       "Bash(cmd /c \"start \"\"Docker Desktop\"\" \"\"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe\"\"\")",
       "Bash(cmd /c:*)",
       "Bash(cmd //c:*)",
-      "Bash(move SystemNumberInput.vue InputNumber.vue)"
+      "Bash(move SystemNumberInput.vue InputNumber.vue)",
+      "Bash(wmic:*)"
     ],
     "deny": []
   }

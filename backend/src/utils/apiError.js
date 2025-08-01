@@ -242,6 +242,16 @@ const fromError = (error) => {
     return new JWTError(error.message);
   }
 
+  // Joi验证错误
+  if (error.isJoi) {
+    const validationErrors = error.details.map(detail => ({
+      field: detail.path.join('.'),
+      message: detail.message,
+      value: detail.context?.value,
+    }));
+    return new ValidationError('Validation failed', validationErrors);
+  }
+
   // Multer文件上传错误
   if (error.code === 'LIMIT_FILE_SIZE') {
     return new FileUploadError('File size too large');

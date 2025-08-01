@@ -15,19 +15,19 @@ const {
 } = require('./middlewares/validation.middleware');
 
 // 导入路由
-const authRoutes = require('./api/auth.routes');
-const booksRoutes = require('./api/books.routes');
-const bookCategoriesRoutes = require('./api/bookCategories.routes');
-const usersRoutes = require('./api/users.routes');
-const borrowsRoutes = require('./api/borrows.routes');
-const reviewsRoutes = require('./api/reviews.routes');
-const pointsRoutes = require('./api/points.routes');
-const analyticsRoutes = require('./api/analytics.routes');
-const notificationsRoutes = require('./api/notifications.routes');
-const healthRoutes = require('./api/health.routes');
-const backupRoutes = require('./api/backup.routes');
-const restoreRoutes = require('./api/restore.routes');
-const adminRoutes = require('./api/admin.routes');
+const authRoutes = require('./routes/auth.routes');
+const booksRoutes = require('./routes/books.routes');
+const bookCategoriesRoutes = require('./routes/bookCategories.routes');
+const usersRoutes = require('./routes/users.routes');
+const borrowsRoutes = require('./routes/borrows.routes');
+const reviewsRoutes = require('./routes/reviews.routes');
+const pointsRoutes = require('./routes/points.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
+const notificationsRoutes = require('./routes/notifications.routes');
+const healthRoutes = require('./routes/health.routes');
+const backupRoutes = require('./routes/backup.routes');
+const restoreRoutes = require('./routes/restore.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 /**
  * 创建Express应用

@@ -26,8 +26,8 @@ const validate = (schema, target = 'body') => {
         type: detail.type,
       }));
 
-      const error = new ValidationError('Validation failed', validationErrors);
-      return next(error);
+      const validationError = new ValidationError('Validation failed', validationErrors);
+      return next(validationError);
     }
 
     // 将验证并清理后的数据替换原始数据
