@@ -2,87 +2,111 @@ const healthMonitoringService = require('../services/healthMonitoring.service');
 const SystemHealthService = require('../services/systemHealth.service');
 const AlertService = require('../services/alert.service');
 const HealthCheckTemplateService = require('../services/healthCheckTemplate.service');
-const { ApiError, BadRequestError, NotFoundError, ForbiddenError } = require('../utils/apiError');
-const { logger } = require('../utils/logger');
+const { asyncHandler } = require('../middlewares/error.middleware');
+const { success, successWithPagination, validationError } = require('../utils/response');
+const { validateRequest } = require('../utils/validation');
+const { BadRequestError, NotFoundError, ForbiddenError } = require('../utils/apiError');
+const Joi = require('joi');
 
 /**
  * 健康监控控制器
  */
 class HealthController {
+  // 验证模式常量
+  static ACKNOWLEDGE_ALERT_SCHEMA = Joi.object({
+    note: Joi.string().max(500).optional()
+  });
+
+  static RESOLVE_ALERT_SCHEMA = Joi.object({
+    note: Joi.string().max(500).optional()
+  });
+
+  static SUPPRESS_ALERT_SCHEMA = Joi.object({
+    suppressUntil: Joi.date().min('now').required()
+  });
+
+  static BATCH_ALERT_SCHEMA = Joi.object({
+    alertIds: Joi.array().items(Joi.number().integer().positive()).min(1).max(100).required(),
+    operation: Joi.string().valid('acknowledge', 'resolve', 'suppress').required(),
+    data: Joi.object({
+      note: Joi.string().max(500).optional(),
+      suppressUntil: Joi.date().min('now').optional()
+    }).optional()
+  });
+
+  /**
+   * 解析整数参数
+   * @private
+   */
+  _parseIntParam(value, defaultValue = null) {
+    return value ? parseInt(value) : defaultValue;
+  }
+
+  /**
+   * 检查管理员权限
+   * @private
+   */
+  _checkAdminPermission(user) {
+    if (user.role !== 'admin') {
+      throw new ForbiddenError('只有管理员可以执行此操作');
+    }
+  }
   /**
    * 获取系统整体健康状态
    */
-  async getSystemHealth(req, res) {
-    try {
-      const overallHealth = await healthMonitoringService.getOverallHealthStatus();
-      const latestChecks = await SystemHealthService.getLatestHealthStatus();
-      
-      const healthData = {
-        overall: overallHealth,
-        checks: latestChecks.map(check => ({
-          type: check.checkType,
-          name: check.checkName,
-          status: check.status,
-          responseTime: check.responseTime,
-          lastCheck: check.checkedAt,
-          error: check.errorMessage,
-          details: check.details
-        })),
-        timestamp: new Date().toISOString()
-      };
-      
-      res.apiSuccess(healthData);
-    } catch (error) {
-      logger.error('获取系统健康状态失败:', error);
-      const errorMessage = typeof error === 'string' ? error : 
-                          error?.message || 
-                          error?.toString() || 
-                          'Failed to get system health status';
-      res.apiError(errorMessage, 500);
-    }
-  }
+  getSystemHealth = asyncHandler(async (req, res) => {
+    const overallHealth = await healthMonitoringService.getOverallHealthStatus();
+    const latestChecks = await SystemHealthService.getLatestHealthStatus();
+    
+    const healthData = {
+      overall: overallHealth,
+      checks: latestChecks.map(check => ({
+        type: check.checkType,
+        name: check.checkName,
+        status: check.status,
+        responseTime: check.responseTime,
+        lastCheck: check.checkedAt,
+        error: check.errorMessage,
+        details: check.details
+      })),
+      timestamp: new Date().toISOString()
+    };
+    
+    success(res, healthData, '获取系统健康状态成功');
+  });
 
   /**
    * 获取详细健康检查报告
    */
-  async getHealthReport(req, res) {
-    try {
-      const { timeRange = 24 } = req.query;
-      
-      const [overallHealth, systemMetrics, alertStats] = await Promise.all([
-        healthMonitoringService.getOverallHealthStatus(),
-        healthMonitoringService.getSystemMetrics(),
-        healthMonitoringService.getAlertStatistics(timeRange)
-      ]);
-      
-      const report = {
-        summary: {
-          overallStatus: overallHealth.overallStatus,
-          totalChecks: overallHealth.totalChecks,
-          statusDistribution: overallHealth.statusCounts,
-          lastUpdated: overallHealth.lastUpdated
-        },
-        systemMetrics: {
-          cpu: systemMetrics.cpu.slice(-12), // 最近12个数据点
-          memory: systemMetrics.memory.slice(-12),
-          disk: systemMetrics.disk.slice(-12),
-          lastUpdate: new Date(systemMetrics.lastUpdate).toISOString()
-        },
-        alerts: alertStats,
-        recommendations: await HealthController.prototype.generateHealthRecommendations.call(this, overallHealth),
-        timestamp: new Date().toISOString()
-      };
-      
-      res.apiSuccess(report);
-    } catch (error) {
-      logger.error('获取健康报告失败:', error);
-      const errorMessage = typeof error === 'string' ? error : 
-                          error?.message || 
-                          error?.toString() || 
-                          'Internal server error';
-      res.apiError(errorMessage, 500);
-    }
-  }
+  getHealthReport = asyncHandler(async (req, res) => {
+    const { timeRange = 24 } = req.query;
+    
+    const [overallHealth, systemMetrics, alertStats] = await Promise.all([
+      healthMonitoringService.getOverallHealthStatus(),
+      healthMonitoringService.getSystemMetrics(),
+      healthMonitoringService.getAlertStatistics(timeRange)
+    ]);
+    
+    const report = {
+      summary: {
+        overallStatus: overallHealth.overallStatus,
+        totalChecks: overallHealth.totalChecks,
+        statusDistribution: overallHealth.statusCounts,
+        lastUpdated: overallHealth.lastUpdated
+      },
+      systemMetrics: {
+        cpu: systemMetrics.cpu.slice(-12),
+        memory: systemMetrics.memory.slice(-12),
+        disk: systemMetrics.disk.slice(-12),
+        lastUpdate: new Date(systemMetrics.lastUpdate).toISOString()
+      },
+      alerts: alertStats,
+      recommendations: await this.generateHealthRecommendations(overallHealth),
+      timestamp: new Date().toISOString()
+    };
+    
+    success(res, report, '获取健康报告成功');
+  });
 
   /**
    * 获取特定健康检查的历史趋势

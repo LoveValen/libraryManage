@@ -61,6 +61,15 @@
 - **访问控制** - 细粒度的访问控制和权限管理
 - **合规支持** - GDPR、HIPAA等法规合规支持
 
+#### 🏢 企业级特性 (已实现)
+- **请求追踪** - UUID请求ID、全链路追踪
+- **性能监控** - 响应时间监控、慢请求检测
+- **优雅关闭** - 零停机升级、连接跟踪、资源清理
+- **健康检查** - 启动验证、系统资源监控
+- **模块化架构** - 关注点分离、企业级可维护性
+- **结构化日志** - Winston集成、请求上下文追踪
+- **安全强化** - Helmet、HSTS、XSS防护、输入清理
+
 #### 📊 系统监控
 - **健康检查** - 实时系统健康状态监控
 - **性能监控** - 详细的性能指标和分析
@@ -88,23 +97,23 @@ Vue.js 3.x          # 渐进式前端框架
 └── PWA Support    # 渐进式Web应用
 ```
 
-### 后端技术栈
+### 后端技术栈 (企业级架构)
 ```
-Node.js 16+         # 运行时环境
-├── Express.js      # Web框架
-├── Sequelize ORM   # 对象关系映射
-├── PostgreSQL      # 主数据库
+Node.js 18+         # 运行时环境
+├── Express.js      # 企业级Web框架
+├── Prisma ORM      # 现代化数据库工具
+├── MySQL 8.0       # 高性能关系型数据库
 ├── Redis          # 缓存和会话存储
-├── Elasticsearch  # 搜索引擎
-├── Socket.io      # WebSocket服务
-├── Bull Queue     # 消息队列
-├── JWT            # 身份认证
-├── Bcrypt         # 密码加密
-├── Joi            # 数据验证
-├── Multer         # 文件上传
-├── Nodemailer     # 邮件服务
-├── Winston        # 日志管理
-└── Jest           # 单元测试
+├── Socket.io      # WebSocket实时通信
+├── JWT            # 无状态身份认证
+├── Bcrypt         # 安全密码加密
+├── Joi            # 严格数据验证
+├── Helmet         # 企业级安全中间件
+├── Winston        # 结构化日志管理
+├── UUID           # 企业级请求追踪
+├── Compression    # 响应压缩优化
+├── CORS           # 跨域安全配置
+└── Jest           # 全面单元测试
 ```
 
 ### 基础设施
@@ -121,11 +130,11 @@ Docker              # 容器化部署
 
 ### 环境要求
 
-- **Node.js** 16.0.0 或更高版本
-- **NPM** 7.0.0 或更高版本
-- **PostgreSQL** 12.0 或更高版本
-- **Redis** 6.0 或更高版本
-- **Elasticsearch** 7.x 或 8.x
+- **Node.js** 18.0.0 或更高版本 (推荐 v18.x LTS)
+- **NPM** 8.0.0 或更高版本
+- **MySQL** 8.0 或更高版本 
+- **Redis** 6.0 或更高版本 (可选，用于缓存)
+- **Docker** 20.0+ 和 Docker Compose (推荐)
 
 ### 克隆项目
 ```bash
@@ -149,14 +158,14 @@ cp .env.example .env
 
 3. **数据库初始化**
 ```bash
-# 创建数据库
-npm run db:create
+# 生成 Prisma 客户端
+npm run db:generate
 
-# 运行迁移
-npm run db:migrate
+# 推送数据库架构 (开发环境)
+npm run db:push
 
-# 插入种子数据
-npm run db:seed
+# 查看数据库 (可选)
+npm run db:studio
 ```
 
 4. **启动开发服务器**
@@ -168,14 +177,14 @@ npm run dev
 
 1. **安装依赖**
 ```bash
-cd frontend
+cd admin-panel
 npm install
 ```
 
 2. **环境配置**
 ```bash
-cp .env.example .env.local
-# 编辑环境变量
+# 前端无需额外配置，默认连接后端 API
+# 如需自定义，可编辑 vite.config.js
 ```
 
 3. **启动开发服务器**
@@ -185,10 +194,11 @@ npm run dev
 
 ### 访问应用
 
-- **前端界面**: http://localhost:3000
-- **后端API**: http://localhost:5000
-- **API文档**: http://localhost:5000/docs
-- **监控面板**: http://localhost:5000/admin/dashboard
+- **前端界面**: http://localhost:8080
+- **后端API**: http://localhost:3000
+- **API文档**: http://localhost:3000/api/docs
+- **健康检查**: http://localhost:3000/health
+- **系统监控**: http://localhost:8080/system-health
 
 ### 默认账户
 
@@ -202,43 +212,57 @@ npm run dev
 密码: user123
 ```
 
-## 📁 项目结构
+## 📁 项目结构 (企业级架构)
 
 ```
 library-management-system/
-├── backend/                    # 后端代码
+├── backend/                    # 后端 - 企业级Express.js架构
 │   ├── src/
-│   │   ├── controllers/        # 控制器
-│   │   ├── models/            # 数据模型
-│   │   ├── routes/            # 路由定义
-│   │   ├── services/          # 业务逻辑
-│   │   ├── middleware/        # 中间件
-│   │   ├── utils/             # 工具函数
-│   │   ├── config/            # 配置文件
-│   │   └── jobs/              # 后台任务
-│   ├── tests/                 # 测试文件
-│   ├── docs/                  # 后端文档
+│   │   ├── app.js             # 应用工厂 (企业级模块化)
+│   │   ├── server.js          # 服务器生命周期管理
+│   │   ├── config/            # 配置模块
+│   │   │   ├── index.js       # 主配置
+│   │   │   ├── routes.config.js      # 路由配置
+│   │   │   ├── swagger.config.js     # API文档配置
+│   │   │   └── graceful-shutdown.config.js  # 优雅关闭
+│   │   ├── middlewares/       # 企业级中间件
+│   │   │   ├── app.middleware.js     # 应用中间件管理
+│   │   │   ├── auth.middleware.js    # 认证中间件
+│   │   │   ├── error.middleware.js   # 错误处理
+│   │   │   └── validation.middleware.js # 验证中间件
+│   │   ├── controllers/       # 业务控制器
+│   │   ├── routes/           # API路由
+│   │   ├── services/         # 业务服务层
+│   │   ├── utils/            # 工具库 (已优化)
+│   │   │   ├── prisma.js     # 数据库连接
+│   │   │   ├── logger.js     # 结构化日志
+│   │   │   ├── validation.js # 验证工具
+│   │   │   └── response.js   # 响应工具
+│   │   └── prisma/           # 数据库模式
+│   ├── tests/                # 全面测试套件
+│   ├── logs/                 # 结构化日志
 │   └── package.json
-├── frontend/                   # 前端代码
+├── admin-panel/              # Vue.js 3 管理前端
 │   ├── src/
-│   │   ├── components/        # Vue组件
-│   │   ├── views/             # 页面视图
-│   │   ├── stores/            # Pinia状态管理
-│   │   ├── router/            # 路由配置
-│   │   ├── utils/             # 工具函数
-│   │   ├── assets/            # 静态资源
-│   │   └── styles/            # 样式文件
-│   ├── public/                # 公共资源
+│   │   ├── components/       # Vue 组件
+│   │   ├── views/           # 页面视图
+│   │   ├── stores/          # Pinia 状态管理
+│   │   ├── router/          # Vue Router 配置
+│   │   ├── api/             # API 接口封装
+│   │   ├── utils/           # 前端工具函数
+│   │   └── styles/          # 样式文件
+│   ├── public/              # 静态资源
 │   └── package.json
-├── docs/                      # 项目文档
-│   ├── api/                   # API文档
-│   ├── deployment/            # 部署文档
-│   ├── development/           # 开发文档
-│   └── user-guide/            # 用户指南
-├── docker/                    # Docker配置
-├── scripts/                   # 部署脚本
-├── tests/                     # 集成测试
-└── README.md                  # 项目说明
+├── docs/                    # 完整技术文档
+│   ├── api/                 # API 接口文档
+│   ├── database/            # 数据库设计文档
+│   ├── deployment/          # 部署运维文档
+│   ├── design/              # 系统设计文档
+│   └── development/         # 开发指南
+├── mini-program/            # 微信小程序 (预留)
+├── docker-compose.yml       # 容器编排
+├── CLAUDE.md               # Claude Code 项目配置
+└── README.md               # 项目说明
 ```
 
 ## 📚 文档导航
@@ -275,17 +299,18 @@ library-management-system/
 ```bash
 # 应用配置
 NODE_ENV=development
-PORT=5000
+PORT=3000
 APP_NAME=Library Management System
 APP_VERSION=1.0.0
+HOST=0.0.0.0
 
-# 数据库配置
+# 数据库配置 (MySQL)
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=3307
 DB_NAME=library_management
-DB_USER=postgres
+DB_USER=root
 DB_PASSWORD=password
-DB_DIALECT=postgres
+DATABASE_URL="mysql://root:password@localhost:3307/library_management"
 
 # Redis配置
 REDIS_HOST=localhost
@@ -297,9 +322,8 @@ JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=30d
 
-# Elasticsearch配置
-ELASTICSEARCH_NODE=http://localhost:9200
-ELASTICSEARCH_INDEX_PREFIX=library
+# 第三方服务配置 (可选)
+# ELASTICSEARCH_NODE=http://localhost:9200
 
 # 邮件配置
 SMTP_HOST=smtp.gmail.com
@@ -320,20 +344,25 @@ RATE_LIMIT_MAX=100
 WEBHOOK_URL=https://your-webhook-url.com
 ```
 
-### 前端环境变量 (.env.local)
+### 前端环境变量 (vite.config.js)
 
-```bash
-# API配置
-VITE_API_BASE_URL=http://localhost:5000/api
-VITE_WS_URL=ws://localhost:5000
+```javascript
+// admin-panel 项目已配置代理，无需额外环境变量
+export default defineConfig({
+  server: {
+    port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  }
+})
 
-# 应用配置
+// 可选配置 (.env.local)
 VITE_APP_TITLE=图书管理系统
 VITE_APP_VERSION=1.0.0
-
-# 第三方服务
-VITE_SENTRY_DSN=your-sentry-dsn
-VITE_ANALYTICS_ID=your-analytics-id
 ```
 
 ## 🐳 Docker 部署
@@ -460,26 +489,38 @@ test: 测试相关
 chore: 构建/工程化相关
 ```
 
-## 🚀 项目进展
+## 🚀 项目进展 & 重构成果
 
-- [x] ✅ **系统架构设计** - 完整的企业级架构
-- [x] ✅ **数据库设计** - 15+ 数据模型，完整关联关系
-- [x] ✅ **用户认证系统** - JWT认证、角色权限管理
-- [x] ✅ **图书管理模块** - CRUD操作、分类管理、库存跟踪
-- [x] ✅ **借阅管理系统** - 借阅流程、续借、罚金计算
-- [x] ✅ **积分奖励系统** - 多维积分规则、等级体系、交易记录
-- [x] ✅ **评价系统** - 多维评价、内容审核、统计分析
-- [x] ✅ **实时通知系统** - WebSocket、多渠道通知、模板管理
-- [x] ✅ **高级搜索功能** - Elasticsearch集成、智能过滤
-- [x] ✅ **AI推荐引擎** - 多算法支持、实时学习、个性化推荐
-- [x] ✅ **系统监控** - 健康检查、性能监控、告警系统
-- [x] ✅ **备份恢复系统** - 自动备份、增量备份、一键恢复
-- [x] ✅ **审计日志系统** - 操作审计、数据完整性、合规支持
-- [x] ✅ **安全监控** - 威胁检测、访问控制、异常分析
-- [ ] 🔄 **移动端PWA** - 渐进式Web应用、离线支持
-- [ ] 📱 **小程序开发** - 微信小程序、跨平台支持
-- [ ] 🚀 **部署优化** - Docker容器化、CI/CD流水线
-- [ ] 🧪 **测试完善** - 单元测试、集成测试、E2E测试
+### ✅ 核心功能 (已完成)
+- [x] **企业级架构重构** - Express.js模块化架构、关注点分离
+- [x] **数据库现代化** - Prisma ORM + MySQL 8.0 高性能方案
+- [x] **用户认证系统** - JWT认证、角色权限、安全中间件
+- [x] **图书管理模块** - CRUD操作、分类管理、库存跟踪
+- [x] **借阅管理系统** - 智能借阅流程、续借、罚金计算
+- [x] **积分奖励系统** - 游戏化积分规则、等级体系、交易记录
+- [x] **评价系统** - 多维评价、内容审核、统计分析
+- [x] **实时通知系统** - WebSocket、多渠道通知、模板管理
+
+### 🏢 企业级特性 (已完成)
+- [x] **请求追踪系统** - UUID请求ID、全链路性能监控
+- [x] **优雅关闭机制** - 零停机升级、连接跟踪、资源清理
+- [x] **健康检查系统** - 多层次健康验证、系统资源监控
+- [x] **结构化日志** - Winston集成、请求上下文、性能追踪
+- [x] **安全强化** - Helmet防护、HSTS、XSS防护、输入清理
+- [x] **模块化中间件** - 企业级中间件管理、配置分离
+- [x] **性能监控** - 慢请求检测、响应时间分析、内存监控
+- [x] **错误处理** - 统一错误处理、异常捕获、优雅降级
+
+### 🔄 进行中
+- [ ] **搜索功能增强** - Elasticsearch集成、全文搜索
+- [ ] **AI推荐引擎** - 机器学习推荐、用户行为分析
+- [ ] **备份恢复系统** - 自动备份、增量备份、灾难恢复
+
+### 📋 计划中
+- [ ] **移动端PWA** - 渐进式Web应用、离线支持
+- [ ] **微信小程序** - 跨平台移动端支持
+- [ ] **CI/CD流水线** - 自动化测试、部署
+- [ ] **测试覆盖** - 单元测试、集成测试、E2E测试
 
 ## 📄 许可证
 

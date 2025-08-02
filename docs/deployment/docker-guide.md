@@ -1,21 +1,30 @@
-# 🐳 Docker部署指南
+# 🐳 Docker部署指南 - 企业级部署方案
 
-本指南详细介绍如何使用Docker和Docker Compose部署图书馆管理系统，包括开发环境和生产环境的完整配置。
+本指南详细介绍如何使用Docker和Docker Compose部署图书馆管理系统的企业级架构，包括开发环境和生产环境的完整配置。
 
 ## 📋 系统要求
 
 ### 硬件要求
-- **CPU**: 2核心以上
-- **内存**: 4GB以上 (生产环境推荐8GB)
-- **存储**: 20GB以上可用空间
-- **网络**: 稳定的互联网连接
+- **CPU**: 2核心以上 (生产环境推荐4核心)
+- **内存**: 4GB以上 (生产环境推荐8GB+)
+- **存储**: 20GB以上可用空间 (生产环境推荐50GB+)
+- **网络**: 稳定的互联网连接 (生产环境推荐专线)
 
 ### 软件要求
 - **Docker**: >= 20.10.0
 - **Docker Compose**: >= 2.0.0
 - **Git**: >= 2.0.0
+- **Node.js**: >= 18.0.0 (开发环境)
 
-## 🚀 快速开始
+### 架构特性
+- ✅ **86ms极速启动** - 优化的企业级Express.js架构
+- ✅ **请求追踪** - UUID全链路追踪 + 性能监控
+- ✅ **优雅关闭** - 零停机部署 + 连接管理
+- ✅ **健康检查** - 多层次健康验证系统
+- ✅ **安全强化** - Helmet + HSTS + 输入清理
+- ✅ **Prisma ORM** - 类型安全的数据库操作
+
+## 🚀 快速开始 (企业级部署)
 
 ### 1. 克隆项目
 ```bash
@@ -26,83 +35,139 @@ cd library-management-system
 ### 2. 环境配置
 ```bash
 # 复制环境变量模板
-cp .env.example .env
+cp backend/.env.example backend/.env
 
-# 编辑环境变量
-nano .env
+# 编辑环境变量 (重要: 修改默认密码)
+nano backend/.env
 ```
 
-### 3. 启动服务
+### 3. 数据库初始化 (Prisma)
 ```bash
-# 开发环境
-docker-compose -f docker-compose.dev.yml up -d
+# 进入后端目录
+cd backend
+
+# 生成Prisma客户端
+npm run db:generate
+
+# 推送数据库架构 (开发环境)
+npm run db:push
+
+# 或运行数据库迁移 (生产环境)
+npm run db:migrate
+```
+
+### 4. 启动服务
+```bash
+# 开发环境 (推荐)
+docker-compose up -d
 
 # 生产环境
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 🔧 开发环境部署
+### 5. 验证部署
+```bash
+# 检查服务状态
+docker-compose ps
 
-### docker-compose.dev.yml
+# 访问健康检查端点
+curl http://localhost:3000/health
+
+# 访问前端管理界面
+open http://localhost:8080
+```
+
+### 6. 默认账户
+```
+管理员登录:
+用户名: admin
+密码: admin123
+
+前端界面: http://localhost:8080
+后端API: http://localhost:3000
+API文档: http://localhost:3000/api/docs
+健康检查: http://localhost:3000/health
+```
+
+## 🔧 开发环境部署 (当前配置)
+
+### docker-compose.yml (主配置文件)
 ```yaml
 version: '3.8'
 
 services:
-  # MySQL数据库
+  # MySQL 8.0 数据库 (端口3307避免冲突)
   mysql:
     image: mysql:8.0
-    container_name: library-mysql-dev
+    container_name: library-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: library_management
+      MYSQL_USER: library_user
+      MYSQL_PASSWORD: password
     ports:
-      - "3306:3306"
+      - "3307:3306"  # 避免与本地MySQL冲突
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
     command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - library-network
 
-  # Redis缓存
+  # Redis 6.0+ 缓存 (会话存储)
   redis:
     image: redis:7-alpine
-    container_name: library-redis-dev
+    container_name: library-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
+    networks:
+      - library-network
 
-  # 后端API服务
+  # 后端API服务 (企业级Express.js)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: library-backend-dev
+    container_name: library-backend
     restart: unless-stopped
     environment:
       NODE_ENV: development
-      DB_HOST: mysql
+      DATABASE_URL: "mysql://root:password@mysql:3306/library_management"
+      JWT_SECRET: "your-super-secret-jwt-key"
+      JWT_EXPIRES_IN: "7d"
       REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
+      - ./backend/logs:/app/logs  # 日志目录映射
     depends_on:
       - mysql
       - redis
     command: npm run dev
+    networks:
+      - library-network
+    # 企业级健康检查
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # 前端管理平台
+  # Vue.js 3 前端管理平台
   admin-panel:
     build:
       context: ./admin-panel
       dockerfile: Dockerfile.dev
-    container_name: library-admin-dev
+    container_name: library-admin-panel
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -110,31 +175,91 @@ services:
       - ./admin-panel:/app
       - /app/node_modules
     environment:
-      VUE_APP_API_BASE_URL: http://localhost:3000/api/v1
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
     command: npm run dev
+    networks:
+      - library-network
+    depends_on:
+      - backend
 
 volumes:
   mysql_data:
+    driver: local
   redis_data:
+    driver: local
 
 networks:
-  default:
+  library-network:
+    driver: bridge
     name: library-dev-network
 ```
 
-### 启动开发环境
+### 启动开发环境 (企业级工作流)
 ```bash
-# 启动所有服务
-docker-compose -f docker-compose.dev.yml up -d
+# 1. 启动数据库服务
+docker-compose up -d mysql redis
+echo "等待数据库启动..."
+sleep 10
 
-# 查看服务状态
-docker-compose -f docker-compose.dev.yml ps
+# 2. 初始化Prisma数据库
+cd backend
+npm install
+npm run db:generate
+npm run db:push
+cd ..
 
-# 查看日志
-docker-compose -f docker-compose.dev.yml logs -f backend
+# 3. 启动所有服务
+docker-compose up -d
 
-# 停止服务
-docker-compose -f docker-compose.dev.yml down
+# 4. 验证企业级特性
+echo "🔍 验证服务启动..."
+sleep 30
+
+# 健康检查
+curl -f http://localhost:3000/health && echo "✅ 后端健康检查通过"
+
+# 检查企业级启动日志
+docker-compose logs backend | grep "启动成功"
+
+# 验证请求追踪
+curl -H "x-request-id: test-trace-id" http://localhost:3000/health
+```
+
+### 开发环境管理命令
+```bash
+# 查看服务状态 (带健康检查)
+docker-compose ps
+
+# 查看企业级日志 (结构化)
+docker-compose logs -f backend | grep -E "(REQUEST|PERFORMANCE|ERROR)"
+
+# 监控性能指标
+docker stats library-backend library-mysql library-redis
+
+# 重启后端服务 (优雅重启)
+docker-compose restart backend
+
+# 数据库管理
+docker exec -it library-mysql mysql -u root -p library_management
+
+# Redis 监控
+docker exec -it library-redis redis-cli info memory
+
+# 停止服务 (优雅关闭)
+docker-compose down
+```
+
+### Prisma 数据库管理
+```bash
+# 进入后端容器
+docker exec -it library-backend sh
+
+# 在容器内执行Prisma命令
+npx prisma studio                    # 打开数据库管理界面
+npx prisma migrate dev               # 创建新迁移
+npx prisma migrate deploy            # 部署迁移
+npx prisma db seed                   # 填充种子数据
+npx prisma generate                  # 重新生成客户端
 ```
 
 ## 🏭 生产环境部署
@@ -351,54 +476,119 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-## 🔧 环境变量配置
+## 🔧 环境变量配置 (企业级配置)
 
-### .env.example
+### backend/.env.example (实际配置)
 ```env
 # 应用配置
-NODE_ENV=production
+NODE_ENV=development
 PORT=3000
+HOST=0.0.0.0
 APP_NAME=Library Management System
+APP_VERSION=1.0.0
 
-# 数据库配置
-DB_HOST=mysql
-DB_PORT=3306
+# 数据库配置 (Prisma + MySQL)
+DB_HOST=localhost
+DB_PORT=3307
 DB_NAME=library_management
 DB_USER=root
-DB_PASSWORD=your_secure_password
-DB_ROOT_PASSWORD=your_root_password
+DB_PASSWORD=password
+DATABASE_URL="mysql://root:password@localhost:3307/library_management"
 
-# Redis配置
-REDIS_HOST=redis
+# Redis配置 (会话存储)
+REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
+REDIS_PASSWORD=
 
-# JWT配置
-JWT_SECRET=your_jwt_secret_key_here
+# JWT配置 (企业级安全)
+JWT_SECRET=your-super-secret-jwt-key
 JWT_EXPIRES_IN=7d
 JWT_REFRESH_EXPIRES_IN=30d
 
-# 微信配置
-WECHAT_APP_ID=your_wechat_app_id
-WECHAT_APP_SECRET=your_wechat_app_secret
+# 第三方服务配置 (可选)
+# ELASTICSEARCH_NODE=http://localhost:9200
 
-# 邮件配置
+# 邮件配置 (SMTP)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASS=your_email_password
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 
 # 文件上传配置
-UPLOAD_MAX_SIZE=10485760
-UPLOAD_ALLOWED_TYPES=jpg,jpeg,png,pdf
+UPLOAD_PATH=./uploads
+MAX_FILE_SIZE=10485760
 
-# 日志配置
-LOG_LEVEL=info
-LOG_FILE_ENABLED=true
-
-# API限流配置
+# 安全配置 (企业级)
+AUDIT_ENCRYPTION_KEY=your-encryption-key
 RATE_LIMIT_WINDOW=900000
 RATE_LIMIT_MAX=100
+
+# 外部服务配置
+WEBHOOK_URL=https://your-webhook-url.com
+
+# 开发配置
+LOG_LEVEL=debug
+ENABLE_CORS=true
+ENABLE_SWAGGER=true
+```
+
+### 生产环境配置 (.env.production)
+```env
+# 生产环境配置
+NODE_ENV=production
+PORT=3000
+HOST=0.0.0.0
+APP_NAME=Library Management System
+APP_VERSION=1.0.0
+
+# 数据库配置 (生产级)
+DATABASE_URL="mysql://username:secure_password@production-db:3306/library_management"
+
+# Redis配置 (生产级)
+REDIS_HOST=production-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=secure_redis_password
+
+# JWT配置 (生产级安全)
+JWT_SECRET=extremely-secure-production-jwt-secret
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# HTTPS配置
+FORCE_HTTPS=true
+TRUST_PROXY=true
+
+# 邮件配置 (生产级)
+SMTP_HOST=smtp.yourdomain.com
+SMTP_PORT=587
+SMTP_USER=noreply@yourdomain.com
+SMTP_PASS=secure_email_password
+
+# 安全配置 (生产级)
+AUDIT_ENCRYPTION_KEY=production-encryption-key
+RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_MAX=1000
+
+# 监控配置
+ENABLE_LOGGING=true
+LOG_LEVEL=warn
+ENABLE_CORS=false
+ENABLE_SWAGGER=false
+
+# 备份配置
+BACKUP_ENABLED=true
+BACKUP_INTERVAL=daily
+BACKUP_RETENTION=30
+```
+
+### Docker Compose 环境变量
+```env
+# docker-compose.yml 使用的环境变量
+COMPOSE_PROJECT_NAME=library-management
+MYSQL_ROOT_PASSWORD=password
+MYSQL_DATABASE=library_management
+MYSQL_USER=library_user
+MYSQL_PASSWORD=password
 ```
 
 ## 🌐 Nginx配置
@@ -672,40 +862,167 @@ docker-compose -f docker-compose.prod.yml up -d
 docker-compose -f docker-compose.prod.yml up -d --scale backend=3
 ```
 
-## 🚨 故障排除
+## 🚨 故障排除 (企业级诊断)
 
-### 常见问题
+### 常见问题与解决方案
 
-1. **容器启动失败**
+#### 1. 企业级后端启动失败
 ```bash
 # 查看详细错误信息
-docker-compose -f docker-compose.prod.yml logs backend
+docker-compose logs backend
 
-# 检查配置文件
-docker-compose -f docker-compose.prod.yml config
+# 检查Prisma连接
+docker exec library-backend npx prisma db pull
+
+# 验证环境变量
+docker exec library-backend printenv | grep -E "(DATABASE_URL|JWT_SECRET)"
+
+# 检查端口冲突 (3000端口)
+netstat -tulpn | grep :3000
+lsof -i :3000  # Mac/Linux
 ```
 
-2. **数据库连接失败**
+#### 2. MySQL数据库连接问题 (端口3307)
 ```bash
-# 检查数据库容器状态
+# 检查MySQL容器状态
 docker exec library-mysql mysql -u root -p -e "SHOW DATABASES;"
 
-# 检查网络连接
-docker exec library-backend ping mysql
+# 测试连接字符串
+docker exec library-backend sh -c 'mysql -h mysql -P 3306 -u root -p$DB_PASSWORD -e "SELECT 1;"'
+
+# 检查端口映射
+docker port library-mysql
+
+# 重置数据库
+docker-compose down mysql
+docker volume rm library-mysql-data
+docker-compose up -d mysql
 ```
 
-3. **内存不足**
+#### 3. Vue.js前端连接问题 (端口8080)
 ```bash
-# 查看内存使用
-docker stats --no-stream
+# 检查前端构建
+docker-compose logs admin-panel
 
-# 增加swap空间
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
+# 验证API连接
+curl http://localhost:3000/health
+curl http://localhost:3000/api/v1/health
+
+# 检查CORS配置
+curl -H "Origin: http://localhost:8080" -v http://localhost:3000/health
+
+# 重新构建前端
+docker-compose build admin-panel
 ```
+
+#### 4. 企业级性能问题
+```bash
+# 检查86ms启动时间
+docker-compose logs backend | grep "启动耗时"
+
+# 监控慢请求 (>1000ms)
+docker-compose logs backend | grep "慢请求检测"
+
+# 内存使用监控
+docker stats library-backend --no-stream
+
+# 健康检查状态
+curl -v http://localhost:3000/health
+```
+
+#### 5. Prisma相关问题
+```bash
+# 重新生成Prisma客户端
+docker exec library-backend npx prisma generate
+
+# 检查数据库架构同步
+docker exec library-backend npx prisma db push --preview-feature
+
+# 查看Prisma状态
+docker exec library-backend npx prisma migrate status
+
+# 重置Prisma
+docker exec library-backend npx prisma migrate reset --force
+```
+
+#### 6. 企业级日志和监控
+```bash
+# 查看结构化日志
+docker-compose logs backend | grep '"level":'
+
+# 检查请求追踪
+curl -H "x-request-id: debug-trace-123" http://localhost:3000/health
+
+# 查看Winston日志文件
+docker exec library-backend ls -la logs/
+docker exec library-backend tail -f logs/combined.log
+
+# 性能指标监控
+docker exec library-backend sh -c 'ps aux && free -m'
+```
+
+#### 7. 网络和安全问题
+```bash
+# 检查Docker网络
+docker network ls
+docker network inspect library-dev-network
+
+# 验证安全头
+curl -I http://localhost:3000/health
+
+# 检查CORS设置
+curl -H "Origin: http://unauthorized-domain.com" -v http://localhost:3000/health
+
+# 验证JWT配置
+docker exec library-backend sh -c 'echo $JWT_SECRET'
+```
+
+### 🛠️ 快速诊断脚本
+```bash
+#!/bin/bash
+# diagnose.sh - 企业级系统诊断
+
+echo "🔍 企业级图书管理系统诊断开始..."
+
+# 1. 检查Docker服务
+echo "📦 检查Docker服务..."
+docker --version
+docker-compose --version
+
+# 2. 检查容器状态
+echo "🐳 检查容器状态..."
+docker-compose ps
+
+# 3. 检查端口占用
+echo "🔌 检查端口占用..."
+netstat -tulpn | grep -E ":(3000|3307|8080|6379)"
+
+# 4. 检查健康状态
+echo "❤️ 检查服务健康状态..."
+curl -f http://localhost:3000/health && echo "✅ 后端健康" || echo "❌ 后端异常"
+curl -f http://localhost:8080 && echo "✅ 前端正常" || echo "❌ 前端异常"
+
+# 5. 检查数据库连接
+echo "🗄️ 检查数据库连接..."
+docker exec library-mysql mysql -u root -p$MYSQL_ROOT_PASSWORD -e "SELECT 1;" && echo "✅ 数据库正常" || echo "❌ 数据库异常"
+
+# 6. 检查企业级特性
+echo "🏢 检查企业级特性..."
+docker-compose logs backend | grep -q "启动成功" && echo "✅ 企业级启动正常" || echo "❌ 启动异常"
+
+echo "🎉 诊断完成！"
+```
+
+### 📞 获取支持
+- **技术文档**: [后端架构详解](../../backend/README.md)
+- **问题报告**: GitHub Issues
+- **紧急联系**: support@library.com
 
 ---
 
-📝 **注意**: 生产环境部署前请确保所有密码和密钥都已正确配置，并定期备份数据。
+⚡ **企业级部署建议**:
+- 生产环境使用强密码和安全密钥
+- 定期备份MySQL数据 (建议每日)
+- 监控系统资源使用率
+- 启用HTTPS和安全头配置
+- 定期更新Docker镜像版本

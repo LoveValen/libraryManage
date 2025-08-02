@@ -1,67 +1,33 @@
 const borrowsService = require('../services/borrows.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
+const { success, successWithPagination } = require('../utils/response');
 
 /**
- * 借阅控制器
- * 处理所有借阅相关的HTTP请求
+ * 借阅控制器 - 处理图书借阅、归还、续借等操作
  */
 class BorrowsController {
   /**
    * 创建借阅记录
-   * POST /api/v1/borrows
    */
   createBorrow = asyncHandler(async (req, res) => {
     const borrow = await borrowsService.createBorrow(req.body, req.user);
-    
-    res.status(201).json({
-      success: true,
-      status: 'success',
-      statusCode: 201,
-      message: 'Book borrowed successfully',
-      data: {
-        borrow,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    success(res, { borrow }, '图书借阅成功', 201);
   });
 
   /**
    * 获取借阅记录列表
-   * GET /api/v1/borrows
    */
   getBorrowList = asyncHandler(async (req, res) => {
     const result = await borrowsService.getBorrowList(req.query);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Borrow records retrieved successfully',
-      data: {
-        borrows: result.borrows,
-        pagination: result.pagination,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    successWithPagination(res, result.borrows, result.pagination, '获取借阅记录成功');
   });
 
   /**
    * 获取借阅记录详情
-   * GET /api/v1/borrows/:id
    */
   getBorrowById = asyncHandler(async (req, res) => {
     const borrow = await borrowsService.getBorrowById(req.params.id, req.user);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Borrow record retrieved successfully',
-      data: {
-        borrow,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    success(res, { borrow }, '获取借阅记录详情成功');
   });
 
   /**

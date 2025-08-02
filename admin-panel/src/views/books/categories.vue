@@ -49,14 +49,26 @@
             border
           >
             <!-- 分类名称列 -->
-            <el-table-column prop="name" label="分类名称" min-width="280">
+            <el-table-column prop="name" label="分类名称" min-width="320">
               <template #default="scope">
-                <div class="category-name-cell">
-                  <div class="category-icon" :style="{ backgroundColor: getCategoryColor(scope.$index) + '20', color: getCategoryColor(scope.$index) }">
-                    <el-icon><FolderOpened /></el-icon>
+                <div class="category-name-cell" :style="{ paddingLeft: scope.row.level ? `${(scope.row.level - 1) * 20}px` : '0' }">
+                  <div class="category-icon" :style="{ 
+                    backgroundColor: getCategoryColorByLevel(scope.row.level) + '20', 
+                    color: getCategoryColorByLevel(scope.row.level),
+                    fontSize: scope.row.level > 1 ? '14px' : '16px'
+                  }">
+                    <el-icon>
+                      <FolderOpened v-if="scope.row.children && scope.row.children.length > 0" />
+                      <Document v-else />
+                    </el-icon>
                   </div>
                   <div class="category-info">
-                    <div class="name">{{ scope.row.name || '未分类' }}</div>
+                    <div class="name">
+                      {{ scope.row.name || '未分类' }}
+                      <el-tag v-if="scope.row.level > 1" size="small" type="info" class="level-tag">
+                        {{ scope.row.level }}级
+                      </el-tag>
+                    </div>
                     <div class="description">{{ scope.row.description || '暂无描述' }}</div>
                   </div>
                 </div>
@@ -163,6 +175,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Menu,
   FolderOpened,
+  Document,
   Refresh,
   MoreFilled,
   View,
@@ -284,127 +297,89 @@ const loadCategories = async () => {
 
     console.log('后端返回的分类数据:', backendCategories)
 
-    // 将后端数据格式转换为前端需要的格式，并添加树形结构
-    const categoriesWithStats = backendCategories.map(category => {
+    // 构建分类的父子关系映射
+    const categoryMap = new Map()
+    const rootCategories = []
+    
+    // 首先将所有分类放入map中
+    backendCategories.forEach(category => {
       const categoryData = {
-        id: category.id, // 重要：保留ID信息
+        id: category.id,
+        parentId: category.parent_id,
         name: category.name,
         description: category.description || '',
         bookCount: category.stats?.total || category._count?.books || 0,
         availableCount: category.stats?.available || 0,
         borrowedCount: category.stats?.borrowed || 0,
-        lastUpdated: new Date(category.updated_at || Date.now())
+        lastUpdated: new Date(category.updated_at || Date.now()),
+        level: category.level || 1,
+        children: []
       }
-
-      // 为某些分类添加子分类（模拟树形结构）
-      if (category.name === '计算机') {
-        categoryData.children = [
-          {
-            name: '编程语言',
-            description: '各种编程语言相关的图书',
-            bookCount: Math.floor(categoryData.bookCount * 0.4),
-            availableCount: Math.floor(categoryData.availableCount * 0.4),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
-            lastUpdated: new Date(),
-            children: [
-              {
-                name: 'JavaScript',
-                description: 'JavaScript编程语言相关书籍',
-                bookCount: 15,
-                availableCount: 12,
-                borrowedCount: 3,
-                lastUpdated: new Date()
-              },
-              {
-                name: 'Python',
-                description: 'Python编程语言相关书籍',
-                bookCount: 18,
-                availableCount: 14,
-                borrowedCount: 4,
-                lastUpdated: new Date()
-              }
-            ]
-          },
-          {
-            name: '软件工程',
-            description: '软件开发、项目管理等软件工程相关书籍',
-            bookCount: Math.floor(categoryData.bookCount * 0.3),
-            availableCount: Math.floor(categoryData.availableCount * 0.3),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
-            lastUpdated: new Date()
-          },
-          {
-            name: '数据结构',
-            description: '数据结构与算法相关书籍',
-            bookCount: Math.floor(categoryData.bookCount * 0.3),
-            availableCount: Math.floor(categoryData.availableCount * 0.3),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
-            lastUpdated: new Date()
-          }
-        ]
-        categoryData.hasChildren = true
-      } else if (category.name === '文学') {
-        categoryData.children = [
-          {
-            name: '现代文学',
-            description: '现代小说、诗歌、散文等现代文学作品',
-            bookCount: Math.floor(categoryData.bookCount * 0.6),
-            availableCount: Math.floor(categoryData.availableCount * 0.6),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.6),
-            lastUpdated: new Date()
-          },
-          {
-            name: '古典文学',
-            description: '古代文学作品、传统诗词、文言文等',
-            bookCount: Math.floor(categoryData.bookCount * 0.4),
-            availableCount: Math.floor(categoryData.availableCount * 0.4),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
-            lastUpdated: new Date()
-          }
-        ]
-        categoryData.hasChildren = true
-      } else if (category.name === '科学') {
-        categoryData.children = [
-          {
-            name: '物理学',
-            description: '物理学理论、实验、应用等相关书籍',
-            bookCount: Math.floor(categoryData.bookCount * 0.4),
-            availableCount: Math.floor(categoryData.availableCount * 0.4),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.4),
-            lastUpdated: new Date()
-          },
-          {
-            name: '化学',
-            description: '化学原理、有机化学、无机化学等书籍',
-            bookCount: Math.floor(categoryData.bookCount * 0.3),
-            availableCount: Math.floor(categoryData.availableCount * 0.3),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
-            lastUpdated: new Date()
-          },
-          {
-            name: '生物学',
-            description: '生物科学、生命科学、生态学等书籍',
-            bookCount: Math.floor(categoryData.bookCount * 0.3),
-            availableCount: Math.floor(categoryData.availableCount * 0.3),
-            borrowedCount: Math.floor(categoryData.borrowedCount * 0.3),
-            lastUpdated: new Date()
-          }
-        ]
-        categoryData.hasChildren = true
+      categoryMap.set(category.id, categoryData)
+    })
+    
+    // 构建树形结构
+    categoryMap.forEach(category => {
+      if (category.parentId) {
+        // 如果有父分类，将其添加到父分类的children中
+        const parent = categoryMap.get(category.parentId)
+        if (parent) {
+          parent.children.push(category)
+          parent.hasChildren = true
+        }
+      } else {
+        // 如果没有父分类，则为根分类
+        rootCategories.push(category)
       }
-
-      return categoryData
+    })
+    
+    // 对每个层级的分类进行排序
+    const sortCategories = (categories) => {
+      categories.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+      categories.forEach(category => {
+        if (category.children && category.children.length > 0) {
+          sortCategories(category.children)
+        }
+      })
+    }
+    
+    sortCategories(rootCategories)
+    
+    // 计算树形结构的统计数据
+    const calculateTreeStats = (category) => {
+      let totalBooks = category.bookCount
+      let totalAvailable = category.availableCount
+      let totalBorrowed = category.borrowedCount
+      
+      if (category.children && category.children.length > 0) {
+        category.children.forEach(child => {
+          const childStats = calculateTreeStats(child)
+          totalBooks += childStats.totalBooks
+          totalAvailable += childStats.totalAvailable
+          totalBorrowed += childStats.totalBorrowed
+        })
+      }
+      
+      return { totalBooks, totalAvailable, totalBorrowed }
+    }
+    
+    // 更新根分类的统计数据（包含子分类）
+    rootCategories.forEach(category => {
+      const stats = calculateTreeStats(category)
+      category.totalBooks = stats.totalBooks
+      category.totalAvailable = stats.totalAvailable
+      category.totalBorrowed = stats.totalBorrowed
     })
 
-    categories.value = categoriesWithStats
+    categories.value = rootCategories
 
     // 更新统计数据
     statistics.totalCategories = backendCategories.length
-    statistics.categorizedBooks = categoriesWithStats.reduce((sum, cat) => sum + cat.bookCount, 0)
+    statistics.categorizedBooks = backendCategories.reduce((sum, cat) => sum + (cat.stats?.total || cat._count?.books || 0), 0)
     statistics.uncategorizedBooks = 0
-    statistics.maxBooksInCategory = Math.max(...categoriesWithStats.map(c => c.bookCount), 0)
+    statistics.maxBooksInCategory = Math.max(...backendCategories.map(c => c.stats?.total || c._count?.books || 0), 0)
 
-    console.log('处理后的分类数据:', categoriesWithStats)
+    console.log('处理后的树形分类数据:', rootCategories)
   } catch (error) {
     console.error('加载分类数据失败:', error)
     ElMessage.error('加载分类数据失败: ' + (error.message || '未知错误'))
@@ -569,6 +544,17 @@ const handlePageChange = newPage => {
 const getCategoryColor = index => {
   const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
   return colors[index % colors.length]
+}
+
+const getCategoryColorByLevel = (level) => {
+  const colors = {
+    1: '#409EFF', // 一级分类 - 蓝色
+    2: '#67C23A', // 二级分类 - 绿色
+    3: '#E6A23C', // 三级分类 - 橙色
+    4: '#F56C6C', // 四级分类 - 红色
+    5: '#909399'  // 五级及以上分类 - 灰色
+  }
+  return colors[level] || colors[5]
 }
 
 // 深度查找分类数据（包括子分类）
@@ -878,6 +864,10 @@ onMounted(() => {
   .pagination-wrapper {
     justify-content: center;
   }
+}
+
+.level-tag {
+  margin-left: 8px;
 }
 
 @media (max-width: 480px) {

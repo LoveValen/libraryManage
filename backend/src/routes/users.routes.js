@@ -9,7 +9,7 @@ const {
   validatePagination,
   sanitizeInput,
 } = require('../middlewares/validation.middleware');
-const { userSchemas } = require('../utils/validation');
+const { schemas } = require('../utils/validation');
 
 const router = express.Router();
 
@@ -39,7 +39,7 @@ router.get('/me', usersController.getCurrentUser);
  * @access  Private
  */
 router.put('/me',
-  validate(userSchemas.updateProfile),
+  validate(schemas.updateProfile),
   usersController.updateCurrentUser
 );
 
@@ -49,7 +49,7 @@ router.put('/me',
  * @access  Private
  */
 router.put('/me/password',
-  validate(userSchemas.changePassword),
+  validate(schemas.changePassword),
   usersController.changeCurrentUserPassword
 );
 
@@ -101,7 +101,7 @@ router.get('/statistics',
  */
 router.get('/',
   requireRole(['admin', 'librarian']),
-  validate(userSchemas.getUserList, 'query'),
+  validate(schemas.getUserList, 'query'),
   usersController.getUserList
 );
 
@@ -112,7 +112,7 @@ router.get('/',
  */
 router.post('/',
   requireRole(['admin', 'librarian']),
-  validate(userSchemas.register),
+  validate(schemas.register),
   usersController.createUser
 );
 
@@ -150,7 +150,7 @@ router.get('/:id',
  */
 router.put('/:id',
   validateId(),
-  validate(userSchemas.updateProfile),
+  validate(schemas.updateProfile),
   usersController.updateUser
 );
 

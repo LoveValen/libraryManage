@@ -2,207 +2,264 @@ const prisma = require('../utils/prisma');
 const { Prisma } = require('@prisma/client');
 const { BOOK_STATUS } = require('../utils/constants');
 
+/**
+ * Book Service - 图书管理服务
+ * 提供图书的增删改查、搜索、统计等功能
+ */
 class BookService {
   /**
-   * Find books with pagination and filters
+   * 获取分页图书列表，支持搜索和过滤
+   * @param {Object} options 查询选项
+   * @returns {Promise<Object>} 分页结果
    */
   static async findWithPagination(options = {}) {
-    const {
-      page = 1,
-      limit = 20,
-      search = '',
-      category_id = null,
-      status = null,
-      has_ebook = null,
-      orderBy = 'created_at',
-      order = 'desc'
-    } = options;
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        search = '',
+        category_id = null,
+        status = null,
+        has_ebook = null,
+        orderBy = 'created_at',
+        order = 'desc'
+      } = options;
 
-    const skip = (page - 1) * limit;
-    let where = { is_deleted: false };
-    let whereConditions = ['is_deleted = FALSE'];
-    let searchParams = [];
+      const skip = (page - 1) * limit;
+      const where = this._buildWhereCondition({
+        search,
+        category_id,
+        status,
+        has_ebook
+      });
 
-    // Add search conditions using raw SQL for MySQL compatibility
-    if (search) {
-      whereConditions.push('(title LIKE ? OR isbn LIKE ? OR authors LIKE ? OR publisher LIKE ?)');
-      const searchTerm = `%${search}%`;
-      searchParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+      const [books, total] = await Promise.all([
+        prisma.books.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { [orderBy]: order },
+          include: {
+            bookCategory: true,
+            _count: {
+              select: {
+                borrows: { where: { is_deleted: false } },
+                reviews: { where: { is_deleted: false, status: 'published' } }
+              }
+            }
+          }
+        }),
+        prisma.books.count({ where })
+      ]);
+
+      return {
+        data: books,
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
+      throw new Error(`获取图书列表失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 构建查询条件
+   * @private
+   */
+  static _buildWhereCondition({ search, category_id, status, has_ebook }) {
+    const where = { is_deleted: false };
+
+    // 搜索条件
+    if (search?.trim()) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { isbn: { contains: search, mode: 'insensitive' } },
+        { publisher: { contains: search, mode: 'insensitive' } },
+        {
+          authors: {
+            path: '$[*]',
+            string_contains: search
+          }
+        }
+      ];
     }
 
-    // Add filters - ensure all numeric values are converted to regular numbers
+    // 分类过滤
     if (category_id) {
       where.category_id = Number(category_id);
     }
+
+    // 状态过滤
     if (status) {
       where.status = status;
     }
+
+    // 电子书过滤
     if (has_ebook !== null) {
       where.has_ebook = Boolean(has_ebook);
     }
 
-    // If we have search, use raw SQL for the main query
-    if (search) {
-      const orderClause = `ORDER BY ${orderBy} ${order.toUpperCase()}`;
-      const limitClause = `LIMIT ${Number(limit)} OFFSET ${Number(skip)}`;
-      
-      const searchQuery = `
-        SELECT b.*, bc.name as category_name, bc.description as category_description,
-               (SELECT COUNT(*) FROM borrows WHERE book_id = b.id AND is_deleted = FALSE) as borrow_count,
-               (SELECT COUNT(*) FROM reviews WHERE book_id = b.id AND is_deleted = FALSE) as review_count
-        FROM books b
-        LEFT JOIN book_categories bc ON b.category_id = bc.id
-        WHERE ${whereConditions.join(' AND ')}
-        ${category_id ? `AND b.category_id = ${Number(category_id)}` : ''}
-        ${status ? `AND b.status = '${status}'` : ''}
-        ${has_ebook !== null ? `AND b.has_ebook = ${Boolean(has_ebook) ? 1 : 0}` : ''}
-        ${orderClause}
-        ${limitClause}
-      `;
-
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM books b
-        WHERE ${whereConditions.join(' AND ')}
-        ${category_id ? `AND b.category_id = ${Number(category_id)}` : ''}
-        ${status ? `AND b.status = '${status}'` : ''}
-        ${has_ebook !== null ? `AND b.has_ebook = ${Boolean(has_ebook) ? 1 : 0}` : ''}
-      `;
-
-      const [books, countResult] = await Promise.all([
-        prisma.$queryRawUnsafe(searchQuery, ...searchParams),
-        prisma.$queryRawUnsafe(countQuery, ...searchParams)
-      ]);
-
-      const total = Number(countResult[0].total);
-
-      return {
-        data: books.map(book => ({
-          ...book,
-          // Convert any BigInt values to numbers
-          id: Number(book.id),
-          category_id: book.category_id ? Number(book.category_id) : null,
-          total_stock: Number(book.total_stock || 0),
-          available_stock: Number(book.available_stock || 0),
-          reserved_stock: Number(book.reserved_stock || 0),
-          borrow_count: Number(book.borrow_count || 0),
-          reserve_count: Number(book.reserve_count || 0),
-          review_count: Number(book.review_count || 0),
-          view_count: Number(book.view_count || 0),
-          download_count: Number(book.download_count || 0),
-          // Convert boolean fields from MySQL integers
-          has_ebook: Boolean(book.has_ebook),
-          is_deleted: Boolean(book.is_deleted),
-          bookCategory: book.category_name ? {
-            id: book.category_id ? Number(book.category_id) : null,
-            name: book.category_name,
-            description: book.category_description
-          } : null,
-          _count: {
-            borrows: Number(book.borrow_count || 0),
-            reviews: Number(book.review_count || 0)
-          }
-        })),
-        pagination: {
-          page,
-          limit,
-          total: total,
-          totalPages: Math.ceil(total / limit)
-        }
-      };
-    }
-
-    // No search - use regular Prisma query
-    const [books, total] = await Promise.all([
-      prisma.books.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [orderBy]: order },
-        include: {
-          bookCategory: true,
-          _count: {
-            select: {
-              borrows: true,
-              reviews: true
-            }
-          }
-        }
-      }),
-      prisma.books.count({ where })
-    ]);
-
-    return {
-      data: books,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
+    return where;
   }
 
   /**
-   * Find book by ID
+   * 根据 ID 获取图书
+   * @param {number} id 图书 ID
+   * @param {boolean} includeRelations 是否包含关联数据
+   * @returns {Promise<Object|null>} 图书信息
    */
   static async findById(id, includeRelations = true) {
-    const include = includeRelations ? {
-      bookCategory: true,
-      reviews: {
-        where: { status: 'published' },
-        orderBy: { created_at: 'desc' },
-        take: 10,
-        include: {
-          reviewer: true
-        }
-      },
-      _count: {
-        select: {
-          borrows: true,
-          reviews: true
-        }
+    try {
+      if (!id || isNaN(Number(id))) {
+        throw new Error('无效的图书 ID');
       }
-    } : undefined;
 
-    return prisma.books.findUnique({
-      where: { id },
-      include
-    });
+      const include = includeRelations ? {
+        bookCategory: true,
+        reviews: {
+          where: { 
+            status: 'published',
+            is_deleted: false
+          },
+          orderBy: { created_at: 'desc' },
+          take: 10,
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                username: true,
+                real_name: true,
+                avatar: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            borrows: { where: { is_deleted: false } },
+            reviews: { where: { is_deleted: false, status: 'published' } }
+          }
+        }
+      } : undefined;
+
+      return await prisma.books.findUnique({
+        where: { 
+          id: Number(id),
+          is_deleted: false
+        },
+        include
+      });
+    } catch (error) {
+      throw new Error(`获取图书详情失败: ${error.message}`);
+    }
   }
 
   /**
-   * Find book by ISBN
+   * 根据 ISBN 获取图书
+   * @param {string} isbn ISBN 号
+   * @returns {Promise<Object|null>} 图书信息
    */
   static async findByISBN(isbn) {
-    return prisma.books.findUnique({
-      where: { isbn }
-    });
+    try {
+      if (!isbn?.trim()) {
+        throw new Error('无效的 ISBN');
+      }
+
+      return await prisma.books.findUnique({
+        where: { 
+          isbn: isbn.trim(),
+          is_deleted: false
+        },
+        include: {
+          bookCategory: true
+        }
+      });
+    } catch (error) {
+      throw new Error(`根据 ISBN 获取图书失败: ${error.message}`);
+    }
   }
 
   /**
-   * Create a new book
+   * 创建新图书
+   * @param {Object} bookData 图书数据
+   * @returns {Promise<Object>} 创建的图书
    */
   static async create(bookData) {
-    return prisma.books.create({
-      data: bookData,
-      include: {
-        bookCategory: true
+    try {
+      if (!bookData?.title?.trim()) {
+        throw new Error('图书标题不能为空');
       }
-    });
+
+      if (!bookData?.isbn?.trim()) {
+        throw new Error('ISBN 不能为空');
+      }
+
+      // 检查 ISBN 是否已存在
+      const existingBook = await this.findByISBN(bookData.isbn);
+      if (existingBook) {
+        throw new Error('该 ISBN 已存在');
+      }
+
+      return await prisma.books.create({
+        data: {
+          ...bookData,
+          status: bookData.status || BOOK_STATUS.AVAILABLE,
+          available_stock: bookData.total_stock || 1,
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        include: {
+          bookCategory: true
+        }
+      });
+    } catch (error) {
+      throw new Error(`创建图书失败: ${error.message}`);
+    }
   }
 
   /**
-   * Update book
+   * 更新图书信息
+   * @param {number} id 图书 ID
+   * @param {Object} updateData 更新数据
+   * @returns {Promise<Object>} 更新后的图书
    */
   static async update(id, updateData) {
-    return prisma.books.update({
-      where: { id },
-      data: updateData,
-      include: {
-        bookCategory: true
+    try {
+      if (!id || isNaN(Number(id))) {
+        throw new Error('无效的图书 ID');
       }
-    });
+
+      // 检查图书是否存在
+      const existingBook = await this.findById(id, false);
+      if (!existingBook) {
+        throw new Error('图书不存在');
+      }
+
+      // 如果更新 ISBN，检查是否已存在
+      if (updateData.isbn && updateData.isbn !== existingBook.isbn) {
+        const isExists = await this.isISBNExists(updateData.isbn, id);
+        if (isExists) {
+          throw new Error('该 ISBN 已存在');
+        }
+      }
+
+      return await prisma.books.update({
+        where: { id: Number(id) },
+        data: {
+          ...updateData,
+          updated_at: new Date()
+        },
+        include: {
+          bookCategory: true
+        }
+      });
+    } catch (error) {
+      throw new Error(`更新图书失败: ${error.message}`);
+    }
   }
 
   /**
@@ -240,31 +297,59 @@ class BookService {
   }
 
   /**
-   * Update book stock
+   * 更新图书库存
+   * @param {number} id 图书 ID
+   * @param {number} stockChange 库存变化量（正数增加，负数减少）
+   * @param {Object} transaction 事务对象
+   * @returns {Promise<Object>} 更新后的图书
    */
   static async updateStock(id, stockChange, transaction = null) {
-    const client = transaction || prisma;
-    
-    const book = await client.books.findUnique({
-      where: { id }
-    });
-
-    if (!book) {
-      throw new Error('Book not found');
-    }
-
-    const newAvailableStock = book.available_stock + stockChange;
-    if (newAvailableStock < 0) {
-      throw new Error('Insufficient stock');
-    }
-
-    return client.books.update({
-      where: { id },
-      data: {
-        available_stock: newAvailableStock,
-        status: newAvailableStock === 0 ? BOOK_STATUS.BORROWED : BOOK_STATUS.AVAILABLE
+    try {
+      if (!id || isNaN(Number(id))) {
+        throw new Error('无效的图书 ID');
       }
-    });
+
+      if (isNaN(Number(stockChange))) {
+        throw new Error('无效的库存变化量');
+      }
+
+      const client = transaction || prisma;
+      
+      const book = await client.books.findUnique({
+        where: { 
+          id: Number(id),
+          is_deleted: false
+        }
+      });
+
+      if (!book) {
+        throw new Error('图书不存在');
+      }
+
+      const newAvailableStock = book.available_stock + Number(stockChange);
+      if (newAvailableStock < 0) {
+        throw new Error(`库存不足，当前可用库存: ${book.available_stock}`);
+      }
+
+      // 根据库存自动调整状态
+      let newStatus = book.status;
+      if (newAvailableStock === 0 && book.status === BOOK_STATUS.AVAILABLE) {
+        newStatus = BOOK_STATUS.BORROWED;
+      } else if (newAvailableStock > 0 && book.status === BOOK_STATUS.BORROWED) {
+        newStatus = BOOK_STATUS.AVAILABLE;
+      }
+
+      return await client.books.update({
+        where: { id: Number(id) },
+        data: {
+          available_stock: newAvailableStock,
+          status: newStatus,
+          updated_at: new Date()
+        }
+      });
+    } catch (error) {
+      throw new Error(`更新图书库存失败: ${error.message}`);
+    }
   }
 
   /**
@@ -282,92 +367,109 @@ class BookService {
   }
 
   /**
-   * Get book statistics
+   * 获取图书统计数据
+   * @returns {Promise<Object>} 统计数据
    */
   static async getStatistics() {
-    const [total, available, borrowed, hasEbook] = await Promise.all([
-      prisma.books.count({ where: { is_deleted: false } }),
-      prisma.books.count({ 
-        where: { 
-          status: BOOK_STATUS.AVAILABLE, 
-          is_deleted: false 
-        } 
-      }),
-      prisma.books.count({ 
-        where: { 
-          status: BOOK_STATUS.BORROWED, 
-          is_deleted: false 
-        } 
-      }),
-      prisma.books.count({ 
-        where: { 
-          has_ebook: true, 
-          is_deleted: false 
-        } 
-      })
-    ]);
+    try {
+      const [total, available, borrowed, hasEbook, reserved] = await Promise.all([
+        prisma.books.count({ 
+          where: { is_deleted: false } 
+        }),
+        prisma.books.count({ 
+          where: { 
+            status: BOOK_STATUS.AVAILABLE, 
+            is_deleted: false 
+          } 
+        }),
+        prisma.books.count({ 
+          where: { 
+            status: BOOK_STATUS.BORROWED, 
+            is_deleted: false 
+          } 
+        }),
+        prisma.books.count({ 
+          where: { 
+            has_ebook: true, 
+            is_deleted: false 
+          } 
+        }),
+        prisma.books.count({ 
+          where: { 
+            status: BOOK_STATUS.RESERVED, 
+            is_deleted: false 
+          } 
+        })
+      ]);
 
-    return {
-      total,
-      available,
-      borrowed,
-      hasEbook,
-      borrowRate: total > 0 ? ((borrowed / total) * 100).toFixed(2) : 0
-    };
+      const borrowRate = total > 0 ? Number(((borrowed / total) * 100).toFixed(2)) : 0;
+      const availabilityRate = total > 0 ? Number(((available / total) * 100).toFixed(2)) : 0;
+      const ebookRate = total > 0 ? Number(((hasEbook / total) * 100).toFixed(2)) : 0;
+
+      return {
+        total,
+        available,
+        borrowed,
+        reserved,
+        hasEbook,
+        borrowRate,
+        availabilityRate,
+        ebookRate
+      };
+    } catch (error) {
+      throw new Error(`获取图书统计数据失败: ${error.message}`);
+    }
   }
 
   /**
-   * Search books
+   * 搜索图书
+   * @param {string} query 搜索关键词
+   * @param {Object} options 搜索选项
+   * @returns {Promise<Array>} 搜索结果
    */
   static async search(query, options = {}) {
-    const { limit = 10, category_id = null } = options;
+    try {
+      const { limit = 10, category_id = null } = options;
 
-    // Use a raw query approach for more complex searching
-    // because authors is a JSON field and publisher might have special characters
-    const searchConditions = [];
-    const params = [];
-    
-    searchConditions.push('title LIKE ?');
-    params.push(`%${query}%`);
-    
-    searchConditions.push('isbn LIKE ?');
-    params.push(`%${query}%`);
-    
-    if (query) {
-      searchConditions.push('JSON_UNQUOTE(JSON_EXTRACT(authors, "$[0]")) LIKE ?');
-      params.push(`%${query}%`);
+      if (!query?.trim()) {
+        return [];
+      }
+
+      const where = {
+        is_deleted: false,
+        status: BOOK_STATUS.AVAILABLE,
+        OR: [
+          { title: { contains: query, mode: 'insensitive' } },
+          { isbn: { contains: query, mode: 'insensitive' } },
+          { publisher: { contains: query, mode: 'insensitive' } },
+          {
+            authors: {
+              path: '$[*]',
+              string_contains: query
+            }
+          }
+        ]
+      };
+
+      if (category_id) {
+        where.category_id = Number(category_id);
+      }
+
+      return await prisma.books.findMany({
+        where,
+        orderBy: [
+          { borrow_count: 'desc' },
+          { average_rating: 'desc' },
+          { view_count: 'desc' }
+        ],
+        take: Number(limit),
+        include: {
+          bookCategory: true
+        }
+      });
+    } catch (error) {
+      throw new Error(`搜索图书失败: ${error.message}`);
     }
-    
-    searchConditions.push('publisher LIKE ?');
-    params.push(`%${query}%`);
-    
-    let whereClause = `(${searchConditions.join(' OR ')}) AND is_deleted = 0 AND status = 'available'`;
-    
-    if (category_id) {
-      whereClause += ' AND category_id = ?';
-      params.push(category_id);
-    }
-    
-    const sql = `
-      SELECT * FROM books 
-      WHERE ${whereClause}
-      ORDER BY borrow_count DESC, average_rating DESC 
-      LIMIT ?
-    `;
-    params.push(limit);
-    
-    return prisma.$queryRaw`
-      SELECT * FROM books 
-      WHERE (title LIKE ${`%${query}%`} 
-         OR isbn LIKE ${`%${query}%`}
-         OR JSON_UNQUOTE(JSON_EXTRACT(authors, "$[0]")) LIKE ${`%${query}%`}
-         OR publisher LIKE ${`%${query}%`})
-      AND is_deleted = 0 
-      AND status = 'available'
-      ${category_id ? Prisma.sql`AND category_id = ${category_id}` : Prisma.empty}
-      ORDER BY borrow_count DESC, average_rating DESC 
-      LIMIT ${limit}
-    `;
   }
 
   /**
@@ -455,16 +557,31 @@ class BookService {
   }
 
   /**
-   * Check if ISBN exists
+   * 检查 ISBN 是否已存在
+   * @param {string} isbn ISBN 号
+   * @param {number} excludeId 排除的图书 ID
+   * @returns {Promise<boolean>} 是否存在
    */
   static async isISBNExists(isbn, excludeId = null) {
-    const where = { isbn };
-    if (excludeId) {
-      where.id = { not: excludeId };
-    }
+    try {
+      if (!isbn?.trim()) {
+        return false;
+      }
 
-    const count = await prisma.books.count({ where });
-    return count > 0;
+      const where = { 
+        isbn: isbn.trim(),
+        is_deleted: false
+      };
+      
+      if (excludeId) {
+        where.id = { not: Number(excludeId) };
+      }
+
+      const count = await prisma.books.count({ where });
+      return count > 0;
+    } catch (error) {
+      throw new Error(`检查 ISBN 失败: ${error.message}`);
+    }
   }
 
   /**
@@ -480,11 +597,27 @@ class BookService {
   }
 
   /**
-   * Convert book to safe JSON (remove sensitive fields if any)
+   * 将图书对象转换为安全的 JSON 格式
+   * @param {Object} book 图书对象
+   * @returns {Object} 安全的图书数据
    */
   static toSafeJSON(book) {
+    if (!book) return null;
+
     const safeBook = { ...book };
-    // Remove any sensitive fields if needed
+    
+    // 移除敏感或内部字段
+    delete safeBook.deleted_at;
+    
+    // 确保数据类型正确
+    if (safeBook.id) safeBook.id = Number(safeBook.id);
+    if (safeBook.category_id) safeBook.category_id = Number(safeBook.category_id);
+    if (safeBook.total_stock) safeBook.total_stock = Number(safeBook.total_stock);
+    if (safeBook.available_stock) safeBook.available_stock = Number(safeBook.available_stock);
+    if (safeBook.reserved_stock) safeBook.reserved_stock = Number(safeBook.reserved_stock);
+    if (safeBook.has_ebook !== undefined) safeBook.has_ebook = Boolean(safeBook.has_ebook);
+    if (safeBook.is_deleted !== undefined) safeBook.is_deleted = Boolean(safeBook.is_deleted);
+    
     return safeBook;
   }
 }

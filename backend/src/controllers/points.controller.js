@@ -1,28 +1,90 @@
 const pointsService = require('../services/points.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
 const { validateRequest } = require('../utils/validation');
-const { ApiResponse } = require('../utils/response');
+const { success, successWithPagination, validationError } = require('../utils/response');
+const { ForbiddenError } = require('../utils/apiError');
 const Joi = require('joi');
 
 /**
  * 积分控制器
  */
 class PointsController {
+  // 验证模式常量
+  static ADD_POINTS_SCHEMA = Joi.object({
+    userId: Joi.number().integer().positive().required(),
+    points: Joi.number().integer().positive().max(10000).required(),
+    type: Joi.string().valid('ADMIN_ADJUSTMENT', 'BONUS_REWARD', 'COMPLETE_TUTORIAL').default('ADMIN_ADJUSTMENT'),
+    description: Joi.string().max(200).required(),
+    metadata: Joi.object().optional()
+  });
+
+  static DEDUCT_POINTS_SCHEMA = Joi.object({
+    userId: Joi.number().integer().positive().required(),
+    points: Joi.number().integer().positive().max(10000).required(),
+    type: Joi.string().valid('PENALTY_DEDUCTION', 'ADMIN_ADJUSTMENT', 'REDEEM_REWARD').default('PENALTY_DEDUCTION'),
+    description: Joi.string().max(200).required(),
+    metadata: Joi.object().optional()
+  });
+
+  static TRANSFER_POINTS_SCHEMA = Joi.object({
+    fromUserId: Joi.number().integer().positive().required(),
+    toUserId: Joi.number().integer().positive().required(),
+    points: Joi.number().integer().positive().max(10000).required(),
+    description: Joi.string().max(200).required()
+  });
+
+  static REVERSE_TRANSACTION_SCHEMA = Joi.object({
+    reason: Joi.string().max(200).required()
+  });
+
+  static BATCH_OPERATIONS_SCHEMA = Joi.object({
+    operations: Joi.array().items(Joi.object({
+      userId: Joi.number().integer().positive().required(),
+      action: Joi.string().valid('add', 'deduct').required(),
+      amount: Joi.number().integer().positive().max(10000).required(),
+      description: Joi.string().max(200).optional()
+    })).min(1).max(100).required()
+  });
+
+  /**
+   * 解析整数参数
+   * @private
+   */
+  _parseIntParam(value, defaultValue = null) {
+    return value ? parseInt(value) : defaultValue;
+  }
+
+  /**
+   * 检查用户权限（用户本人或管理员）
+   * @private
+   */
+  _checkUserOrAdminPermission(targetUserId, currentUser) {
+    if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+      throw new ForbiddenError('权限不足');
+    }
+  }
+
+  /**
+   * 检查管理员权限
+   * @private
+   */
+  _checkAdminPermission(user) {
+    if (user.role !== 'admin') {
+      throw new ForbiddenError('只有管理员可以执行此操作');
+    }
+  }
   /**
    * 获取用户积分信息
    * GET /api/v1/points/users/:userId
    */
   getUserPoints = asyncHandler(async (req, res) => {
     const { userId } = req.params;
+    const targetUserId = this._parseIntParam(userId);
     
-    // 权限检查：用户只能查看自己的积分，管理员可以查看所有用户
-    if (parseInt(userId) !== req.user.id && req.user.role !== 'admin') {
-      return ApiResponse.error(res, '权限不足', 403);
-    }
+    this._checkUserOrAdminPermission(targetUserId, req.user);
     
-    const userPoints = await pointsService.getUserPoints(parseInt(userId));
-    
-    ApiResponse.success(res, userPoints, '获取用户积分信息成功');
+    const userPoints = await pointsService.getUserPoints(targetUserId);
+    success(res, userPoints, '获取用户积分信息成功');
   });
 
   /**
@@ -31,8 +93,7 @@ class PointsController {
    */
   getMyPoints = asyncHandler(async (req, res) => {
     const userPoints = await pointsService.getUserPoints(req.user.id);
-    
-    ApiResponse.success(res, userPoints, '获取我的积分信息成功');
+    success(res, userPoints, '获取我的积分信息成功');
   });
 
   /**
@@ -40,37 +101,8 @@ class PointsController {
    * POST /api/v1/points/add
    */
   addPoints = asyncHandler(async (req, res) => {
-    // 输入验证
-    const schema = Joi.object({
-      userId: Joi.number().integer().positive().required()
-        .messages({
-          'number.base': '用户ID必须是数字',
-          'number.integer': '用户ID必须是整数',
-          'number.positive': '用户ID必须大于0',
-          'any.required': '用户ID不能为空',
-        }),
-      points: Joi.number().integer().positive().max(10000).required()
-        .messages({
-          'number.base': '积分数量必须是数字',
-          'number.integer': '积分数量必须是整数',
-          'number.positive': '积分数量必须大于0',
-          'number.max': '单次最多添加10000积分',
-          'any.required': '积分数量不能为空',
-        }),
-      type: Joi.string().valid(
-        'ADMIN_ADJUSTMENT',
-        'BONUS_REWARD',
-        'COMPLETE_TUTORIAL'
-      ).default('ADMIN_ADJUSTMENT'),
-      description: Joi.string().max(200).required()
-        .messages({
-          'string.max': '描述不能超过200字符',
-          'any.required': '描述不能为空',
-        }),
-      metadata: Joi.object().optional(),
-    });
-
-    const validatedData = validateRequest(schema, req.body);
+    this._checkAdminPermission(req.user);
+    const validatedData = validateRequest(PointsController.ADD_POINTS_SCHEMA, req.body);
     
     const result = await pointsService.addPoints(
       validatedData.userId,
@@ -81,7 +113,7 @@ class PointsController {
       validatedData.metadata
     );
     
-    ApiResponse.success(res, result, '积分添加成功', 201);
+    success(res, result, '积分添加成功', 201);
   });
 
   /**
@@ -89,37 +121,8 @@ class PointsController {
    * POST /api/v1/points/deduct
    */
   deductPoints = asyncHandler(async (req, res) => {
-    // 输入验证
-    const schema = Joi.object({
-      userId: Joi.number().integer().positive().required()
-        .messages({
-          'number.base': '用户ID必须是数字',
-          'number.integer': '用户ID必须是整数',
-          'number.positive': '用户ID必须大于0',
-          'any.required': '用户ID不能为空',
-        }),
-      points: Joi.number().integer().positive().max(10000).required()
-        .messages({
-          'number.base': '积分数量必须是数字',
-          'number.integer': '积分数量必须是整数',
-          'number.positive': '积分数量必须大于0',
-          'number.max': '单次最多扣除10000积分',
-          'any.required': '积分数量不能为空',
-        }),
-      type: Joi.string().valid(
-        'PENALTY_DEDUCTION',
-        'ADMIN_ADJUSTMENT',
-        'REDEEM_REWARD'
-      ).default('PENALTY_DEDUCTION'),
-      description: Joi.string().max(200).required()
-        .messages({
-          'string.max': '描述不能超过200字符',
-          'any.required': '描述不能为空',
-        }),
-      metadata: Joi.object().optional(),
-    });
-
-    const validatedData = validateRequest(schema, req.body);
+    this._checkAdminPermission(req.user);
+    const validatedData = validateRequest(PointsController.DEDUCT_POINTS_SCHEMA, req.body);
     
     const result = await pointsService.deductPoints(
       validatedData.userId,
@@ -130,7 +133,7 @@ class PointsController {
       validatedData.metadata
     );
     
-    ApiResponse.success(res, result, '积分扣除成功');
+    success(res, result, '积分扣除成功');
   });
 
   /**
@@ -138,38 +141,8 @@ class PointsController {
    * POST /api/v1/points/transfer
    */
   transferPoints = asyncHandler(async (req, res) => {
-    // 输入验证
-    const schema = Joi.object({
-      fromUserId: Joi.number().integer().positive().required()
-        .messages({
-          'number.base': '转出用户ID必须是数字',
-          'number.integer': '转出用户ID必须是整数',
-          'number.positive': '转出用户ID必须大于0',
-          'any.required': '转出用户ID不能为空',
-        }),
-      toUserId: Joi.number().integer().positive().required()
-        .messages({
-          'number.base': '转入用户ID必须是数字',
-          'number.integer': '转入用户ID必须是整数',
-          'number.positive': '转入用户ID必须大于0',
-          'any.required': '转入用户ID不能为空',
-        }),
-      points: Joi.number().integer().positive().max(10000).required()
-        .messages({
-          'number.base': '积分数量必须是数字',
-          'number.integer': '积分数量必须是整数',
-          'number.positive': '积分数量必须大于0',
-          'number.max': '单次最多转移10000积分',
-          'any.required': '积分数量不能为空',
-        }),
-      description: Joi.string().max(200).required()
-        .messages({
-          'string.max': '描述不能超过200字符',
-          'any.required': '描述不能为空',
-        }),
-    });
-
-    const validatedData = validateRequest(schema, req.body);
+    this._checkAdminPermission(req.user);
+    const validatedData = validateRequest(PointsController.TRANSFER_POINTS_SCHEMA, req.body);
     
     const result = await pointsService.transferPoints(
       validatedData.fromUserId,
@@ -179,7 +152,7 @@ class PointsController {
       req.user.id
     );
     
-    ApiResponse.success(res, result, '积分转移成功');
+    success(res, result, '积分转移成功');
   });
 
   /**
@@ -197,21 +170,12 @@ class PointsController {
       includeOperator = 'false',
     } = req.query;
 
-    // 权限检查：用户只能查看自己的历史，管理员可以查看所有用户
-    if (parseInt(userId) !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        status: 'error',
-        statusCode: 403,
-        message: '权限不足',
-        code: 'FORBIDDEN',
-        timestamp: new Date().toISOString()
-      });
-    }
+    const targetUserId = this._parseIntParam(userId);
+    this._checkUserOrAdminPermission(targetUserId, req.user);
     
     const options = {
-      page: parseInt(page),
-      limit: Math.min(parseInt(limit), 100),
+      page: this._parseIntParam(page, 1),
+      limit: Math.min(this._parseIntParam(limit, 20), 100),
       type,
       includeOperator: includeOperator === 'true' && req.user.role === 'admin',
     };
@@ -223,16 +187,8 @@ class PointsController {
       options.endDate = new Date(endDate);
     }
     
-    const result = await pointsService.getPointsHistory(parseInt(userId), options);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: '获取积分历史成功',
-      data: result,
-      timestamp: new Date().toISOString()
-    });
+    const result = await pointsService.getPointsHistory(targetUserId, options);
+    success(res, result, '获取积分历史成功');
   });
 
   /**
@@ -249,8 +205,8 @@ class PointsController {
     } = req.query;
     
     const options = {
-      page: parseInt(page),
-      limit: Math.min(parseInt(limit), 100),
+      page: this._parseIntParam(page, 1),
+      limit: Math.min(this._parseIntParam(limit, 20), 100),
       type,
       includeOperator: false,
     };
@@ -263,8 +219,7 @@ class PointsController {
     }
     
     const result = await pointsService.getPointsHistory(req.user.id, options);
-    
-    ApiResponse.success(res, result, '获取我的积分历史成功');
+    success(res, result, '获取我的积分历史成功');
   });
 
   /**
@@ -277,13 +232,9 @@ class PointsController {
     const options = {};
     
     if (userId) {
-      // 权限检查：用户只能查看自己的统计，管理员可以查看所有用户
-      if (parseInt(userId) !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json(
-          ApiResponse.error('权限不足', 403)
-        );
-      }
-      options.userId = parseInt(userId);
+      const targetUserId = this._parseIntParam(userId);
+      this._checkUserOrAdminPermission(targetUserId, req.user);
+      options.userId = targetUserId;
     }
     
     if (startDate && endDate) {
@@ -292,8 +243,7 @@ class PointsController {
     }
     
     const statistics = await pointsService.getPointsStatistics(options);
-    
-    ApiResponse.success(res, statistics, '获取积分统计成功');
+    success(res, statistics, '获取积分统计成功');
   });
 
   /**
@@ -301,26 +251,17 @@ class PointsController {
    * POST /api/v1/points/transactions/:transactionId/reverse
    */
   reverseTransaction = asyncHandler(async (req, res) => {
+    this._checkAdminPermission(req.user);
     const { transactionId } = req.params;
-    
-    // 输入验证
-    const schema = Joi.object({
-      reason: Joi.string().max(200).required()
-        .messages({
-          'string.max': '冲正原因不能超过200字符',
-          'any.required': '冲正原因不能为空',
-        }),
-    });
-
-    const validatedData = validateRequest(schema, req.body);
+    const validatedData = validateRequest(PointsController.REVERSE_TRANSACTION_SCHEMA, req.body);
     
     const result = await pointsService.reverseTransaction(
-      parseInt(transactionId),
+      this._parseIntParam(transactionId),
       validatedData.reason,
       req.user.id
     );
     
-    ApiResponse.success(res, result, '交易冲正成功');
+    success(res, result, '交易冲正成功');
   });
 
   /**
@@ -334,11 +275,11 @@ class PointsController {
     } = req.query;
     
     const leaderboard = await pointsService.getPointsLeaderboard({
-      limit: Math.min(parseInt(limit), 500),
+      limit: Math.min(this._parseIntParam(limit, 100), 500),
       period,
     });
     
-    ApiResponse.success(res, leaderboard, '获取积分排行榜成功');
+    success(res, leaderboard, '获取积分排行榜成功');
   });
 
   /**
@@ -346,31 +287,15 @@ class PointsController {
    * POST /api/v1/points/batch
    */
   batchProcessPoints = asyncHandler(async (req, res) => {
-    // 输入验证
-    const schema = Joi.object({
-      operations: Joi.array().items(
-        Joi.object({
-          userId: Joi.number().integer().positive().required(),
-          action: Joi.string().valid('add', 'deduct').required(),
-          amount: Joi.number().integer().positive().max(10000).required(),
-          description: Joi.string().max(200).optional(),
-        })
-      ).min(1).max(100).required()
-        .messages({
-          'array.min': '至少要有一个操作',
-          'array.max': '一次最多处理100个操作',
-          'any.required': '操作列表不能为空',
-        }),
-    });
-
-    const validatedData = validateRequest(schema, req.body);
+    this._checkAdminPermission(req.user);
+    const validatedData = validateRequest(PointsController.BATCH_OPERATIONS_SCHEMA, req.body);
     
     const result = await pointsService.batchProcessPoints(
       validatedData.operations,
       req.user.id
     );
     
-    ApiResponse.success(res, result, '批量操作成功');
+    success(res, result, '批量操作成功');
   });
 
   /**
@@ -379,16 +304,14 @@ class PointsController {
    */
   getUserLevel = asyncHandler(async (req, res) => {
     const { userId } = req.params;
+    const targetUserId = this._parseIntParam(userId);
     
-    // 权限检查：用户只能查看自己的等级，管理员可以查看所有用户
-    if (parseInt(userId) !== req.user.id && req.user.role !== 'admin') {
-      return ApiResponse.error(res, '权限不足', 403);
-    }
+    this._checkUserOrAdminPermission(targetUserId, req.user);
     
-    const userPoints = await pointsService.getUserPoints(parseInt(userId));
+    const userPoints = await pointsService.getUserPoints(targetUserId);
     
-    ApiResponse.success(res, {
-      userId: parseInt(userId),
+    success(res, {
+      userId: targetUserId,
       level: userPoints.level,
       totalPoints: userPoints.totalPoints,
     }, '获取用户等级信息成功');
@@ -401,7 +324,7 @@ class PointsController {
   getMyLevel = asyncHandler(async (req, res) => {
     const userPoints = await pointsService.getUserPoints(req.user.id);
     
-    ApiResponse.success(res, {
+    success(res, {
       userId: req.user.id,
       level: userPoints.level,
       totalPoints: userPoints.totalPoints,
@@ -432,7 +355,7 @@ class PointsController {
       recentTransactions: recentTransactions.transactions,
     };
     
-    ApiResponse.success(res, overview, '获取积分总览成功');
+    success(res, overview, '获取积分总览成功');
   });
 
   /**
@@ -457,7 +380,7 @@ class PointsController {
       },
     };
     
-    ApiResponse.success(res, rules, '获取积分规则成功');
+    success(res, rules, '获取积分规则成功');
   });
 }
 

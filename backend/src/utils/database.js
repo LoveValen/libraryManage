@@ -1,177 +1,82 @@
 const prisma = require('./prisma');
 const bcrypt = require('bcryptjs');
-const { USER_ROLES, USER_STATUS } = require('./constants');
 
 /**
- * Database utility functions using Prisma
+ * 数据库工具 - 遵循优秀源码的简洁设计
  */
 
 /**
- * Health check for database connection
+ * 数据库健康检查
  */
 async function healthCheck() {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return {
-      status: 'healthy',
-      message: 'Database connection is working',
-      timestamp: new Date().toISOString()
-    };
+    return { status: 'healthy', timestamp: new Date().toISOString() };
   } catch (error) {
-    return {
-      status: 'unhealthy',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    };
+    return { status: 'unhealthy', error: error.message, timestamp: new Date().toISOString() };
   }
 }
 
 /**
- * Create initial admin user
+ * 创建初始管理员用户
  */
 async function createInitialAdmin() {
   try {
-    // Check if admin already exists
     const existingAdmin = await prisma.users.findFirst({
-      where: { role: USER_ROLES.ADMIN }
+      where: { role: 'admin' }
     });
 
     if (existingAdmin) {
-      console.log('✅ Admin account already exists');
       return existingAdmin;
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(12);
-    const passwordHash = await bcrypt.hash('admin123', salt);
-
-    // Create admin user with transaction
-    const admin = await prisma.$transaction(async (tx) => {
-      const user = await tx.users.create({
-        data: {
-          username: 'admin',
-          email: 'admin@library.com',
-          password_hash: passwordHash,
-          real_name: '系统管理员',
-          role: USER_ROLES.ADMIN,
-          status: USER_STATUS.ACTIVE,
-          email_verified: true,
-          created_at: new Date(),
-          updated_at: new Date(),
-          preferences: {
-            language: 'zh-CN',
-            timezone: 'Asia/Shanghai',
-            notifications: {
-              email: true,
-              sms: false,
-              push: true,
-              dueDateReminder: true,
-              overdueNotice: true,
-              pointsUpdate: true
-            },
-            privacy: {
-              profileVisible: true,
-              readingHistoryVisible: false,
-              pointsVisible: true
-            }
-          }
-        }
-      });
-
-      // Create user points record
-      await tx.user_points.create({
-        data: {
-          user_id: user.id,
-          balance: 0,
-          total_earned: 0,
-          total_spent: 0,
-          level: 'NEWCOMER',
-          level_name: '新手读者',
-          created_at: new Date(),
-          updated_at: new Date()
-        }
-      });
-
-      return user;
+    const passwordHash = await bcrypt.hash('admin123', 12);
+    
+    const admin = await prisma.users.create({
+      data: {
+        username: 'admin',
+        email: 'admin@library.com',
+        password_hash: passwordHash,
+        real_name: '系统管理员',
+        role: 'admin',
+        status: 'active',
+        email_verified: true,
+      }
     });
 
-    console.log('✅ Default admin account created successfully');
-    console.log('📧 Username: admin');
-    console.log('🔑 Password: admin123');
-    console.log('⚠️  Please change the default password!');
-
+    console.log('✅ 默认管理员账户已创建 (admin/admin123)');
     return admin;
   } catch (error) {
-    console.error('❌ Failed to create admin account:', error);
+    console.error('❌ 创建管理员账户失败:', error.message);
     throw error;
   }
 }
 
 /**
- * Get database statistics
+ * 获取数据库统计信息
  */
 async function getDatabaseStats() {
   try {
-    const [
-      totalUsers,
-      activeUsers,
-      adminUsers,
-      totalBooks,
-      availableBooks,
-      totalBorrows,
-      activeBorrows,
-      totalReviews,
-      totalPoints
-    ] = await Promise.all([
+    const stats = await Promise.all([
       prisma.users.count({ where: { is_deleted: false } }),
-      prisma.users.count({ 
-        where: { 
-          status: USER_STATUS.ACTIVE, 
-          is_deleted: false 
-        } 
-      }),
-      prisma.users.count({ 
-        where: { 
-          role: USER_ROLES.ADMIN, 
-          is_deleted: false 
-        } 
-      }),
+      prisma.users.count({ where: { status: 'active', is_deleted: false } }),
+      prisma.users.count({ where: { role: 'admin', is_deleted: false } }),
       prisma.books.count({ where: { is_deleted: false } }),
-      prisma.books.count({ 
-        where: { 
-          status: 'available', 
-          is_deleted: false 
-        } 
-      }),
+      prisma.books.count({ where: { status: 'available', is_deleted: false } }),
       prisma.borrows.count({ where: { is_deleted: false } }),
-      prisma.borrows.count({ 
-        where: { 
-          status: 'borrowed', 
-          is_deleted: false 
-        } 
-      }),
+      prisma.borrows.count({ where: { status: 'borrowed', is_deleted: false } }),
       prisma.reviews.count(),
-      prisma.userPoints.aggregate({
-        _sum: { balance: true }
-      })
+      prisma.userPoints.aggregate({ _sum: { balance: true } })
     ]);
 
-    const newUsersThisMonth = await prisma.users.count({
-      where: {
-        created_at: {
-          gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        },
-        is_deleted: false
-      }
-    });
+    const [totalUsers, activeUsers, adminUsers, totalBooks, availableBooks, 
+           totalBorrows, activeBorrows, totalReviews, totalPoints] = stats;
 
     return {
       users: {
         total: totalUsers,
         active: activeUsers,
-        admins: adminUsers,
-        newThisMonth: newUsersThisMonth,
-        inactiveRate: totalUsers > 0 ? ((totalUsers - activeUsers) / totalUsers * 100).toFixed(2) : 0
+        admins: adminUsers
       },
       books: {
         total: totalBooks,
@@ -180,19 +85,14 @@ async function getDatabaseStats() {
       },
       borrows: {
         total: totalBorrows,
-        active: activeBorrows,
-        returned: totalBorrows - activeBorrows
+        active: activeBorrows
       },
-      reviews: {
-        total: totalReviews
-      },
-      points: {
-        totalInCirculation: totalPoints._sum.balance || 0
-      },
+      reviews: totalReviews,
+      points: totalPoints._sum.balance || 0,
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Failed to get database statistics:', error);
+    console.error('❌ 获取数据库统计失败:', error.message);
     throw error;
   }
 }

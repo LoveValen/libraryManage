@@ -8,7 +8,7 @@ const {
   strictRateLimit,
   sanitizeInput,
 } = require('../middlewares/validation.middleware');
-const { userSchemas } = require('../utils/validation');
+const { schemas } = require('../utils/validation');
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.use(sanitizeInput); // 清理输入内容
  */
 router.post('/register',
   registerRateLimit, // 注册频率限制
-  validate(userSchemas.register),
+  validate(schemas.register),
   authController.register
 );
 
@@ -38,20 +38,10 @@ router.post('/register',
  */
 router.post('/login',
   loginRateLimit, // 登录频率限制
-  validate(userSchemas.login),
+  validate(schemas.login),
   authController.login
 );
 
-/**
- * @route   POST /api/v1/auth/wechat-login
- * @desc    微信小程序登录
- * @access  Public
- */
-router.post('/wechat-login',
-  loginRateLimit, // 登录频率限制
-  validate(userSchemas.wechatLogin),
-  authController.wechatLogin
-);
 
 /**
  * @route   POST /api/v1/auth/refresh
@@ -109,7 +99,7 @@ router.post('/logout', authController.logout);
  */
 router.put('/password',
   strictRateLimit, // 严格的频率限制
-  validate(userSchemas.changePassword),
+  validate(schemas.id),
   authController.changePassword
 );
 
@@ -119,7 +109,7 @@ router.put('/password',
  * @access  Private
  */
 router.put('/profile',
-  validate(userSchemas.updateProfile),
+  validate(schemas.id),
   authController.updateProfile
 );
 

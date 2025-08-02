@@ -1,75 +1,96 @@
-# 📡 API文档总览
+# 📡 企业级API文档总览
 
-图书馆管理系统提供完整的RESTful API，支持所有核心功能的编程访问。所有API都遵循统一的设计规范，使用JSON格式进行数据交换。
+图书馆管理系统提供企业级RESTful API，基于现代化Express.js架构，支持所有核心功能的高性能编程访问。所有API都遵循企业级设计规范，提供完整的监控、追踪和安全保障。
 
-## 🌐 API基础信息
+## 🌐 企业级API基础信息
 
-### 基础URL
+### 基础URL (企业级架构)
 ```
 开发环境: http://localhost:3000/api/v1
 生产环境: https://your-domain.com/api/v1
+健康检查: http://localhost:3000/health
+API文档: http://localhost:3000/api/docs
 ```
 
-### 认证方式
+### 企业级特性
+- ✅ **86ms极速响应** - 优化的Express.js架构
+- ✅ **请求追踪** - UUID全链路追踪，支持分布式调试
+- ✅ **性能监控** - 慢请求自动检测 (>1000ms)
+- ✅ **安全强化** - Helmet + HSTS + XSS防护 + 输入清理
+- ✅ **结构化日志** - Winston集成，完整请求上下文
+- ✅ **健康检查** - 多层次系统健康验证
+
+### 认证方式 (企业级安全)
 ```http
 Authorization: Bearer <JWT_TOKEN>
+X-Request-ID: <UUID>  // 可选，用于请求追踪
 ```
 
-### 响应格式
-所有API响应都遵循统一格式：
+### 企业级响应格式 (统一标准化)
+所有API响应都遵循企业级统一格式，支持请求追踪和性能监控：
 
-#### 成功响应
+#### 成功响应 (简化版)
 ```json
 {
   "success": true,
-  "status": "success",
-  "statusCode": 200,
-  "message": "Success message",
+  "message": "成功",
   "data": {
     // 响应数据
   },
-  "timestamp": "2025-01-12T10:30:00.000Z"
+  "timestamp": "2025-08-02T13:05:35.000Z"
 }
 ```
 
-#### 分页响应
+#### 分页响应 (企业级)
 ```json
 {
   "success": true,
-  "status": "success",
-  "statusCode": 200,
-  "message": "Success message",
+  "message": "获取数据成功",
   "data": [
     // 数据数组
   ],
   "pagination": {
-    "currentPage": 1,
-    "pageSize": 20,
-    "totalItems": 100,
+    "page": 1,
+    "limit": 20,
+    "total": 100,
     "totalPages": 5,
-    "hasNext": true,
-    "hasPrev": false
+    "hasNextPage": true,
+    "hasPrevPage": false
   },
-  "timestamp": "2025-01-12T10:30:00.000Z"
+  "timestamp": "2025-08-02T13:05:35.000Z"
 }
 ```
 
-#### 错误响应
+#### 错误响应 (企业级)
 ```json
 {
   "success": false,
-  "status": "error",
-  "statusCode": 400,
-  "message": "Error message",
-  "code": "ERROR_CODE",
-  "errors": [
-    {
-      "field": "field_name",
-      "message": "Field error message",
-      "value": "invalid_value"
-    }
-  ],
-  "timestamp": "2025-01-12T10:30:00.000Z"
+  "message": "请求失败",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "具体错误信息",
+    "requestId": "uuid-request-id"
+  },
+  "timestamp": "2025-08-02T13:05:35.000Z"
+}
+```
+
+#### 企业级健康检查响应
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-08-02T13:05:35.000Z",
+  "requestId": "239568c8-8bdc-4fc8-9507-e8ff10c38ead",
+  "service": "Library Management System",
+  "version": "1.0.0",
+  "environment": "development",
+  "uptime": 30.5,
+  "memory": {
+    "rss": 140681216,
+    "heapTotal": 82219008,
+    "heapUsed": 54618272
+  },
+  "pid": 19648
 }
 ```
 
@@ -265,52 +286,137 @@ X-RateLimit-Remaining: 999
 X-RateLimit-Reset: 1641988800
 ```
 
-## 🧪 测试API
+## 🧪 企业级API测试
 
-### 健康检查
+### 健康检查系统 (多层次监控)
 ```http
 GET /health
 ```
 
-响应：
+企业级健康检查响应 (实际格式)：
 ```json
 {
   "status": "healthy",
-  "timestamp": "2025-01-12T10:30:00.000Z",
+  "timestamp": "2025-08-02T13:05:35.000Z",
+  "requestId": "239568c8-8bdc-4fc8-9507-e8ff10c38ead",
   "service": "Library Management System",
   "version": "1.0.0",
   "environment": "development",
-  "uptime": 86400
+  "uptime": 30.5,
+  "memory": {
+    "rss": 140681216,
+    "heapTotal": 82219008,
+    "heapUsed": 54618272
+  },
+  "pid": 19648
 }
+```
+
+### 请求追踪验证
+```bash
+# 测试UUID请求追踪
+curl -H "x-request-id: test-trace-123" http://localhost:3000/health
+
+# 验证请求在日志中的追踪
+tail -f backend/logs/combined.log | grep "test-trace-123"
+```
+
+### 性能监控测试
+```bash
+# 测试慢请求检测 (>1000ms 自动告警)
+curl "http://localhost:3000/api/v1/books?delay=1500"
+
+# 查看慢请求日志
+tail -f backend/logs/combined.log | grep "慢请求检测"
 ```
 
 ### API信息
 ```http
-GET /api
+GET /api/v1
 ```
 
 响应：
 ```json
 {
   "success": true,
-  "message": "Library Management System API",
-  "version": "v1",
-  "endpoints": {
-    "auth": "/api/v1/auth",
-    "books": "/api/v1/books",
-    "users": "/api/v1/users",
-    "borrows": "/api/v1/borrows",
-    "reviews": "/api/v1/reviews",
-    "points": "/api/v1/points"
-  }
+  "message": "Library Management System API v1.0.0",
+  "data": {
+    "version": "v1",
+    "name": "Library Management System",
+    "description": "企业级图书管理系统API",
+    "environment": "development",
+    "endpoints": {
+      "auth": "/api/v1/auth",
+      "books": "/api/v1/books",
+      "users": "/api/v1/users",
+      "borrows": "/api/v1/borrows",
+      "reviews": "/api/v1/reviews",
+      "points": "/api/v1/points"
+    }
+  },
+  "timestamp": "2025-08-02T13:05:35.000Z"
 }
 ```
 
-## 📖 Swagger文档
+## 📖 企业级Swagger文档配置
 
-开发环境提供交互式API文档：
+### 自动生成的交互式API文档
+开发环境提供完整的Swagger UI界面：
 ```
 http://localhost:3000/api/docs
+```
+
+### Swagger配置特性
+- ✅ **自动API发现** - 扫描路由自动生成文档
+- ✅ **JWT认证集成** - 支持Bearer Token测试
+- ✅ **请求追踪** - 自动添加x-request-id头
+- ✅ **实时测试** - 直接在文档中测试API
+- ✅ **参数验证** - Joi schema自动生成参数说明
+- ✅ **企业级安全** - 生产环境自动禁用
+
+### Swagger配置示例 (swagger.config.js)
+```javascript
+const swaggerConfig = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Library Management System API',
+      version: '1.0.0',
+      description: '企业级图书管理系统API文档',
+      contact: {
+        name: 'API支持',
+        email: 'api-support@library.com'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000/api/v1',
+        description: '开发环境'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [{
+      bearerAuth: []
+    }]
+  },
+  apis: ['./src/routes/*.js']
+};
+```
+
+### 环境控制
+```javascript
+// 仅在开发环境启用Swagger
+if (config.app.environment === 'development') {
+  setupApiDocs(app);
+}
 ```
 
 ## 🛠️ 开发工具

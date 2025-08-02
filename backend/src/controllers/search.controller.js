@@ -1,299 +1,284 @@
 const searchService = require('../services/search.service');
-const { ApiError, BadRequestError, NotFoundError } = require('../utils/apiError');
-const { logger } = require('../utils/logger');
+const { asyncHandler } = require('../middlewares/error.middleware');
+const { success, validationError } = require('../utils/response');
+const { validateRequest } = require('../utils/validation');
+const { BadRequestError, ForbiddenError } = require('../utils/apiError');
+const Joi = require('joi');
 
 /**
  * 搜索控制器
  */
 class SearchController {
+  // 验证模式常量
+  static SEARCH_SCHEMA = Joi.object({
+    q: Joi.string().trim().min(1).max(200).optional(),
+    type: Joi.string().valid('all', 'books', 'users', 'reviews', 'borrows').optional(),
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
+    sort: Joi.string().valid('_score', 'title', 'author', 'date', 'rating', 'popularity').optional(),
+    order: Joi.string().valid('asc', 'desc').optional(),
+    highlight: Joi.boolean().optional(),
+    suggest: Joi.boolean().optional()
+  });
+
+  static ADVANCED_SEARCH_SCHEMA = Joi.object({
+    query: Joi.string().trim().max(500).optional(),
+    type: Joi.string().valid('books', 'users', 'reviews', 'borrows').optional(),
+    page: Joi.number().integer().min(1).optional(),
+    limit: Joi.number().integer().min(1).max(100).optional(),
+    filters: Joi.object().optional(),
+    facets: Joi.boolean().optional(),
+    aggregations: Joi.boolean().optional()
+  });
+
+  static EXPORT_SCHEMA = Joi.object({
+    query: Joi.string().trim().max(500).optional(),
+    type: Joi.string().valid('books', 'users', 'reviews', 'borrows').optional(),
+    format: Joi.string().valid('csv', 'json', 'xlsx').optional(),
+    filters: Joi.object().optional(),
+    limit: Joi.number().integer().min(1).max(10000).optional()
+  });
+
+  /**
+   * 解析整数参数
+   * @private
+   */
+  _parseIntParam(value, defaultValue = null) {
+    return value ? parseInt(value) : defaultValue;
+  }
+
+  /**
+   * 解析布尔参数
+   * @private
+   */
+  _parseBoolParam(value, defaultValue = false) {
+    return value === 'true' || value === true;
+  }
+
+  /**
+   * 检查管理员权限
+   * @private
+   */
+  _checkAdminPermission(user) {
+    if (user.role !== 'admin') {
+      throw new ForbiddenError('只有管理员可以执行此操作');
+    }
+  }
+
+  /**
+   * 检查管理员或图书管理员权限
+   * @private
+   */
+  _checkLibrarianPermission(user) {
+    if (!['admin', 'librarian'].includes(user.role)) {
+      throw new ForbiddenError('权限不足，需要管理员或图书管理员权限');
+    }
+  }
   /**
    * 综合搜索
    */
-  async search(req, res) {
-    try {
-      const {
-        q: query,
-        type = 'all',
-        page = 1,
-        limit = 20,
-        sort = '_score',
-        order = 'desc',
-        highlight = true,
-        suggest = false,
-        ...filters
-      } = req.query;
+  search = asyncHandler(async (req, res) => {
+    const {
+      q: query,
+      type = 'all',
+      page = 1,
+      limit = 20,
+      sort = '_score',
+      order = 'desc',
+      highlight = true,
+      suggest = false,
+      ...filters
+    } = req.query;
 
-      if (!query && type === 'all') {
-        throw new BadRequestError('Search query is required for comprehensive search');
-      }
-
-      const options = {
-        type,
-        page: parseInt(page),
-        limit: Math.min(parseInt(limit), 100), // 限制最大返回数量
-        sort,
-        order,
-        highlight: highlight === 'true',
-        suggest: suggest === 'true',
-        filters: this.parseFilters(filters)
-      };
-
-      const results = await searchService.search(query, options);
-
-      // 记录搜索日志
-      logger.info('Search performed', {
-        query,
-        type,
-        userId: req.user?.id,
-        resultsCount: results.total || 0,
-        took: results.took
-      });
-
-      res.apiSuccess(results);
-    } catch (error) {
-      logger.error('Search failed:', error);
-      res.apiError(error);
+    if (!query && type === 'all') {
+      throw new BadRequestError('搜索关键词不能为空');
     }
-  }
+
+    const options = {
+      type,
+      page: this._parseIntParam(page, 1),
+      limit: Math.min(this._parseIntParam(limit, 20), 100),
+      sort,
+      order,
+      highlight: this._parseBoolParam(highlight, true),
+      suggest: this._parseBoolParam(suggest, false),
+      filters: this.parseFilters(filters)
+    };
+
+    const results = await searchService.search(query, options);
+    success(res, results, '搜索完成');
+  });
 
   /**
    * 智能搜索（个性化）
    */
-  async intelligentSearch(req, res) {
-    try {
-      const {
-        q: query,
-        type = 'books',
-        page = 1,
-        limit = 20,
-        sort = '_score',
-        order = 'desc',
-        ...filters
-      } = req.query;
+  intelligentSearch = asyncHandler(async (req, res) => {
+    const {
+      q: query,
+      type = 'books',
+      page = 1,
+      limit = 20,
+      sort = '_score',
+      order = 'desc',
+      ...filters
+    } = req.query;
 
-      if (!query) {
-        throw new BadRequestError('Search query is required');
-      }
-
-      const userId = req.user.id;
-      const options = {
-        type,
-        page: parseInt(page),
-        limit: Math.min(parseInt(limit), 100),
-        sort,
-        order,
-        filters: this.parseFilters(filters)
-      };
-
-      const results = await searchService.intelligentSearch(query, userId, options);
-
-      res.apiSuccess({
-        ...results,
-        personalized: true,
-        userId
-      });
-    } catch (error) {
-      logger.error('Intelligent search failed:', error);
-      res.apiError(error);
+    if (!query) {
+      throw new BadRequestError('搜索关键词不能为空');
     }
-  }
+
+    const options = {
+      type,
+      page: this._parseIntParam(page, 1),
+      limit: Math.min(this._parseIntParam(limit, 20), 100),
+      sort,
+      order,
+      filters: this.parseFilters(filters)
+    };
+
+    const results = await searchService.intelligentSearch(query, req.user.id, options);
+    success(res, { ...results, personalized: true, userId: req.user.id }, '智能搜索完成');
+  });
 
   /**
    * 搜索建议
    */
-  async getSuggestions(req, res) {
-    try {
-      const { q: query, type = 'books', limit = 10 } = req.query;
+  getSuggestions = asyncHandler(async (req, res) => {
+    const { q: query, type = 'books', limit = 10 } = req.query;
 
-      if (!query || query.length < 2) {
-        return res.apiSuccess([]);
-      }
-
-      const suggestions = await searchService.getSuggestions(query, type);
-      
-      res.apiSuccess(suggestions.slice(0, limit));
-    } catch (error) {
-      logger.error('Get suggestions failed:', error);
-      res.apiError(error);
+    if (!query || query.length < 2) {
+      return success(res, [], '搜索建议获取成功');
     }
-  }
+
+    const suggestions = await searchService.getSuggestions(query, type);
+    success(res, suggestions.slice(0, this._parseIntParam(limit, 10)), '搜索建议获取成功');
+  });
 
   /**
    * 高级搜索
    */
-  async advancedSearch(req, res) {
-    try {
-      const {
-        query,
-        type = 'books',
-        page = 1,
-        limit = 20,
-        filters = {},
-        facets = true,
-        aggregations = true
-      } = req.body;
+  advancedSearch = asyncHandler(async (req, res) => {
+    const validatedData = validateRequest(SearchController.ADVANCED_SEARCH_SCHEMA, req.body);
+    const {
+      query,
+      type = 'books',
+      page = 1,
+      limit = 20,
+      filters = {},
+      facets = true,
+      aggregations = true
+    } = validatedData;
 
-      const options = {
-        type,
-        page: parseInt(page),
-        limit: Math.min(parseInt(limit), 100),
-        filters,
-        facets: facets === true,
-        aggregations: aggregations === true,
-        highlight: true
-      };
+    const options = {
+      type,
+      page: this._parseIntParam(page, 1),
+      limit: Math.min(this._parseIntParam(limit, 20), 100),
+      filters,
+      facets: this._parseBoolParam(facets, true),
+      aggregations: this._parseBoolParam(aggregations, true),
+      highlight: true
+    };
 
-      const results = await searchService.search(query, options);
-
-      res.apiSuccess(results);
-    } catch (error) {
-      logger.error('Advanced search failed:', error);
-      res.apiError(error);
-    }
-  }
+    const results = await searchService.search(query, options);
+    success(res, results, '高级搜索完成');
+  });
 
   /**
    * 搜索统计
    */
-  async getSearchStats(req, res) {
-    try {
-      if (req.user.role !== 'admin') {
-        throw new BadRequestError('Only administrators can access search statistics');
-      }
+  getSearchStats = asyncHandler(async (req, res) => {
+    this._checkAdminPermission(req.user);
+    const { startDate, endDate } = req.query;
+    
+    const stats = {
+      searchHealth: await searchService.healthCheck(),
+      indexStats: await this.getIndexStatistics(),
+      popularQueries: await this.getPopularQueries(startDate, endDate),
+      searchTrends: await this.getSearchTrends(startDate, endDate)
+    };
 
-      const { startDate, endDate } = req.query;
-      
-      // 这里可以实现搜索统计逻辑
-      // 例如：最热门搜索词、搜索频率、用户搜索行为等
-      
-      const stats = {
-        searchHealth: await searchService.healthCheck(),
-        indexStats: await this.getIndexStatistics(),
-        popularQueries: await this.getPopularQueries(startDate, endDate),
-        searchTrends: await this.getSearchTrends(startDate, endDate)
-      };
-
-      res.apiSuccess(stats);
-    } catch (error) {
-      logger.error('Get search stats failed:', error);
-      res.apiError(error);
-    }
-  }
+    success(res, stats, '获取搜索统计成功');
+  });
 
   /**
    * 重建索引
    */
-  async reindexAll(req, res) {
-    try {
-      if (req.user.role !== 'admin') {
-        throw new BadRequestError('Only administrators can reindex');
-      }
+  reindexAll = asyncHandler(async (req, res) => {
+    this._checkAdminPermission(req.user);
 
-      // 异步执行重建索引
-      searchService.reindexAll().catch(error => {
-        logger.error('Reindex failed:', error);
-      });
+    // 异步执行重建索引
+    searchService.reindexAll().catch(error => {
+      console.error('Reindex failed:', error);
+    });
 
-      res.apiSuccess({
-        message: 'Index rebuild started',
-        status: 'in_progress'
-      });
-    } catch (error) {
-      logger.error('Reindex request failed:', error);
-      res.apiError(error);
-    }
-  }
+    success(res, { message: '索引重建已启动', status: 'in_progress' }, '索引重建启动成功');
+  });
 
   /**
    * 搜索健康检查
    */
-  async healthCheck(req, res) {
-    try {
-      const health = await searchService.healthCheck();
-      res.apiSuccess(health);
-    } catch (error) {
-      logger.error('Search health check failed:', error);
-      res.apiError(error);
-    }
-  }
+  healthCheck = asyncHandler(async (req, res) => {
+    const health = await searchService.healthCheck();
+    success(res, health, '搜索健康检查完成');
+  });
 
   /**
    * 自动完成搜索
    */
-  async autocomplete(req, res) {
-    try {
-      const { q: query, type = 'books', field = 'title' } = req.query;
+  autocomplete = asyncHandler(async (req, res) => {
+    const { q: query, type = 'books', field = 'title' } = req.query;
 
-      if (!query || query.length < 2) {
-        return res.apiSuccess([]);
-      }
-
-      const suggestions = await this.getAutocompleteResults(query, type, field);
-      
-      res.apiSuccess(suggestions);
-    } catch (error) {
-      logger.error('Autocomplete failed:', error);
-      res.apiError(error);
+    if (!query || query.length < 2) {
+      return success(res, [], '自动完成获取成功');
     }
-  }
+
+    const suggestions = await this.getAutocompleteResults(query, type, field);
+    success(res, suggestions, '自动完成获取成功');
+  });
 
   /**
    * 相似内容推荐
    */
-  async findSimilar(req, res) {
-    try {
-      const { type, id, limit = 10 } = req.params;
-      
-      if (!['books', 'users', 'reviews'].includes(type)) {
-        throw new BadRequestError('Invalid type for similarity search');
-      }
-
-      const similar = await this.findSimilarContent(type, id, limit);
-      
-      res.apiSuccess(similar);
-    } catch (error) {
-      logger.error('Find similar content failed:', error);
-      res.apiError(error);
+  findSimilar = asyncHandler(async (req, res) => {
+    const { type, id, limit = 10 } = req.params;
+    
+    if (!['books', 'users', 'reviews'].includes(type)) {
+      throw new BadRequestError('相似性搜索类型无效');
     }
-  }
+
+    const similar = await this.findSimilarContent(type, id, this._parseIntParam(limit, 10));
+    success(res, similar, '相似内容推荐获取成功');
+  });
 
   /**
    * 导出搜索结果
    */
-  async exportSearchResults(req, res) {
-    try {
-      const {
-        query,
-        type = 'books',
-        format = 'csv',
-        filters = {},
-        limit = 1000
-      } = req.body;
+  exportSearchResults = asyncHandler(async (req, res) => {
+    this._checkLibrarianPermission(req.user);
+    const validatedData = validateRequest(SearchController.EXPORT_SCHEMA, req.body);
+    const {
+      query,
+      type = 'books',
+      format = 'csv',
+      filters = {},
+      limit = 1000
+    } = validatedData;
 
-      if (req.user.role !== 'admin' && req.user.role !== 'librarian') {
-        throw new BadRequestError('Insufficient permissions to export search results');
-      }
+    const options = {
+      type,
+      page: 1,
+      limit: Math.min(this._parseIntParam(limit, 1000), 10000),
+      filters,
+      highlight: false
+    };
 
-      const options = {
-        type,
-        page: 1,
-        limit: Math.min(parseInt(limit), 10000),
-        filters,
-        highlight: false
-      };
-
-      const results = await searchService.search(query, options);
-      
-      const exportData = await this.formatExportData(results, format);
-      
-      res.setHeader('Content-Type', this.getContentType(format));
-      res.setHeader('Content-Disposition', `attachment; filename="search_results.${format}"`);
-      res.send(exportData);
-    } catch (error) {
-      logger.error('Export search results failed:', error);
-      res.apiError(error);
-    }
-  }
+    const results = await searchService.search(query, options);
+    const exportData = await this.formatExportData(results, format);
+    
+    res.setHeader('Content-Type', this.getContentType(format));
+    res.setHeader('Content-Disposition', `attachment; filename="search_results.${format}"`);
+    res.send(exportData);
+  });
 
   // 辅助方法
 

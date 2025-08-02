@@ -1,40 +1,21 @@
 const booksService = require('../services/books.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
+const { success, successWithPagination } = require('../utils/response');
 
 /**
- * 图书控制器
- * 处理所有图书相关的HTTP请求
+ * 图书控制器 - 处理图书的增删改查、搜索等操作
  */
 class BooksController {
   /**
-   * 创建图书
-   * POST /api/v1/books
+   * 清理和映射查询参数
+   * @private
    */
-  createBook = asyncHandler(async (req, res) => {
-    const book = await booksService.createBook(req.body, req.user);
-    
-    res.status(201).json({
-      success: true,
-      status: 'success',
-      statusCode: 201,
-      message: 'Book created successfully',
-      data: {
-        book,
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
-
-  /**
-   * 获取图书列表
-   * GET /api/v1/books
-   */
-  getBookList = asyncHandler(async (req, res) => {
-    // 参数映射: keyword -> search, size -> limit (兼容前端)
+  _cleanQueryParams(query) {
+    // 参数映射：兼容前端命名
     const mappedQuery = {
-      ...req.query,
-      search: req.query.keyword || req.query.search,
-      limit: req.query.size || req.query.limit,
+      ...query,
+      search: query.keyword || query.search,
+      limit: query.size || query.limit
     };
     
     // 移除重复和无用参数
@@ -49,153 +30,88 @@ class BooksController {
       }
     });
     
-    const result = await booksService.getBookList(mappedQuery);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Books retrieved successfully',
-      data: {
-        books: result.books,
-        pagination: result.pagination,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    return mappedQuery;
+  }
+  /**
+   * 创建图书
+   */
+  createBook = asyncHandler(async (req, res) => {
+    const book = await booksService.createBook(req.body, req.user);
+    success(res, { book }, '图书创建成功', 201);
   });
 
   /**
-   * 获取管理员图书列表 (兼容前端参数)
-   * GET /api/v1/admin/books
+   * 获取图书列表
+   */
+  getBookList = asyncHandler(async (req, res) => {
+    const mappedQuery = this._cleanQueryParams(req.query);
+    const result = await booksService.getBookList(mappedQuery);
+    
+    successWithPagination(res, result.books, result.pagination, '获取图书列表成功');
+  });
+
+  /**
+   * 获取管理员图书列表
    */
   getAdminBookList = asyncHandler(async (req, res) => {
-    // 字段名映射: 前端 camelCase -> 数据库 snake_case
+    // 字段名映射：前端 camelCase -> 数据库 snake_case
     const fieldMapping = {
       'createdAt': 'created_at',
-      'updatedAt': 'updated_at',
+      'updatedAt': 'updated_at', 
       'categoryId': 'category_id',
       'totalStock': 'total_stock',
       'availableStock': 'available_stock',
       'publicationYear': 'publication_year',
-      'publicationDate': 'publication_date',
-      'callNumber': 'call_number',
-      'coverImage': 'cover_image',
-      'backCoverImage': 'back_cover_image',
       'averageRating': 'average_rating',
       'reviewCount': 'review_count',
       'borrowCount': 'borrow_count',
       'viewCount': 'view_count'
     };
 
-    // 参数映射: keyword -> search, size -> limit, sortBy -> orderBy
-    const mappedQuery = {
-      ...req.query,
-      search: req.query.keyword || req.query.search,
-      limit: req.query.size || req.query.limit,
-      orderBy: req.query.sortBy ? (fieldMapping[req.query.sortBy] || req.query.sortBy) : req.query.orderBy,
-      order: req.query.sortOrder || req.query.order
-    };
+    const mappedQuery = this._cleanQueryParams(req.query);
     
-    // 移除重复和无用参数
-    delete mappedQuery.keyword;
-    delete mappedQuery.size;
-    delete mappedQuery.sortBy;
-    delete mappedQuery.sortOrder;
-    delete mappedQuery._t; // 移除时间戳参数
-    
-    // 过滤空字符串参数
-    Object.keys(mappedQuery).forEach(key => {
-      if (mappedQuery[key] === '') {
-        delete mappedQuery[key];
-      }
-    });
+    // 处理排序字段映射
+    if (req.query.sortBy) {
+      mappedQuery.orderBy = fieldMapping[req.query.sortBy] || req.query.sortBy;
+    }
+    if (req.query.sortOrder) {
+      mappedQuery.order = req.query.sortOrder;
+    }
     
     const result = await booksService.getBookList(mappedQuery);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Admin books retrieved successfully',
-      data: {
-        books: result.books,
-        pagination: result.pagination,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    successWithPagination(res, result.books, result.pagination, '获取管理员图书列表成功');
   });
 
   /**
    * 获取图书详情
-   * GET /api/v1/books/:id
    */
   getBookById = asyncHandler(async (req, res) => {
     const book = await booksService.getBookById(req.params.id, req.user);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Book retrieved successfully',
-      data: {
-        book,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    success(res, { book }, '获取图书详情成功');
   });
 
   /**
    * 更新图书信息
-   * PUT /api/v1/books/:id
    */
   updateBook = asyncHandler(async (req, res) => {
     const book = await booksService.updateBook(req.params.id, req.body, req.user);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Book updated successfully',
-      data: {
-        book,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    success(res, { book }, '图书更新成功');
   });
 
   /**
    * 删除图书
-   * DELETE /api/v1/books/:id
    */
   deleteBook = asyncHandler(async (req, res) => {
     const result = await booksService.deleteBook(req.params.id, req.user);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: result.message,
-      timestamp: new Date().toISOString(),
-    });
+    success(res, null, result.message);
   });
 
   /**
    * 获取图书分类
-   * GET /api/v1/books/categories
    */
   getCategories = asyncHandler(async (req, res) => {
     const categories = await booksService.getCategories();
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Categories retrieved successfully',
-      data: {
-        categories,
-      },
-      timestamp: new Date().toISOString(),
-    });
+    success(res, { categories }, '获取图书分类成功');
   });
 
   /**

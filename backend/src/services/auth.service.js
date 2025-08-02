@@ -146,94 +146,6 @@ class AuthService {
     };
   }
 
-  /**
-   * WeChat mini program login
-   */
-  async wechatLogin(code, userInfo = {}, ip, userAgent) {
-    try {
-      // Get WeChat user data
-      const wechatData = await this.getWechatUserData(code);
-
-      // Find or create user
-      let user = await UserService.findByWechatOpenid(wechatData.openid);
-      let isNewUser = false;
-
-      if (!user) {
-        // Create new user
-        user = await UserService.createWechatUser(wechatData, userInfo);
-        isNewUser = true;
-
-        // Create user points record
-        await prisma.userPoints.create({
-          data: {
-            user_id: user.id,
-            balance: 0,
-            total_earned: 0,
-            total_spent: 0,
-            level: 'NEWCOMER',
-            level_name: '新手读者'
-          }
-        });
-
-        logBusinessOperation('USER_REGISTER_WECHAT', user.id, {
-          openid: wechatData.openid,
-          unionid: wechatData.unionid,
-          ip
-        });
-      } else {
-        // Update existing user's WeChat info
-        if (wechatData.unionid && user.wechat_unionid !== wechatData.unionid) {
-          await UserService.update(user.id, {
-            wechat_unionid: wechatData.unionid
-          });
-        }
-
-        // Update login info
-        await UserService.updateLoginInfo(user.id, ip);
-      }
-
-      // Check user status
-      if (!UserService.isActive(user)) {
-        logSecurityEvent('WECHAT_LOGIN_FAILED_INACTIVE_USER', { ip }, {
-          userId: user.id,
-          openid: wechatData.openid,
-          status: user.status
-        });
-        throw new UnauthorizedError('Account is inactive or suspended');
-      }
-
-      // Generate tokens
-      const accessToken = generateAccessToken(user);
-      const refreshToken = generateRefreshToken(user);
-
-      logBusinessOperation('USER_LOGIN', user.id, {
-        ip,
-        userAgent,
-        loginMethod: 'wechat',
-        openid: wechatData.openid
-      });
-
-      return {
-        user: UserService.toSafeJSON(user),
-        tokens: {
-          accessToken,
-          refreshToken,
-          expiresIn: config.jwt.jwtConfig.expiresIn
-        },
-        isNewUser,
-        message: 'Login successful'
-      };
-    } catch (error) {
-      if (error instanceof WechatError) {
-        throw error;
-      }
-      logSecurityEvent('WECHAT_LOGIN_ERROR', { ip }, {
-        error: error.message,
-        code
-      });
-      throw new WechatError('WeChat login failed', error.message);
-    }
-  }
 
   /**
    * Refresh access token
@@ -373,18 +285,6 @@ class AuthService {
     };
   }
 
-  /**
-   * Get WeChat user data (placeholder)
-   */
-  async getWechatUserData(code) {
-    // In a real implementation, this would call WeChat API
-    // For now, return mock data
-    return {
-      openid: `mock_openid_${code}`,
-      unionid: `mock_unionid_${code}`,
-      session_key: 'mock_session_key'
-    };
-  }
 }
 
 module.exports = new AuthService();
