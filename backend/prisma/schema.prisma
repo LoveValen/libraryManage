@@ -1121,9 +1121,6 @@ model users {
   wechat_unionid                                                String?                    @unique(map: "wechat_unionid") @db.VarChar(128)
   role                                                          users_role                 @default(patron)
   status                                                        users_status               @default(active)
-  email_verified                                                Boolean?                   @default(false)
-  email_verification_token                                      String?                    @db.VarChar(255)
-  phone_verified                                                Boolean?                   @default(false)
   last_login_at                                                 DateTime?                  @db.DateTime(0)
   last_login_ip                                                 String?                    @db.VarChar(45)
   login_count                                                   Int?                       @default(0) @db.UnsignedInt
