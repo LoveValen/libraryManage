@@ -77,6 +77,36 @@ const logSecurityEvent = (event, req, details = {}) => {
 };
 
 /**
+ * 业务操作日志
+ * 支持两种调用方式：
+ * 1. logBusinessOperation(operation, userId, details)
+ * 2. logBusinessOperation({operation, userId, targetUserId, details})
+ */
+const logBusinessOperation = (operationOrData, userId, details = {}) => {
+  let logData;
+  
+  if (typeof operationOrData === 'string') {
+    // 方式1: logBusinessOperation('USER_LOGIN', user.id, {...})
+    logData = {
+      operation: operationOrData,
+      userId: userId,
+      ...details
+    };
+  } else {
+    // 方式2: logBusinessOperation({operation: 'user_created', userId: ..., ...})
+    logData = operationOrData;
+  }
+  
+  logger.info('业务操作', {
+    operation: logData.operation,
+    userId: logData.userId,
+    targetUserId: logData.targetUserId,
+    details: logData.details || logData,
+    timestamp: new Date().toISOString()
+  });
+};
+
+/**
  * HTTP请求日志中间件
  */
 const createHttpLogger = () => {
@@ -115,5 +145,6 @@ module.exports = {
   logger,
   logError,
   logSecurityEvent,
+  logBusinessOperation,
   createHttpLogger,
 };

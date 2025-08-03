@@ -815,93 +815,6 @@ POST /recommendations/feedback
 }
 ```
 
-#### 获取推荐效果统计
-```http
-GET /recommendations/analytics
-```
-
-**权限**: 管理员
-
-**查询参数**:
-```
-period: 统计周期 (24h/7d/30d)
-algorithm: 算法过滤
-scenario: 场景过滤
-groupBy: 分组方式 (algorithm/scenario/user_segment)
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "data": {
-    "period": "7d",
-    "overview": {
-      "totalRecommendations": 45678,
-      "uniqueUsers": 1234,
-      "clickThroughRate": 0.23,
-      "conversionRate": 0.15,
-      "averageRelevanceScore": 0.78
-    },
-    "byAlgorithm": [
-      {
-        "algorithm": "collaborative",
-        "requests": 18456,
-        "ctr": 0.25,
-        "conversionRate": 0.18,
-        "avgScore": 0.82,
-        "userSatisfaction": 0.79
-      },
-      {
-        "algorithm": "content",
-        "requests": 12345,
-        "ctr": 0.21,
-        "conversionRate": 0.14,
-        "avgScore": 0.76,
-        "userSatisfaction": 0.74
-      },
-      {
-        "algorithm": "hybrid",
-        "requests": 14877,
-        "ctr": 0.27,
-        "conversionRate": 0.19,
-        "avgScore": 0.85,
-        "userSatisfaction": 0.83
-      }
-    ],
-    "byScenario": [
-      {
-        "scenario": "homepage",
-        "impressions": 23456,
-        "clicks": 5432,
-        "conversions": 876,
-        "ctr": 0.23,
-        "conversionRate": 0.16
-      }
-    ],
-    "trends": {
-      "daily": [
-        {
-          "date": "2025-01-06",
-          "recommendations": 6543,
-          "ctr": 0.22,
-          "conversions": 987
-        }
-      ]
-    },
-    "topBooks": [
-      {
-        "bookId": "book_123",
-        "title": "JavaScript高级程序设计",
-        "recommendationCount": 567,
-        "clickCount": 234,
-        "conversionCount": 89,
-        "ctr": 0.41
-      }
-    ]
-  }
-}
-```
 
 ### 🔬 A/B测试
 
@@ -1081,8 +994,6 @@ GET /recommendations/experiments/{experimentId}/results
 
 - [推荐算法详解](../algorithms/recommendation-algorithms.md)
 - [机器学习模型管理](../ml/model-management.md)
-- [A/B测试最佳实践](../analytics/ab-testing-guide.md)
-- [用户行为分析](../analytics/user-behavior-analysis.md)
 
 ---
 

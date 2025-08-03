@@ -693,12 +693,12 @@ class BehaviorTrackingService extends EventEmitter {
   async updateUserPreferencesRealTime(userId, bookId, behaviorType, intensity) {
     try {
       // 查找或创建用户偏好记录
-      let userPreference = await prisma.user_preferences.findUnique({
+      let userPreference = await prisma.userPreferences.findUnique({
         where: { user_id: userId }
       });
 
       if (!userPreference) {
-        userPreference = await prisma.user_preferences.create({
+        userPreference = await prisma.userPreferences.create({
           data: {
             user_id: userId,
             category_preferences: {},
@@ -715,7 +715,7 @@ class BehaviorTrackingService extends EventEmitter {
       const book = await prisma.books.findUnique({
         where: { id: bookId },
         include: {
-          book_categories: true
+          bookCategories: true
         }
       });
       
@@ -732,7 +732,7 @@ class BehaviorTrackingService extends EventEmitter {
         
         categoryPrefs[book.category_id] = newScore;
         
-        await prisma.user_preferences.update({
+        await prisma.userPreferences.update({
           where: { id: userPreference.id },
           data: {
             category_preferences: categoryPrefs,
@@ -750,7 +750,7 @@ class BehaviorTrackingService extends EventEmitter {
         
         authorPrefs[book.author] = newScore;
         
-        await prisma.user_preferences.update({
+        await prisma.userPreferences.update({
           where: { id: userPreference.id },
           data: {
             author_preferences: authorPrefs,
@@ -762,7 +762,7 @@ class BehaviorTrackingService extends EventEmitter {
 
       // 更新置信度
       const newConfidence = Math.min(1.0, userPreference.confidence_score + learningRate * 0.1);
-      await prisma.user_preferences.update({
+      await prisma.userPreferences.update({
         where: { id: userPreference.id },
         data: {
           confidence_score: newConfidence,

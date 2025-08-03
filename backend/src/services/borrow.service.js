@@ -16,11 +16,11 @@ class BorrowService {
    * @param {Object} options 查询选项
    * @param {number} [options.page=1] 页码
    * @param {number} [options.limit=20] 每页数量
-   * @param {number} [options.user_id] 用户 ID
-   * @param {number} [options.book_id] 图书 ID
+   * @param {number} [options.userId] 用户 ID
+   * @param {number} [options.bookId] 图书 ID
    * @param {string} [options.status] 借阅状态
    * @param {boolean} [options.overdue_only=false] 只显示逾期记录
-   * @param {string} [options.orderBy='borrow_date'] 排序字段
+   * @param {string} [options.orderBy='borrowDate'] 排序字段
    * @param {string} [options.order='desc'] 排序方向
    * @returns {Promise<Object>} 分页结果
    */
@@ -29,23 +29,51 @@ class BorrowService {
       const {
         page = 1,
         limit = 20,
-        user_id,
-        book_id,
+        userId,
+        bookId,
         status,
         overdue_only = false,
-        orderBy = 'borrow_date',
+        orderBy = 'borrowDate',
         order = 'desc'
       } = options;
+
+      // 字段名映射 - 从camelCase转换为snake_case
+      const fieldMapping = {
+        'borrowDate': 'borrow_date',
+        'dueDate': 'due_date',
+        'returnDate': 'return_date',
+        'actualReturnDate': 'actual_return_date',
+        'renewalCount': 'renewal_count',
+        'maxRenewals': 'max_renewals',
+        'overdueDays': 'overdue_days',
+        'finePaid': 'fine_paid',
+        'damageDescription': 'damage_description',
+        'returnNotes': 'return_notes',
+        'borrowNotes': 'borrow_notes',
+        'notificationsSent': 'notifications_sent',
+        'pointsEarned': 'points_earned',
+        'pointsDeducted': 'points_deducted',
+        'processedBy': 'processed_by',
+        'borrowLocation': 'borrow_location',
+        'returnLocation': 'return_location',
+        'userId': 'user_id',
+        'bookId': 'book_id',
+        'borrowDays': 'borrow_days',
+        'createdAt': 'created_at',
+        'updatedAt': 'updated_at'
+      };
+
+      const mappedOrderBy = fieldMapping[orderBy] || orderBy;
 
       const skip = (Number(page) - 1) * Number(limit);
       const where = { is_deleted: false };
 
       // 添加过滤条件
-      if (user_id && !isNaN(Number(user_id))) {
-        where.user_id = Number(user_id);
+      if (userId && !isNaN(Number(userId))) {
+        where.userId = Number(userId);
       }
-      if (book_id && !isNaN(Number(book_id))) {
-        where.book_id = Number(book_id);
+      if (bookId && !isNaN(Number(bookId))) {
+        where.bookId = Number(bookId);
       }
       if (status) {
         where.status = status;
@@ -54,7 +82,7 @@ class BorrowService {
       // 只显示逾期记录
       if (overdue_only) {
         where.status = BORROW_STATUS.BORROWED;
-        where.due_date = { lt: new Date() };
+        where.dueDate = { lt: new Date() };
       }
 
       const [borrows, total] = await Promise.all([
@@ -62,7 +90,7 @@ class BorrowService {
           where,
           skip,
           take: Number(limit),
-          orderBy: { [orderBy]: order },
+          orderBy: { [mappedOrderBy]: order },
           include: {
             borrower: {
               select: {
@@ -174,8 +202,8 @@ class BorrowService {
 
       return await prisma.borrows.findFirst({
         where: {
-          user_id: Number(userId),
-          book_id: Number(bookId),
+          userId: Number(userId),
+          bookId: Number(bookId),
           status: { in: [BORROW_STATUS.BORROWED, BORROW_STATUS.OVERDUE] },
           is_deleted: false
         }
@@ -199,34 +227,34 @@ class BorrowService {
   /**
    * 创建新的借阅记录
    * @param {Object} borrowData 借阅数据
-   * @param {number} borrowData.user_id 用户 ID
-   * @param {number} borrowData.book_id 图书 ID
-   * @param {number} [borrowData.processor_id] 处理人 ID
+   * @param {number} borrowData.userId 用户 ID
+   * @param {number} borrowData.bookId 图书 ID
+   * @param {number} [borrowData.processorId] 处理人 ID
    * @param {number} [borrowData.borrow_days] 借阅天数
-   * @param {Date} [borrowData.borrow_date] 借阅日期
+   * @param {Date} [borrowData.borrowDate] 借阅日期
    * @param {Object} [transaction] 事务对象
    * @returns {Promise<Object>} 创建的借阅记录
    */
   static async create(borrowData, transaction = null) {
     try {
       // 验证必要字段
-      if (!borrowData?.user_id || isNaN(Number(borrowData.user_id))) {
+      if (!borrowData?.userId || isNaN(Number(borrowData.userId))) {
         throw new Error('无效的用户 ID');
       }
-      if (!borrowData?.book_id || isNaN(Number(borrowData.book_id))) {
+      if (!borrowData?.bookId || isNaN(Number(borrowData.bookId))) {
         throw new Error('无效的图书 ID');
       }
 
       const client = transaction || prisma;
       
       // 检查用户是否已经借阅了该图书
-      const existingBorrow = await this.findActiveBorrow(borrowData.user_id, borrowData.book_id);
+      const existingBorrow = await this.findActiveBorrow(borrowData.userId, borrowData.bookId);
       if (existingBorrow) {
         throw new Error('用户已经借阅了该图书');
       }
 
       // 检查用户是否可以借阅
-      const borrowPermission = await this.canUserBorrow(borrowData.user_id);
+      const borrowPermission = await this.canUserBorrow(borrowData.userId);
       if (!borrowPermission.canBorrow) {
         if (borrowPermission.unpaidFines > 0) {
           throw new Error('用户有未付罚金，无法借阅');
@@ -237,7 +265,7 @@ class BorrowService {
       }
 
       // 检查图书可用性
-      const book = await BookService.findById(borrowData.book_id, false);
+      const book = await BookService.findById(borrowData.bookId, false);
       if (!book) {
         throw new Error('图书不存在');
       }
@@ -247,23 +275,23 @@ class BorrowService {
 
       // 计算借阅参数
       const borrowDays = borrowData.borrow_days || this.DEFAULT_BORROW_DAYS;
-      const borrowDate = borrowData.borrow_date || new Date();
-      const dueDate = borrowData.due_date || new Date(borrowDate.getTime() + borrowDays * 24 * 60 * 60 * 1000);
+      const borrowDate = borrowData.borrowDate || new Date();
+      const dueDate = borrowData.dueDate || new Date(borrowDate.getTime() + borrowDays * 24 * 60 * 60 * 1000);
 
       // 创建借阅记录
       const borrow = await client.borrows.create({
         data: {
-          user_id: Number(borrowData.user_id),
-          book_id: Number(borrowData.book_id),
-          processor_id: borrowData.processor_id ? Number(borrowData.processor_id) : null,
-          borrow_date: borrowDate,
-          due_date: dueDate,
+          userId: Number(borrowData.userId),
+          bookId: Number(borrowData.bookId),
+          processorId: borrowData.processorId ? Number(borrowData.processorId) : null,
+          borrowDate: borrowDate,
+          dueDate: dueDate,
           borrow_days: borrowDays,
           status: BORROW_STATUS.BORROWED,
-          max_renewals: borrowData.max_renewals || 2,
-          renewal_count: 0,
-          created_at: new Date(),
-          updated_at: new Date()
+          maxRenewals: borrowData.maxRenewals || 2,
+          renewalCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
         include: {
           borrower: {
@@ -286,7 +314,7 @@ class BorrowService {
       });
 
       // 更新图书库存
-      await BookService.updateStock(borrowData.book_id, -1, client);
+      await BookService.updateStock(borrowData.bookId, -1, client);
 
       return borrow;
     } catch (error) {
@@ -298,9 +326,9 @@ class BorrowService {
    * 归还图书
    * @param {number} borrowId 借阅记录 ID
    * @param {Object} [returnData] 归还数据
-   * @param {Date} [returnData.return_date] 归还日期
+   * @param {Date} [returnData.returnDate] 归还日期
    * @param {string} [returnData.condition] 图书状态
-   * @param {string} [returnData.return_notes] 归还备注
+   * @param {string} [returnData.returnNotes] 归还备注
    * @param {boolean} [returnData.waive_fine] 是否免除罚金
    * @param {number} [returnData.fine_per_day] 每日罚金
    * @param {Object} [transaction] 事务对象
@@ -327,25 +355,25 @@ class BorrowService {
         throw new Error('只有已借阅或逾期的图书可以归还');
       }
 
-      const returnDate = returnData.return_date || new Date();
-      const overdueDays = Math.max(0, Math.floor((returnDate - new Date(borrow.due_date)) / (1000 * 60 * 60 * 24)));
+      const returnDate = returnData.returnDate || new Date();
+      const overdueDays = Math.max(0, Math.floor((returnDate - new Date(borrow.dueDate)) / (1000 * 60 * 60 * 24)));
 
       const updateData = {
         status: BORROW_STATUS.RETURNED,
-        return_date: returnDate,
-        actual_return_date: returnDate,
+        returnDate: returnDate,
+        actual_returnDate: returnDate,
         overdue_days: overdueDays,
         condition: returnData.condition || 'good',
-        return_notes: returnData.return_notes || null,
-        processor_id: returnData.processor_id ? Number(returnData.processor_id) : null,
-        updated_at: new Date()
+        returnNotes: returnData.returnNotes || null,
+        processorId: returnData.processorId ? Number(returnData.processorId) : null,
+        updatedAt: new Date()
       };
 
       // 计算罚金（如果逾期）
       if (overdueDays > 0 && !returnData.waive_fine) {
         const finePerDay = returnData.fine_per_day || this.DEFAULT_FINE_PER_DAY;
         updateData.fine = Number((overdueDays * finePerDay).toFixed(2));
-        updateData.fine_paid = false;
+        updateData.finePaid = false;
       }
 
       const updatedBorrow = await client.borrows.update({
@@ -372,7 +400,7 @@ class BorrowService {
       });
 
       // 更新图书库存
-      await BookService.updateStock(borrow.book_id, 1, client);
+      await BookService.updateStock(borrow.bookId, 1, client);
 
       return updatedBorrow;
     } catch (error) {
@@ -393,19 +421,19 @@ class BorrowService {
       throw new Error('Only active borrows can be renewed');
     }
 
-    if (borrow.renewal_count >= borrow.max_renewals) {
+    if (borrow.renewalCount >= borrow.maxRenewals) {
       throw new Error('Maximum renewal limit reached');
     }
 
-    const newDueDate = new Date(borrow.due_date);
+    const newDueDate = new Date(borrow.dueDate);
     newDueDate.setDate(newDueDate.getDate() + additionalDays);
 
     return prisma.borrows.update({
       where: { id: parseInt(borrowId) },
       data: {
-        due_date: newDueDate,
-        renewal_count: { increment: 1 },
-        updated_at: new Date()
+        dueDate: newDueDate,
+        renewalCount: { increment: 1 },
+        updatedAt: new Date()
       },
       include: {
         borrower: true,
@@ -425,7 +453,7 @@ class BorrowService {
       includeReviews = false
     } = options;
 
-    const where = { user_id: parseInt(userId) };
+    const where = { userId: parseInt(userId) };
     if (status) where.status = status;
 
     const skip = (page - 1) * limit;
@@ -435,7 +463,7 @@ class BorrowService {
         where,
         skip,
         take: limit,
-        orderBy: { borrow_date: 'desc' },
+        orderBy: { borrowDate: 'desc' },
         include: {
           book: {
             include: {
@@ -471,10 +499,10 @@ class BorrowService {
     return prisma.borrows.findMany({
       where: {
         status: 'borrowed',
-        due_date: { lt: overdueDate }
+        dueDate: { lt: overdueDate }
       },
       take: limit,
-      orderBy: { due_date: 'asc' },
+      orderBy: { dueDate: 'asc' },
       include: {
         borrower: true,
         book: true
@@ -491,11 +519,11 @@ class BorrowService {
     const updated = await prisma.borrows.updateMany({
       where: {
         status: 'borrowed',
-        due_date: { lt: now }
+        dueDate: { lt: now }
       },
       data: {
         status: 'overdue',
-        updated_at: now
+        updatedAt: now
       }
     });
 
@@ -515,9 +543,9 @@ class BorrowService {
 
       const where = { is_deleted: false };
       if (startDate || endDate) {
-        where.borrow_date = {};
-        if (startDate) where.borrow_date.gte = new Date(startDate);
-        if (endDate) where.borrow_date.lte = new Date(endDate);
+        where.borrowDate = {};
+        if (startDate) where.borrowDate.gte = new Date(startDate);
+        if (endDate) where.borrowDate.lte = new Date(endDate);
       }
 
       const [total, active, overdue, returned, lost, damaged] = await Promise.all([
@@ -544,18 +572,18 @@ class BorrowService {
         where: {
           ...where,
           status: BORROW_STATUS.RETURNED,
-          actual_return_date: { not: null }
+          actual_returnDate: { not: null }
         },
         select: {
-          borrow_date: true,
-          actual_return_date: true
+          borrowDate: true,
+          actual_returnDate: true
         }
       });
 
       let avgDuration = 0;
       if (completedBorrows.length > 0) {
         const totalDays = completedBorrows.reduce((sum, borrow) => {
-          const days = Math.floor((new Date(borrow.actual_return_date) - new Date(borrow.borrow_date)) / (1000 * 60 * 60 * 24));
+          const days = Math.floor((new Date(borrow.actual_returnDate) - new Date(borrow.borrowDate)) / (1000 * 60 * 60 * 24));
           return sum + days;
         }, 0);
         avgDuration = Math.round(totalDays / completedBorrows.length);
@@ -604,23 +632,23 @@ class BorrowService {
     startDate.setDate(startDate.getDate() - days);
 
     const borrows = await prisma.borrows.groupBy({
-      by: ['book_id'],
+      by: ['bookId'],
       where: {
-        borrow_date: { gte: startDate }
+        borrowDate: { gte: startDate }
       },
       _count: {
-        book_id: true
+        bookId: true
       },
       orderBy: {
         _count: {
-          book_id: 'desc'
+          bookId: 'desc'
         }
       },
       take: limit
     });
 
     // Get book details
-    const bookIds = borrows.map(b => b.book_id);
+    const bookIds = borrows.map(b => b.bookId);
     const books = await prisma.books.findMany({
       where: {
         id: { in: bookIds }
@@ -637,8 +665,8 @@ class BorrowService {
     }, {});
 
     return borrows.map(borrow => ({
-      book: bookMap[borrow.book_id],
-      borrowCount: borrow._count.book_id
+      book: bookMap[borrow.bookId],
+      borrowCount: borrow._count.bookId
     })).filter(item => item.book);
   }
 
@@ -650,8 +678,8 @@ class BorrowService {
       where: { id: parseInt(borrowId) },
       data: {
         status: 'lost',
-        return_notes: notes,
-        updated_at: new Date()
+        returnNotes: notes,
+        updatedAt: new Date()
       }
     });
   }
@@ -667,7 +695,7 @@ class BorrowService {
         condition: 'damaged',
         damage_description: damageDescription,
         fine,
-        updated_at: new Date()
+        updatedAt: new Date()
       }
     });
   }
@@ -688,8 +716,8 @@ class BorrowService {
     return prisma.borrows.update({
       where: { id: parseInt(borrowId) },
       data: {
-        fine_paid: true,
-        updated_at: new Date()
+        finePaid: true,
+        updatedAt: new Date()
       }
     });
   }
@@ -711,24 +739,24 @@ class BorrowService {
       const [activeBorrows, unpaidFines, totalFineAmount] = await Promise.all([
         prisma.borrows.count({
           where: {
-            user_id: Number(userId),
+            userId: Number(userId),
             status: { in: [BORROW_STATUS.BORROWED, BORROW_STATUS.OVERDUE] },
             is_deleted: false
           }
         }),
         prisma.borrows.count({
           where: {
-            user_id: Number(userId),
+            userId: Number(userId),
             fine: { gt: 0 },
-            fine_paid: false,
+            finePaid: false,
             is_deleted: false
           }
         }),
         prisma.borrows.aggregate({
           where: {
-            user_id: Number(userId),
+            userId: Number(userId),
             fine: { gt: 0 },
-            fine_paid: false,
+            finePaid: false,
             is_deleted: false
           },
           _sum: {

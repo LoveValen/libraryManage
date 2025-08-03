@@ -50,12 +50,12 @@ class BorrowsService {
     // Create borrow record
     const borrow = await prisma.$transaction(async (tx) => {
       const borrowRecord = await BorrowService.create({
-        user_id: userId,
-        book_id: bookId,
-        borrow_days: borrowDays,
-        processed_by: operatorUser.id,
-        borrow_location: borrowData.borrowLocation || 'Main Library',
-        borrow_notes: borrowData.notes
+        userId: userId,
+        bookId: bookId,
+        borrowDays: borrowDays,
+        processedBy: operatorUser.id,
+        borrowLocation: borrowData.borrowLocation || 'Main Library',
+        borrowNotes: borrowData.notes
       }, tx);
 
       return borrowRecord;
@@ -89,15 +89,15 @@ class BorrowsService {
       startDate,
       endDate,
       overdue,
-      sortBy = 'borrow_date',
+      sortBy = 'borrowDate',
       sortOrder = 'desc'
     } = filters;
 
     const options = {
       page: parseInt(page),
       limit: parseInt(limit),
-      user_id: userId,
-      book_id: bookId,
+      userId: userId,
+      bookId: bookId,
       status,
       overdue_only: overdue === 'true' || overdue === true,
       orderBy: sortBy,
@@ -123,7 +123,7 @@ class BorrowsService {
     }
 
     // Check access permissions
-    if (operatorUser.role === USER_ROLES.PATRON && borrow.user_id !== operatorUser.id) {
+    if (operatorUser.role === USER_ROLES.PATRON && borrow.userId !== operatorUser.id) {
       throw new UnauthorizedError('Access denied');
     }
 
@@ -146,7 +146,7 @@ class BorrowsService {
 
     const result = await prisma.$transaction(async (tx) => {
       const updatedBorrow = await BorrowService.returnBook(borrowId, {
-        return_date: returnData.returnDate || new Date(),
+        returnDate: returnData.returnDate || new Date(),
         condition: returnData.condition,
         return_notes: returnData.notes,
         damage_description: returnData.damageDescription,
@@ -168,9 +168,9 @@ class BorrowsService {
       userId: operatorUser.id,
       details: {
         borrowId,
-        userId: result.user_id,
-        bookId: result.book_id,
-        overdueDays: result.overdue_days,
+        userId: result.userId,
+        bookId: result.bookId,
+        overdueDays: result.overdueDays,
         fine: result.fine
       }
     });
@@ -189,7 +189,7 @@ class BorrowsService {
     }
 
     // Check permissions
-    if (operatorUser.role === USER_ROLES.PATRON && borrow.user_id !== operatorUser.id) {
+    if (operatorUser.role === USER_ROLES.PATRON && borrow.userId !== operatorUser.id) {
       throw new UnauthorizedError('Access denied');
     }
 
@@ -197,12 +197,12 @@ class BorrowsService {
       throw new BadRequestError('Only active borrows can be renewed');
     }
 
-    if (borrow.renewal_count >= borrow.max_renewals) {
+    if (borrow.renewalCount >= borrow.maxRenewals) {
       throw new BadRequestError('Maximum renewal limit reached');
     }
 
     // Check if book is overdue
-    if (new Date(borrow.due_date) < new Date()) {
+    if (new Date(borrow.dueDate) < new Date()) {
       throw new BadRequestError('Cannot renew overdue books');
     }
 
@@ -216,10 +216,10 @@ class BorrowsService {
       userId: operatorUser.id,
       details: {
         borrowId,
-        userId: borrow.user_id,
-        bookId: borrow.book_id,
-        newDueDate: renewedBorrow.due_date,
-        renewalCount: renewedBorrow.renewal_count
+        userId: borrow.userId,
+        bookId: borrow.bookId,
+        newDueDate: renewedBorrow.dueDate,
+        renewalCount: renewedBorrow.renewalCount
       }
     });
 
@@ -244,7 +244,7 @@ class BorrowsService {
 
     // Apply lost book fine
     if (lostData.applyFine) {
-      const book = await BookService.findById(borrow.book_id);
+      const book = await BookService.findById(borrow.bookId);
       const fine = book.price || BORROW_RULES.DEFAULT_LOST_BOOK_FINE;
       
       await prisma.borrows.update({
@@ -258,8 +258,8 @@ class BorrowsService {
       userId: operatorUser.id,
       details: {
         borrowId,
-        userId: borrow.user_id,
-        bookId: borrow.book_id
+        userId: borrow.userId,
+        bookId: borrow.bookId
       }
     });
 
@@ -307,13 +307,13 @@ class BorrowsService {
     const borrows = await prisma.borrows.findMany({
       where: {
         status: 'borrowed',
-        due_date: {
+        dueDate: {
           gte: new Date(),
           lte: dueDate
         }
       },
       take: parseInt(limit),
-      orderBy: { due_date: 'asc' },
+      orderBy: { dueDate: 'asc' },
       include: {
         borrower: true,
         book: true
@@ -423,29 +423,29 @@ class BorrowsService {
 
     return {
       id: borrow.id,
-      userId: borrow.user_id,
-      bookId: borrow.book_id,
-      borrowDate: borrow.borrow_date,
-      dueDate: borrow.due_date,
-      returnDate: borrow.return_date,
-      actualReturnDate: borrow.actual_return_date,
+      userId: borrow.userId,
+      bookId: borrow.bookId,
+      borrowDate: borrow.borrowDate,
+      dueDate: borrow.dueDate,
+      returnDate: borrow.returnDate,
+      actualReturnDate: borrow.actualReturnDate,
       status: borrow.status,
-      borrowDays: borrow.borrow_days,
-      renewalCount: borrow.renewal_count,
-      maxRenewals: borrow.max_renewals,
-      overdueDays: borrow.overdue_days,
+      borrowDays: borrow.borrowDays,
+      renewalCount: borrow.renewalCount,
+      maxRenewals: borrow.maxRenewals,
+      overdueDays: borrow.overdueDays,
       fine: parseFloat(borrow.fine || 0),
       finePaid: borrow.fine_paid,
       condition: borrow.condition,
       damageDescription: borrow.damage_description,
       returnNotes: borrow.return_notes,
-      borrowNotes: borrow.borrow_notes,
+      borrowNotes: borrow.borrowNotes,
       notificationsSent: borrow.notifications_sent,
       pointsEarned: borrow.points_earned,
-      processedBy: borrow.processed_by,
-      borrowLocation: borrow.borrow_location,
-      createdAt: borrow.created_at,
-      updatedAt: borrow.updated_at,
+      processedBy: borrow.processedBy,
+      borrowLocation: borrow.borrowLocation,
+      createdAt: borrow.createdAt,
+      updatedAt: borrow.updatedAt,
       // Relations
       user: borrow.borrower ? UserService.toSafeJSON(borrow.borrower) : undefined,
       book: borrow.book ? BookService.toSafeJSON(borrow.book) : undefined,

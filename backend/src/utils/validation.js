@@ -54,6 +54,19 @@ const schemas = {
   id: Joi.object({
     id: common.id.required(),
   }),
+
+  // 用户列表查询
+  getUserList: Joi.object({
+    page: common.page,
+    limit: common.limit,
+    size: common.limit, // 兼容前端size参数
+    search: Joi.string().allow('').optional(),
+    keyword: Joi.string().allow('').optional(), // 兼容前端keyword参数
+    role: Joi.string().valid('admin', 'librarian', 'patron').allow('').optional(),
+    status: Joi.string().valid('active', 'inactive', 'suspended').allow('').optional(),
+    sortBy: Joi.string().allow('').optional(),
+    sortOrder: Joi.string().valid('asc', 'desc').allow('').optional(),
+  }),
 };
 
 // 兼容性schemas - 为现有路由提供支持
@@ -76,18 +89,6 @@ const borrowSchemas = {
   renewBook: Joi.object().unknown(true),
 };
 
-const analyticsSchemas = {
-  getDashboard: Joi.object().unknown(true),
-  getOverview: Joi.object().unknown(true),
-  getTrends: Joi.object().unknown(true),
-  getBooksAnalytics: Joi.object().unknown(true),
-  getUsersAnalytics: Joi.object().unknown(true),
-  getCategoriesAnalytics: Joi.object().unknown(true),
-  getPerformance: Joi.object().unknown(true),
-  getInsights: Joi.object().unknown(true),
-  exportReport: Joi.object().unknown(true),
-  customQuery: Joi.object().unknown(true),
-};
 
 const notificationSchemas = {
   createNotification: Joi.object().unknown(true),
@@ -130,7 +131,6 @@ module.exports = {
   bookSchemas,
   categorySchemas,
   borrowSchemas,
-  analyticsSchemas,
   notificationSchemas,
   // 别名导出
   userSchemas: schemas,

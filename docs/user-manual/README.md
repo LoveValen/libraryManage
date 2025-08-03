@@ -78,11 +78,6 @@
 - 系统配置设置
 - 安全策略管理
 
-### [📊 数据分析](./admin-guide/analytics-dashboard.md)
-- 仪表板使用
-- 报表生成
-- 数据导出
-- 趋势分析
 
 ### [🔧 运维管理](./admin-guide/operations.md)
 - 系统监控
@@ -112,11 +107,6 @@
 - 逾期管理
 - 纠纷处理
 
-### [📈 业务统计](./librarian-guide/business-analytics.md)
-- 借阅统计
-- 读者分析
-- 馆藏利用率
-- 业务报表
 
 ### [🔄 日常运营](./librarian-guide/daily-operations.md)
 - 工作流程

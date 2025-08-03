@@ -12,7 +12,6 @@ const usersRoutes = require('../routes/users.routes');
 const borrowsRoutes = require('../routes/borrows.routes');
 const reviewsRoutes = require('../routes/reviews.routes');
 const pointsRoutes = require('../routes/points.routes');
-const analyticsRoutes = require('../routes/analytics.routes');
 const notificationsRoutes = require('../routes/notifications.routes');
 const healthRoutes = require('../routes/health.routes');
 const backupRoutes = require('../routes/backup.routes');
@@ -23,6 +22,7 @@ const adminRoutes = require('../routes/admin.routes');
  * API信息端点
  */
 const setupApiInfo = (app) => {
+  // API根路径信息
   app.get('/api', (req, res) => {
     res.json({
       success: true,
@@ -38,7 +38,6 @@ const setupApiInfo = (app) => {
         borrows: '/api/v1/borrows',
         reviews: '/api/v1/reviews',
         points: '/api/v1/points',
-        analytics: '/api/v1/analytics',
         notifications: '/api/v1/notifications',
         health: '/api/v1/health',
         backup: '/api/v1/backup',
@@ -47,6 +46,29 @@ const setupApiInfo = (app) => {
         systemHealth: '/health',
         docs: config.app.environment === 'development' ? '/api/docs' : null,
       }
+    });
+  });
+
+  // API v1版本信息
+  app.get('/api/v1', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Library Management System API v1.0.0',
+      data: {
+        version: 'v1',
+        name: 'Library Management System',
+        description: '企业级图书管理系统API',
+        environment: config.app.environment,
+        endpoints: {
+          auth: '/api/v1/auth',
+          books: '/api/v1/books',
+          users: '/api/v1/users',
+          borrows: '/api/v1/borrows',
+          reviews: '/api/v1/reviews',
+          points: '/api/v1/points'
+        }
+      },
+      timestamp: new Date().toISOString()
     });
   });
 };
@@ -93,7 +115,6 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/borrows', borrowsRoutes);
   app.use('/api/v1/reviews', reviewsRoutes);
   app.use('/api/v1/points', pointsRoutes);
-  app.use('/api/v1/analytics', analyticsRoutes);
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/v1/health', healthRoutes);
   app.use('/api/v1/backup', backupRoutes);

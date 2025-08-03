@@ -65,7 +65,7 @@ const optionalAuth = async (req, res, next) => {
 /**
  * 生成JWT令牌
  */
-const generateToken = (user) => {
+const generateToken = (user, options = {}) => {
   const payload = {
     userId: user.id,
     username: user.username,
@@ -73,9 +73,20 @@ const generateToken = (user) => {
   };
 
   return jwt.sign(payload, jwtConfig.secret, {
-    expiresIn: jwtConfig.expiresIn,
+    expiresIn: options.expiresIn || jwtConfig.expiresIn,
     subject: user.id.toString(),
   });
+};
+
+/**
+ * 验证刷新令牌
+ */
+const verifyRefreshToken = (token) => {
+  try {
+    return jwt.verify(token, jwtConfig.secret);
+  } catch (error) {
+    throw new UnauthorizedError('Invalid refresh token');
+  }
 };
 
 /**
@@ -110,6 +121,7 @@ module.exports = {
   authenticateToken,
   optionalAuth,
   generateToken,
+  verifyRefreshToken,
   requireRole,
   requireAdmin,
   // 别名

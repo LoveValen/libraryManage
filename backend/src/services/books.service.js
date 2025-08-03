@@ -29,22 +29,22 @@ class BooksService {
     // Set default values
     const bookToCreate = {
       ...bookData,
-      available_stock: bookData.totalStock || bookData.available_stock || 0,
-      total_stock: bookData.totalStock || bookData.total_stock || 0,
+      availableStock: bookData.totalStock || bookData.availableStock || 0,
+      totalStock: bookData.totalStock || bookData.totalStock || 0,
       status: BOOK_STATUS.AVAILABLE,
-      category_id: bookData.category_id || bookData.category || null,
+      categoryId: bookData.categoryId || bookData.category || null,
       authors: Array.isArray(bookData.authors) ? bookData.authors : [bookData.authors || bookData.author],
       tags: bookData.tags || [],
-      publication_year: bookData.publicationYear || bookData.publication_year,
-      cover_url: bookData.coverUrl || bookData.cover_url,
-      has_ebook: bookData.hasEbook || bookData.has_ebook || false,
-      ebook_url: bookData.ebookUrl || bookData.ebook_url,
-      ebook_format: bookData.ebookFormat || bookData.ebook_format,
-      average_rating: 0,
-      borrow_count: 0,
-      review_count: 0,
-      view_count: 0,
-      download_count: 0
+      publicationYear: bookData.publicationYear,
+      coverUrl: bookData.coverUrl,
+      hasEbook: bookData.hasEbook || false,
+      ebookUrl: bookData.ebookUrl,
+      ebookFormat: bookData.ebookFormat,
+      averageRating: 0,
+      borrowCount: 0,
+      reviewCount: 0,
+      viewCount: 0,
+      downloadCount: 0
     };
 
     const book = await BookService.create(bookToCreate);
@@ -71,14 +71,13 @@ class BooksService {
       limit = 20,
       search,
       category,
-      category_id,
+      categoryId,
       author,
       publisher,
       status,
       language,
       hasEbook,
-      has_ebook,
-      sortBy = 'created_at',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
       minYear,
       maxYear,
@@ -88,9 +87,9 @@ class BooksService {
       page: parseInt(page),
       limit: parseInt(limit),
       search,
-      category_id: category_id || category,
+      categoryId: categoryId || category,
       status,
-      has_ebook: hasEbook !== undefined ? hasEbook : has_ebook,
+      hasEbook: hasEbook,
       orderBy: sortBy,
       order: sortOrder.toLowerCase()
     });
@@ -151,14 +150,14 @@ class BooksService {
     const formattedData = {
       ...updateData,
       authors: updateData.authors ? (Array.isArray(updateData.authors) ? updateData.authors : [updateData.authors]) : undefined,
-      category_id: updateData.category_id || updateData.category,
-      publication_year: updateData.publicationYear || updateData.publication_year,
-      cover_url: updateData.coverUrl || updateData.cover_url,
-      has_ebook: updateData.hasEbook !== undefined ? updateData.hasEbook : updateData.has_ebook,
-      ebook_url: updateData.ebookUrl || updateData.ebook_url,
-      ebook_format: updateData.ebookFormat || updateData.ebook_format,
-      total_stock: updateData.totalStock || updateData.total_stock,
-      available_stock: updateData.availableStock || updateData.available_stock
+      categoryId: updateData.categoryId || updateData.category,
+      publicationYear: updateData.publicationYear,
+      coverUrl: updateData.coverUrl,
+      hasEbook: updateData.hasEbook,
+      ebookUrl: updateData.ebookUrl,
+      ebookFormat: updateData.ebookFormat,
+      totalStock: updateData.totalStock,
+      availableStock: updateData.availableStock
     };
 
     // Remove undefined values
@@ -196,7 +195,7 @@ class BooksService {
     // Check active borrows
     const activeBorrows = await prisma.borrows.count({
       where: {
-        book_id: book.id,
+        bookId: book.id,
         status: { in: ['borrowed', 'overdue'] }
       }
     });
@@ -314,11 +313,11 @@ class BooksService {
    * Search books
    */
   async searchBooks(query, options = {}) {
-    const { limit = 10, offset = 0, category_id } = options;
+    const { limit = 10, offset = 0, categoryId } = options;
     
     const books = await BookService.search(query, {
       limit: parseInt(limit),
-      category_id: category_id ? parseInt(category_id) : null
+      categoryId: categoryId ? parseInt(categoryId) : null
     });
 
     const total = books.length; // For simple search, we don't have total count
@@ -351,8 +350,8 @@ class BooksService {
     }
 
     const updatedBook = await BookService.update(book.id, {
-      total_stock: totalStock,
-      available_stock: availableStock,
+      totalStock: totalStock,
+      availableStock: availableStock,
     });
 
     logBusinessOperation({
@@ -361,9 +360,9 @@ class BooksService {
       details: {
         bookId: book.id,
         title: book.title,
-        oldTotalStock: book.total_stock,
+        oldTotalStock: book.totalStock,
         newTotalStock: totalStock,
-        oldAvailableStock: book.available_stock,
+        oldAvailableStock: book.availableStock,
         newAvailableStock: availableStock,
       },
     });
@@ -514,32 +513,32 @@ class BooksService {
       title: book.title,
       authors: book.authors,
       isbn: book.isbn,
-      category: book.category_id,
+      category: book.categoryId,
       categoryName: book.bookCategory?.name,
       publisher: book.publisher,
-      publicationYear: book.publication_year,
+      publicationYear: book.publicationYear,
       publishDate: book.publish_date,
       price: book.price,
-      totalStock: book.total_stock,
-      availableStock: book.available_stock,
+      totalStock: book.totalStock,
+      availableStock: book.availableStock,
       status: book.status,
       language: book.language,
       pages: book.pages,
       summary: book.summary,
-      coverUrl: book.cover_url,
+      coverUrl: book.coverUrl,
       location: book.location,
       tags: book.tags || [],
-      hasEbook: book.has_ebook,
-      ebookUrl: book.ebook_url,
-      ebookFormat: book.ebook_format,
-      ebookFileSize: book.ebook_file_size,
-      borrowCount: book.borrow_count,
-      viewCount: book.view_count,
-      downloadCount: book.download_count,
-      averageRating: book.average_rating,
-      reviewCount: book.review_count,
-      isDeleted: book.is_deleted,
-      createdAt: book.created_at,
+      hasEbook: book.hasEbook,
+      ebookUrl: book.ebookUrl,
+      ebookFormat: book.ebookFormat,
+      ebookFileSize: book.ebookFileSize,
+      borrowCount: book.borrowCount,
+      viewCount: book.viewCount,
+      downloadCount: book.downloadCount,
+      averageRating: book.averageRating,
+      reviewCount: book.reviewCount,
+      is_deleted: book.is_deleted,
+      createdAt: book.createdAt,
       updatedAt: book.updated_at,
       deletedAt: book.deleted_at,
       // Add safe JSON conversion

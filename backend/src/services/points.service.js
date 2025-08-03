@@ -1,4 +1,3 @@
-const PointsService = require('./points.service.prisma');
 const UserService = require('./user.service');
 const prisma = require('../utils/prisma');
 const { 
@@ -12,6 +11,76 @@ const {
   POINTS_RULES, 
   USER_LEVELS 
 } = require('../utils/constants');
+
+/**
+ * Basic PointsService for Prisma operations
+ */
+class PointsService {
+  static async getOrCreateUserPoints(userId) {
+    let userPoints = await prisma.userPoints.findUnique({
+      where: { user_id: parseInt(userId) },
+      include: { user: true }
+    });
+
+    if (!userPoints) {
+      userPoints = await prisma.userPoints.create({
+        data: {
+          user_id: parseInt(userId),
+          balance: 0,
+          total_earned: 0,
+          total_spent: 0,
+          level: 'NEWCOMER',
+          level_name: '新手读者',
+          created_at: new Date(),
+          updated_at: new Date()
+        },
+        include: { user: true }
+      });
+    }
+
+    return userPoints;
+  }
+
+  static async addPoints(userId, points, transactionType, description, options = {}) {
+    const { operatorId, metadata, relatedEntityType, relatedEntityId } = options;
+
+    return prisma.$transaction(async (tx) => {
+      const userPoints = await this.getOrCreateUserPoints(userId);
+      const previousBalance = userPoints.balance;
+      const newBalance = previousBalance + points;
+
+      const updatedUserPoints = await tx.userPoints.update({
+        where: { user_id: parseInt(userId) },
+        data: {
+          balance: newBalance,
+          total_earned: { increment: points > 0 ? points : 0 },
+          total_spent: { increment: points < 0 ? Math.abs(points) : 0 },
+          last_transaction_at: new Date(),
+          updated_at: new Date()
+        }
+      });
+
+      const transaction = await tx.pointsTransactions.create({
+        data: {
+          user_id: parseInt(userId),
+          points_change: points,
+          current_balance: newBalance,
+          previous_balance: previousBalance,
+          transaction_type: transactionType,
+          description,
+          related_entity_type: relatedEntityType,
+          related_entity_id: relatedEntityId,
+          metadata: metadata || {},
+          processed_by: operatorId ? parseInt(operatorId) : null,
+          status: 'completed',
+          created_at: new Date()
+        }
+      });
+
+      return { userPoints: updatedUserPoints, transaction };
+    });
+  }
+}
 
 /**
  * Points service adapter for Prisma

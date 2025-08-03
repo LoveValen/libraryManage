@@ -41,7 +41,11 @@
       "Bash(wmic:*)",
       "Bash(powershell -Command \"Get-Process | Where-Object { $_ProcessName -eq ''node'' } | Stop-Process -Force\")",
       "Bash(dir:*)",
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "Bash(cmd.exe:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": []
   }

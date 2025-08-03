@@ -1,8 +1,7 @@
 const prisma = require('../utils/prisma');
 const UserService = require('./user.service');
 const { 
-  generateAccessToken, 
-  generateRefreshToken, 
+  generateToken, 
   verifyRefreshToken 
 } = require('../middlewares/auth.middleware');
 const { 
@@ -126,8 +125,9 @@ class AuthService {
     await UserService.updateLoginInfo(user.id, ip);
 
     // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const accessToken = generateToken(user);
+    // Note: Refresh token generation would be implemented here in a real system
+    const refreshTokenValue = generateToken(user, { expiresIn: '7d' }); // Example refresh token
 
     logBusinessOperation('USER_LOGIN', user.id, {
       ip,
@@ -139,7 +139,7 @@ class AuthService {
       user: UserService.toSafeJSON(user),
       tokens: {
         accessToken,
-        refreshToken,
+        refreshToken: refreshTokenValue,
         expiresIn: config.jwt.jwtConfig.expiresIn
       },
       message: 'Login successful'
@@ -167,7 +167,7 @@ class AuthService {
       }
 
       // Generate new access token
-      const accessToken = generateAccessToken(user);
+      const accessToken = generateToken(user);
 
       return {
         accessToken,

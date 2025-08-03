@@ -1,8 +1,136 @@
-const NotificationService = require('./notification.service.prisma');
 const webSocketService = require('./websocket.service');
 const prisma = require('../utils/prisma');
 const { logger } = require('../utils/logger');
 const { ApiError, BadRequestError, NotFoundError } = require('../utils/apiError');
+const { NOTIFICATION_TYPES, NOTIFICATION_STATUS, NOTIFICATION_PRIORITY } = require('../utils/constants');
+
+/**
+ * Basic NotificationService for Prisma operations
+ */
+class NotificationService {
+  static async create(notificationData) {
+    const {
+      userId,
+      type,
+      title,
+      content,
+      priority = 'normal',
+      channel = ['in_app'],
+      metadata = {},
+      relatedId,
+      relatedType,
+      action_url,
+      expires_at,
+      scheduled_at
+    } = notificationData;
+
+    return prisma.notifications.create({
+      data: {
+        userId: parseInt(userId),
+        type,
+        title,
+        content,
+        priority,
+        status: scheduled_at ? 'pending' : 'sent',
+        channel,
+        metadata,
+        relatedId: relatedId ? parseInt(relatedId) : null,
+        relatedType,
+        action_url,
+        expires_at,
+        scheduled_at,
+        sentAt: scheduled_at ? null : new Date(),
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+  }
+
+  static async createFromTemplate(templateType, userId, variables = {}) {
+    const templates = {
+      BORROW_SUCCESS: {
+        type: 'borrow_reminder',
+        title: '借阅成功',
+        content: `您已成功借阅《${variables.bookTitle}》，请在${variables.dueDate}前归还。`,
+        priority: 'normal'
+      },
+      RETURN_REMINDER: {
+        type: 'return_reminder',
+        title: '还书提醒',
+        content: `您借阅的《${variables.bookTitle}》将在${variables.daysRemaining}天后到期，请及时归还。`,
+        priority: 'high'
+      }
+    };
+
+    const template = templates[templateType];
+    if (!template) {
+      throw new Error(`Unknown template type: ${templateType}`);
+    }
+
+    return this.create({
+      userId: userId,
+      ...template,
+      relatedId: variables.relatedId,
+      relatedType: variables.relatedType,
+      metadata: variables
+    });
+  }
+
+  /**
+   * Send scheduled notifications
+   */
+  static async sendScheduledNotifications() {
+    try {
+      const now = new Date();
+      const scheduledNotifications = await prisma.notifications.findMany({
+        where: {
+          status: 'pending',
+          scheduled_at: {
+            lte: now
+          }
+        }
+      });
+
+      for (const notification of scheduledNotifications) {
+        await prisma.notifications.update({
+          where: { id: notification.id },
+          data: {
+            status: 'sent',
+            sentAt: now,
+            updated_at: now
+          }
+        });
+      }
+
+      logger.info(`Sent ${scheduledNotifications.length} scheduled notifications`);
+    } catch (error) {
+      logger.error('Failed to send scheduled notifications:', error);
+    }
+  }
+
+  /**
+   * Clean up expired notifications
+   */
+  static async cleanupExpired() {
+    try {
+      const now = new Date();
+      const result = await prisma.notifications.deleteMany({
+        where: {
+          expires_at: {
+            lt: now
+          },
+          status: {
+            in: ['sent', 'delivered', 'failed']
+          }
+        }
+      });
+
+      logger.info(`Cleaned up ${result.count} expired notifications`);
+    } catch (error) {
+      logger.error('Failed to clean up expired notifications:', error);
+    }
+  }
+}
 
 /**
  * Notification service adapter for Prisma
@@ -66,15 +194,15 @@ class NotificationServiceAdapter {
 
       // Create notification
       const notification = await NotificationService.create({
-        user_id: userId,
+        userId: userId,
         type,
         title,
         content,
         priority,
         channel: channelArray,
         metadata,
-        related_id: relatedId,
-        related_type: relatedType,
+        relatedId: relatedId,
+        relatedType: relatedType,
         action_url: actionUrl,
         scheduled_at: scheduledAt,
         expires_at: expiresAt
@@ -102,8 +230,8 @@ class NotificationServiceAdapter {
         userId,
         {
           ...variables,
-          related_id: options.relatedId,
-          related_type: options.relatedType
+          relatedId: options.relatedId,
+          relatedType: options.relatedType
         }
       );
 
@@ -171,7 +299,7 @@ class NotificationServiceAdapter {
     const result = await NotificationService.findWithPagination({
       page: parseInt(page),
       limit: parseInt(limit),
-      user_id: userId,
+      userId: userId,
       type,
       status,
       is_read: isRead
@@ -193,7 +321,7 @@ class NotificationServiceAdapter {
       throw new NotFoundError('Notification not found');
     }
 
-    if (notification.user_id !== parseInt(userId)) {
+    if (notification.userId !== parseInt(userId)) {
       throw new BadRequestError('Unauthorized to update this notification');
     }
 
@@ -235,7 +363,7 @@ class NotificationServiceAdapter {
       throw new NotFoundError('Notification not found');
     }
 
-    if (notification.user_id !== parseInt(userId)) {
+    if (notification.userId !== parseInt(userId)) {
       throw new BadRequestError('Unauthorized to delete this notification');
     }
 
@@ -292,7 +420,7 @@ class NotificationServiceAdapter {
 
     return this.createNotificationFromTemplate(
       template.templateCode,
-      borrowWithRelations.user_id,
+      borrowWithRelations.userId,
       {
         bookTitle: borrowWithRelations.book.title,
         dueDate: new Date(borrowWithRelations.due_date).toLocaleDateString('zh-CN'),
@@ -312,7 +440,7 @@ class NotificationServiceAdapter {
    */
   async createBookNotification(book, users, type, additionalData = {}) {
     const notifications = users.map(user => ({
-      user_id: user.id,
+      userId: user.id,
       type: 'book_available',
       title: `图书通知: ${book.title}`,
       content: additionalData.content || `《${book.title}》有新的动态`,
@@ -322,8 +450,8 @@ class NotificationServiceAdapter {
         bookTitle: book.title,
         ...additionalData
       },
-      related_id: book.id,
-      related_type: 'book'
+      relatedId: book.id,
+      relatedType: 'book'
     }));
 
     return this.createBulkNotifications(notifications);
@@ -410,8 +538,8 @@ class NotificationServiceAdapter {
   async processNotification(notification) {
     try {
       // Send real-time notification via WebSocket
-      if (webSocketService.isUserConnected(notification.user_id)) {
-        webSocketService.sendToUser(notification.user_id, 'notification:new', {
+      if (webSocketService.isUserConnected(notification.userId)) {
+        webSocketService.sendToUser(notification.userId, 'notification:new', {
           notification: this.formatNotificationResponse(notification)
         });
       }
@@ -522,22 +650,22 @@ class NotificationServiceAdapter {
 
     return {
       id: notification.id,
-      userId: notification.user_id,
+      userId: notification.userId,
       type: notification.type,
       title: notification.title,
       content: notification.content,
       priority: notification.priority,
       status: notification.status,
       isRead: notification.is_read,
-      readAt: notification.read_at,
+      readAt: notification.readAt,
       channel: notification.channel,
       metadata: notification.metadata,
-      relatedId: notification.related_id,
-      relatedType: notification.related_type,
+      relatedId: notification.relatedId,
+      relatedType: notification.relatedType,
       actionUrl: notification.action_url,
       expiresAt: notification.expires_at,
       scheduledAt: notification.scheduled_at,
-      sentAt: notification.sent_at,
+      sentAt: notification.sentAt,
       retryCount: notification.retry_count,
       errorMessage: notification.error_message,
       createdAt: notification.created_at,

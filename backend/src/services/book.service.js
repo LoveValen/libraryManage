@@ -18,19 +18,36 @@ class BookService {
         page = 1,
         limit = 20,
         search = '',
-        category_id = null,
+        categoryId = null,
         status = null,
-        has_ebook = null,
-        orderBy = 'created_at',
+        hasEbook = null,
+        orderBy = 'createdAt',
         order = 'desc'
       } = options;
+
+      // 字段名映射 - 从camelCase转换为snake_case
+      const fieldMapping = {
+        'createdAt': 'created_at',
+        'updatedAt': 'updated_at',
+        'categoryId': 'category_id',
+        'totalStock': 'total_stock',
+        'availableStock': 'available_stock',
+        'reservedStock': 'reserved_stock',
+        'hasEbook': 'has_ebook',
+        'borrowCount': 'borrow_count',
+        'viewCount': 'view_count',
+        'averageRating': 'average_rating',
+        'reviewCount': 'review_count'
+      };
+
+      const mappedOrderBy = fieldMapping[orderBy] || orderBy;
 
       const skip = (page - 1) * limit;
       const where = this._buildWhereCondition({
         search,
-        category_id,
+        categoryId,
         status,
-        has_ebook
+        hasEbook
       });
 
       const [books, total] = await Promise.all([
@@ -38,13 +55,13 @@ class BookService {
           where,
           skip,
           take: limit,
-          orderBy: { [orderBy]: order },
+          orderBy: { [mappedOrderBy]: order },
           include: {
             bookCategory: true,
             _count: {
               select: {
                 borrows: { where: { is_deleted: false } },
-                reviews: { where: { is_deleted: false, status: 'published' } }
+                reviews: { where: { status: 'published' } }
               }
             }
           }
@@ -70,7 +87,7 @@ class BookService {
    * 构建查询条件
    * @private
    */
-  static _buildWhereCondition({ search, category_id, status, has_ebook }) {
+  static _buildWhereCondition({ search, categoryId, status, hasEbook }) {
     const where = { is_deleted: false };
 
     // 搜索条件
@@ -89,8 +106,8 @@ class BookService {
     }
 
     // 分类过滤
-    if (category_id) {
-      where.category_id = Number(category_id);
+    if (categoryId) {
+      where.categoryId = Number(categoryId);
     }
 
     // 状态过滤
@@ -99,8 +116,8 @@ class BookService {
     }
 
     // 电子书过滤
-    if (has_ebook !== null) {
-      where.has_ebook = Boolean(has_ebook);
+    if (hasEbook !== null) {
+      where.hasEbook = Boolean(hasEbook);
     }
 
     return where;
@@ -125,7 +142,7 @@ class BookService {
             status: 'published',
             is_deleted: false
           },
-          orderBy: { created_at: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
             reviewer: {
@@ -141,7 +158,7 @@ class BookService {
         _count: {
           select: {
             borrows: { where: { is_deleted: false } },
-            reviews: { where: { is_deleted: false, status: 'published' } }
+            reviews: { where: { status: 'published' } }
           }
         }
       } : undefined;
@@ -208,9 +225,9 @@ class BookService {
         data: {
           ...bookData,
           status: bookData.status || BOOK_STATUS.AVAILABLE,
-          available_stock: bookData.total_stock || 1,
-          created_at: new Date(),
-          updated_at: new Date()
+          availableStock: bookData.totalStock || 1,
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
         include: {
           bookCategory: true
@@ -251,7 +268,7 @@ class BookService {
         where: { id: Number(id) },
         data: {
           ...updateData,
-          updated_at: new Date()
+          updatedAt: new Date()
         },
         include: {
           bookCategory: true
@@ -279,7 +296,7 @@ class BookService {
     return prisma.books.update({
       where: { id },
       data: {
-        view_count: { increment: 1 }
+        viewCount: { increment: 1 }
       }
     });
   }
@@ -291,7 +308,7 @@ class BookService {
     return prisma.books.update({
       where: { id },
       data: {
-        download_count: { increment: 1 }
+        downloadCount: { increment: 1 }
       }
     });
   }
@@ -326,9 +343,9 @@ class BookService {
         throw new Error('图书不存在');
       }
 
-      const newAvailableStock = book.available_stock + Number(stockChange);
+      const newAvailableStock = book.availableStock + Number(stockChange);
       if (newAvailableStock < 0) {
-        throw new Error(`库存不足，当前可用库存: ${book.available_stock}`);
+        throw new Error(`库存不足，当前可用库存: ${book.availableStock}`);
       }
 
       // 根据库存自动调整状态
@@ -342,9 +359,9 @@ class BookService {
       return await client.books.update({
         where: { id: Number(id) },
         data: {
-          available_stock: newAvailableStock,
+          availableStock: newAvailableStock,
           status: newStatus,
-          updated_at: new Date()
+          updatedAt: new Date()
         }
       });
     } catch (error) {
@@ -360,7 +377,7 @@ class BookService {
       where: { id },
       data: {
         is_deleted: true,
-        deleted_at: new Date(),
+        deletedAt: new Date(),
         status: BOOK_STATUS.RETIRED
       }
     });
@@ -390,7 +407,7 @@ class BookService {
         }),
         prisma.books.count({ 
           where: { 
-            has_ebook: true, 
+            hasEbook: true, 
             is_deleted: false 
           } 
         }),
@@ -429,7 +446,7 @@ class BookService {
    */
   static async search(query, options = {}) {
     try {
-      const { limit = 10, category_id = null } = options;
+      const { limit = 10, categoryId = null } = options;
 
       if (!query?.trim()) {
         return [];
@@ -451,16 +468,16 @@ class BookService {
         ]
       };
 
-      if (category_id) {
-        where.category_id = Number(category_id);
+      if (categoryId) {
+        where.categoryId = Number(categoryId);
       }
 
       return await prisma.books.findMany({
         where,
         orderBy: [
-          { borrow_count: 'desc' },
-          { average_rating: 'desc' },
-          { view_count: 'desc' }
+          { borrowCount: 'desc' },
+          { averageRating: 'desc' },
+          { viewCount: 'desc' }
         ],
         take: Number(limit),
         include: {
@@ -482,8 +499,8 @@ class BookService {
         status: { not: BOOK_STATUS.RETIRED }
       },
       orderBy: [
-        { borrow_count: 'desc' },
-        { view_count: 'desc' }
+        { borrowCount: 'desc' },
+        { viewCount: 'desc' }
       ],
       take: limit,
       include: {
@@ -502,9 +519,9 @@ class BookService {
     return prisma.books.findMany({
       where: {
         is_deleted: false,
-        created_at: { gte: dateThreshold }
+        createdAt: { gte: dateThreshold }
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
         bookCategory: true
@@ -518,11 +535,11 @@ class BookService {
   static async getByCategory(categoryId, limit = 20) {
     return prisma.books.findMany({
       where: {
-        category_id: categoryId,
+        categoryId: categoryId,
         is_deleted: false,
         status: { not: BOOK_STATUS.RETIRED }
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
         bookCategory: true
@@ -536,7 +553,7 @@ class BookService {
   static async updateRating(bookId) {
     const result = await prisma.reviews.aggregate({
       where: {
-        book_id: bookId,
+        bookId: bookId,
         status: 'published'
       },
       _avg: {
@@ -550,8 +567,8 @@ class BookService {
     return prisma.books.update({
       where: { id: bookId },
       data: {
-        average_rating: result._avg.rating || 0,
-        review_count: result._count.rating
+        averageRating: result._avg.rating || 0,
+        reviewCount: result._count.rating
       }
     });
   }
@@ -607,15 +624,15 @@ class BookService {
     const safeBook = { ...book };
     
     // 移除敏感或内部字段
-    delete safeBook.deleted_at;
+    delete safeBook.deletedAt;
     
     // 确保数据类型正确
     if (safeBook.id) safeBook.id = Number(safeBook.id);
-    if (safeBook.category_id) safeBook.category_id = Number(safeBook.category_id);
-    if (safeBook.total_stock) safeBook.total_stock = Number(safeBook.total_stock);
-    if (safeBook.available_stock) safeBook.available_stock = Number(safeBook.available_stock);
-    if (safeBook.reserved_stock) safeBook.reserved_stock = Number(safeBook.reserved_stock);
-    if (safeBook.has_ebook !== undefined) safeBook.has_ebook = Boolean(safeBook.has_ebook);
+    if (safeBook.categoryId) safeBook.categoryId = Number(safeBook.categoryId);
+    if (safeBook.totalStock) safeBook.totalStock = Number(safeBook.totalStock);
+    if (safeBook.availableStock) safeBook.availableStock = Number(safeBook.availableStock);
+    if (safeBook.reservedStock) safeBook.reservedStock = Number(safeBook.reservedStock);
+    if (safeBook.hasEbook !== undefined) safeBook.hasEbook = Boolean(safeBook.hasEbook);
     if (safeBook.is_deleted !== undefined) safeBook.is_deleted = Boolean(safeBook.is_deleted);
     
     return safeBook;

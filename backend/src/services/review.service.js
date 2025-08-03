@@ -9,20 +9,20 @@ class ReviewService {
     const {
       page = 1,
       limit = 20,
-      user_id,
-      book_id,
+      userId,
+      bookId,
       status = 'published',
       rating,
       is_recommended,
-      orderBy = 'created_at',
+      orderBy = 'createdAt',
       order = 'desc'
     } = options;
 
     const skip = (page - 1) * limit;
     const where = {};
 
-    if (user_id) where.user_id = parseInt(user_id);
-    if (book_id) where.book_id = parseInt(book_id);
+    if (userId) where.userId = parseInt(userId);
+    if (bookId) where.bookId = parseInt(bookId);
     if (status) where.status = status;
     if (rating) where.rating = parseInt(rating);
     if (is_recommended !== undefined) where.is_recommended = is_recommended;
@@ -85,8 +85,8 @@ class ReviewService {
     return prisma.reviews.findUnique({
       where: {
         uk_reviews_user_book: {
-          user_id: parseInt(userId),
-          book_id: parseInt(bookId)
+          userId: parseInt(userId),
+          bookId: parseInt(bookId)
         }
       }
     });
@@ -99,7 +99,7 @@ class ReviewService {
     const client = transaction || prisma;
 
     // Check if user already reviewed this book
-    const existingReview = await this.findByUserAndBook(reviewData.user_id, reviewData.book_id);
+    const existingReview = await this.findByUserAndBook(reviewData.userId, reviewData.bookId);
     if (existingReview) {
       throw new Error('User has already reviewed this book');
     }
@@ -108,8 +108,8 @@ class ReviewService {
     if (reviewData.require_borrow_verification) {
       const borrow = await client.borrows.findFirst({
         where: {
-          user_id: reviewData.user_id,
-          book_id: reviewData.book_id,
+          userId: reviewData.userId,
+          bookId: reviewData.bookId,
           status: 'returned'
         }
       });
@@ -124,8 +124,8 @@ class ReviewService {
 
     const review = await client.reviews.create({
       data: {
-        user_id: reviewData.user_id,
-        book_id: reviewData.book_id,
+        userId: reviewData.userId,
+        bookId: reviewData.bookId,
         borrow_id: reviewData.borrow_id,
         rating: reviewData.rating,
         title: reviewData.title,
@@ -138,7 +138,7 @@ class ReviewService {
         reading_progress: reviewData.reading_progress,
         reading_time: reviewData.reading_time,
         status: 'published',
-        created_at: new Date(),
+        createdAt: new Date(),
         updated_at: new Date()
       },
       include: {
@@ -148,7 +148,7 @@ class ReviewService {
     });
 
     // Update book rating
-    await BookService.updateRating(reviewData.book_id);
+    await BookService.updateRating(reviewData.bookId);
 
     return review;
   }
@@ -171,7 +171,7 @@ class ReviewService {
 
     // Update book rating if rating changed
     if (updateData.rating !== undefined) {
-      await BookService.updateRating(review.book_id);
+      await BookService.updateRating(review.bookId);
     }
 
     return review;
@@ -191,7 +191,7 @@ class ReviewService {
     });
 
     // Update book rating
-    await BookService.updateRating(review.book_id);
+    await BookService.updateRating(review.bookId);
 
     return review;
   }
@@ -245,7 +245,7 @@ class ReviewService {
     } = options;
 
     const where = {
-      book_id: parseInt(bookId),
+      bookId: parseInt(bookId),
       status
     };
 
@@ -270,7 +270,7 @@ class ReviewService {
     const ratingDistribution = await prisma.reviews.groupBy({
       by: ['rating'],
       where: {
-        book_id: parseInt(bookId),
+        bookId: parseInt(bookId),
         status: 'published'
       },
       _count: {
@@ -305,7 +305,7 @@ class ReviewService {
       status
     } = options;
 
-    const where = { user_id: parseInt(userId) };
+    const where = { userId: parseInt(userId) };
     if (status) where.status = status;
 
     const skip = (page - 1) * limit;
@@ -315,7 +315,7 @@ class ReviewService {
         where,
         skip,
         take: limit,
-        orderBy: { created_at: 'desc' },
+        orderBy: { createdAt: 'desc' },
         include: {
           book: {
             include: {
@@ -346,9 +346,9 @@ class ReviewService {
 
     const where = {};
     if (startDate || endDate) {
-      where.created_at = {};
-      if (startDate) where.created_at.gte = startDate;
-      if (endDate) where.created_at.lte = endDate;
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
     }
 
     const [total, published, pending, rejected] = await Promise.all([
@@ -368,21 +368,21 @@ class ReviewService {
 
     // Most reviewed books
     const topBooks = await prisma.reviews.groupBy({
-      by: ['book_id'],
+      by: ['bookId'],
       where: { ...where, status: 'published' },
       _count: {
-        book_id: true
+        bookId: true
       },
       orderBy: {
         _count: {
-          book_id: 'desc'
+          bookId: 'desc'
         }
       },
       take: 5
     });
 
     // Get book details for top books
-    const bookIds = topBooks.map(item => item.book_id);
+    const bookIds = topBooks.map(item => item.bookId);
     const books = await prisma.books.findMany({
       where: { id: { in: bookIds } }
     });
@@ -399,8 +399,8 @@ class ReviewService {
       rejected,
       averageRating: avgResult._avg.rating || 0,
       topReviewedBooks: topBooks.map(item => ({
-        book: bookMap[item.book_id],
-        reviewCount: item._count.book_id
+        book: bookMap[item.bookId],
+        reviewCount: item._count.bookId
       }))
     };
   }
@@ -440,8 +440,8 @@ class ReviewService {
     if (requireBorrow) {
       const borrow = await prisma.borrows.findFirst({
         where: {
-          user_id: parseInt(userId),
-          book_id: parseInt(bookId),
+          userId: parseInt(userId),
+          bookId: parseInt(bookId),
           status: 'returned'
         }
       });

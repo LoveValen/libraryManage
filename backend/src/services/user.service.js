@@ -428,7 +428,7 @@ class UserService {
             _count: {
               select: {
                 userBorrows: { where: { is_deleted: false } },
-                userReviews: { where: { is_deleted: false } }
+                userReviews: true
               }
             }
           }

@@ -36,8 +36,8 @@ class ReviewsService {
     }
 
     const review = await ReviewService.create({
-      user_id: user.id,
-      book_id: bookId,
+      userId: user.id,
+      bookId: bookId,
       rating,
       title,
       content,
@@ -84,7 +84,7 @@ class ReviewsService {
     }
 
     // Check permissions
-    if (user.role !== USER_ROLES.ADMIN && review.user_id !== user.id) {
+    if (user.role !== USER_ROLES.ADMIN && review.userId !== user.id) {
       throw new ForbiddenError('You can only edit your own reviews');
     }
 
@@ -125,7 +125,7 @@ class ReviewsService {
     }
 
     // Check permissions
-    if (user.role !== USER_ROLES.ADMIN && review.user_id !== user.id) {
+    if (user.role !== USER_ROLES.ADMIN && review.userId !== user.id) {
       throw new ForbiddenError('You can only delete your own reviews');
     }
 
@@ -136,7 +136,7 @@ class ReviewsService {
       userId: user.id,
       details: {
         reviewId,
-        bookId: review.book_id
+        bookId: review.bookId
       }
     });
 
@@ -200,8 +200,8 @@ class ReviewsService {
 
     const where = { status };
     
-    if (bookId) where.book_id = parseInt(bookId);
-    if (userId) where.user_id = parseInt(userId);
+    if (bookId) where.bookId = parseInt(bookId);
+    if (userId) where.userId = parseInt(userId);
     if (rating) where.rating = parseInt(rating);
     
     if (query) {
@@ -250,7 +250,7 @@ class ReviewsService {
     const ratingDistribution = await prisma.reviews.groupBy({
       by: ['rating'],
       where: {
-        book_id: parseInt(bookId),
+        bookId: parseInt(bookId),
         status: 'published'
       },
       _count: {
@@ -299,7 +299,7 @@ class ReviewsService {
     }
 
     // Prevent self-voting
-    if (review.user_id === user.id) {
+    if (review.userId === user.id) {
       throw new BadRequestError('Cannot vote on your own review');
     }
 
@@ -449,8 +449,8 @@ class ReviewsService {
 
     return {
       id: review.id,
-      userId: review.user_id,
-      bookId: review.book_id,
+      userId: review.userId,
+      bookId: review.bookId,
       borrowId: review.borrow_id,
       rating: review.rating,
       title: review.title,

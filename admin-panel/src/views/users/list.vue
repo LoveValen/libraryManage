@@ -402,12 +402,15 @@ const fetchUsers = async () => {
       params.endDate = searchForm.dateRange[1]
     }
 
-    const { data } = await userApi.getUsers(params)
+    const response = await userApi.getUsers(params)
 
-    if (data) {
-      userList.value = data.users || []
-      pagination.total = data.total || 0
-
+    if (response && response.data) {
+      // Handle the actual backend response format
+      // Backend returns: { success: true, data: [...users], pagination: {...} }
+      userList.value = response.data || []
+      if (response.pagination) {
+        pagination.total = response.pagination.total || 0
+      }
     } else {
       throw new Error('Invalid response data')
     }
