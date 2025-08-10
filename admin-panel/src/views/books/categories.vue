@@ -47,7 +47,7 @@
             :search="false"
             :toolBar="categoryToolBarConfig"
             :pagination="false"
-            :action-column="{ width: 280, fixed: 'right' }"
+            :action-column="{ width: 280, fixed: 'right', align: 'center' }"
             row-key="id"
             :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
             default-expand-all
@@ -232,7 +232,8 @@ const categoryTableColumns = [
     key: 'bookStats',
     title: '图书统计',
     slot: 'bookStats',
-    minWidth: 250
+    minWidth: 250,
+    align: 'center'
   },
   {
     key: 'categoryLevel',
@@ -256,25 +257,25 @@ const categoryRowActions = [
   {
     key: 'viewBooks',
     text: '查看图书',
-    type: 'primary',
+    type: 'text',
     onClick: (record) => handleCategoryAction({ action: 'viewBooks', category: record.name })
   },
   {
     key: 'addSubCategory',
     text: '新增子分类',
-    type: 'success',
+    type: 'text',
     onClick: (record) => handleCategoryAction({ action: 'addSubCategory', category: record.name })
   },
   {
     key: 'editCategory',
     text: '编辑分类',
-    type: 'info',
+    type: 'text',
     onClick: (record) => handleCategoryAction({ action: 'editCategory', category: record.name })
   },
   {
     key: 'deleteCategory',
     text: '删除分类',
-    type: 'danger',
+    type: 'text',
     onClick: (record) => handleCategoryAction({ action: 'deleteCategory', category: record.name })
   }
 ]

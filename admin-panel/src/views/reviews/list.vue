@@ -41,7 +41,7 @@
             :search="false"
             :toolBar="reviewToolBarConfig"
             :params="reviewSearchParams"
-            :action-column="{ width: 220, fixed: 'right' }"
+            :action-column="{ width: 220, fixed: 'right', align: 'center' }"
             row-key="id"
             @create="handleAdd"
             @selection-change="handleProTableSelectionChange"
@@ -226,13 +226,15 @@ const reviewTableColumns = [
     key: 'userInfo',
     title: '用户信息',
     slot: 'userInfo',
-    minWidth: 160
+    minWidth: 160,
+    align: 'center'
   },
   {
     key: 'bookInfo',
     title: '图书信息',
     slot: 'bookInfo',
-    minWidth: 220
+    minWidth: 220,
+    align: 'center'
   },
   {
     key: 'rating',
@@ -246,14 +248,16 @@ const reviewTableColumns = [
     key: 'reviewContent',
     title: '评价内容',
     slot: 'reviewContent',
-    minWidth: 260
+    minWidth: 260,
+    align: 'center'
   },
   {
     key: 'status',
     title: '状态',
     slot: 'status',
     minWidth: 90,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'likeCount',
@@ -268,7 +272,8 @@ const reviewTableColumns = [
     title: '评价时间',
     slot: 'createdTime',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   }
 ]
 
@@ -277,13 +282,13 @@ const reviewBatchActions = [
   {
     key: 'batchApprove',
     text: '批量审核',
-    type: 'success',
+    type: 'text',
     onClick: (selectedRowKeys, selectedRows) => handleBatchApproveFromTable(selectedRows)
   },
   {
     key: 'batchDelete',
     text: '批量删除',
-    type: 'danger',
+    type: 'text',
     onClick: (selectedRowKeys, selectedRows) => handleBatchDeleteFromTable(selectedRows)
   }
 ]
@@ -293,31 +298,31 @@ const reviewRowActions = [
   {
     key: 'view',
     text: '查看',
-    type: 'primary',
+    type: 'text',
     onClick: (record) => handleView(record)
   },
   {
     key: 'approve',
     text: '审核',
-    type: 'success',
+    type: 'text',
     onClick: (record) => handleApprove(record)
   },
   {
     key: 'edit',
     text: '编辑',
-    type: 'info',
+    type: 'text',
     onClick: (record) => handleAction('edit', record)
   },
   {
     key: 'reply',
     text: '回复',
-    type: 'warning',
+    type: 'text',
     onClick: (record) => handleAction('reply', record)
   },
   {
     key: 'delete',
     text: '删除',
-    type: 'danger',
+    type: 'text',
     onClick: (record) => handleAction('delete', record)
   }
 ]

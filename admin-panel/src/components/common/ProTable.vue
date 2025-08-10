@@ -129,6 +129,12 @@
           </slot>
         </div>
       </div>
+      
+      <!-- 工具栏右侧 -->
+      <div class="toolbar-right">
+        <slot name="toolBarRender" />
+        <slot name="extra" />
+      </div>
     </div>
 
     <!-- 数据表格 -->
@@ -157,6 +163,8 @@
           width="50" 
           fixed="left"
           :selectable="rowSelection.checkStrictly"
+          align="center"
+          header-align="center"
         />
 
         <!-- 序号列 -->
@@ -166,6 +174,8 @@
           type="index" 
           width="60"
           :index="indexMethod"
+          align="center"
+          header-align="center"
         />
 
         <!-- 动态列 -->
@@ -179,7 +189,7 @@
             :sortable="column.sorter ? 'custom' : false"
             :show-overflow-tooltip="column.ellipsis !== false"
             :align="column.align || 'left'"
-            :header-align="column.headerAlign || column.align || 'left'"
+            :header-align="column.headerAlign || column.align || 'center'"
           >
             <!-- 自定义表头 -->
             <template v-if="column.renderHeader || column.headerSlot" #header="scope">
@@ -265,6 +275,8 @@
           label="操作"
           :width="actionColumn?.width || 150"
           :fixed="actionColumn?.fixed || 'right'"
+          :align="actionColumn?.align || 'center'"
+          :header-align="actionColumn?.headerAlign || actionColumn?.align || 'center'"
         >
           <template #default="scope">
             <slot name="actions" :record="scope.row" :index="scope.$index">
@@ -700,7 +712,7 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
+    padding: 0 0 16px 0 !important;
 
     .toolbar-left {
       display: flex;
@@ -722,7 +734,7 @@ defineExpose({
 
     .toolbar-right {
       display: flex;
-      gap: 8px;
+      gap: 4px;
     }
   }
 
@@ -750,6 +762,77 @@ defineExpose({
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        text-align: center !important;
+        
+        .cell {
+          text-align: center !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+        }
+      }
+      
+      // 表格头部文字居中
+      .el-table__header-wrapper {
+        .el-table__cell {
+          text-align: center !important;
+          
+          .cell {
+            text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+          }
+        }
+      }
+      
+      // 表格内容居中
+      .el-table__body-wrapper {
+        .el-table__cell {
+          text-align: center !important;
+          
+          .cell {
+            text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+          }
+        }
+      }
+      
+      // 强制所有表格头部居中
+      thead {
+        th {
+          text-align: center !important;
+          
+          .cell {
+            text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            
+            // 排序图标样式调整
+            .caret-wrapper {
+              margin-left: 4px !important;
+              position: relative !important;
+              top: 0 !important;
+            }
+          }
+        }
+      }
+      
+      // 强制所有表格内容居中
+      tbody {
+        td {
+          text-align: center !important;
+          
+          .cell {
+            text-align: center !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+          }
+        }
       }
       
       // 对于没有设置宽度的列，让其自动占满剩余空间
@@ -759,10 +842,88 @@ defineExpose({
     }
   }
 
-  .table-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  // 操作列按钮居中显示 - 针对Element Plus动态生成的精确类名
+  :deep(td.el-table-fixed-column--right.is-first-column.el-table__cell),
+  :deep(td[class*="el-table_"][class*="_column_"].el-table-fixed-column--right.is-first-column.el-table__cell) {
+    text-align: center !important;
+  }
+  
+  :deep(td.el-table-fixed-column--right.is-first-column.el-table__cell .cell),
+  :deep(td[class*="el-table_"][class*="_column_"].el-table-fixed-column--right.is-first-column.el-table__cell .cell) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  
+  :deep(td.el-table-fixed-column--right.is-first-column.el-table__cell .table-actions),
+  :deep(td[class*="el-table_"][class*="_column_"].el-table-fixed-column--right.is-first-column.el-table__cell .table-actions) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  // 使用最高优先级覆盖Element Plus样式 - 通过内联样式级别的优先级
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td:last-child),
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td.el-table-fixed-column--right:last-child),
+  :deep(.el-table__body tr td:last-child),
+  :deep(.el-table__body tr td.el-table-fixed-column--right:last-child),
+  :deep(.el-table__body tr td.el-table-fixed-column--right.el-table__cell:last-child),
+  :deep(.el-table__body tr td[class*="el-table_"][class*="_column_"]:last-child) {
+    text-align: center !important;
+  }
+  
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td:last-child .cell),
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td.el-table-fixed-column--right:last-child .cell),
+  :deep(.el-table__body tr td:last-child .cell),
+  :deep(.el-table__body tr td.el-table-fixed-column--right:last-child .cell),
+  :deep(.el-table__body tr td.el-table-fixed-column--right.el-table__cell:last-child .cell),
+  :deep(.el-table__body tr td[class*="el-table_"][class*="_column_"]:last-child .cell) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td:last-child .table-actions),
+  :deep(.el-table .el-table__body-wrapper .el-table__body tr td.el-table-fixed-column--right:last-child .table-actions),
+  :deep(.el-table__body tr td:last-child .table-actions),
+  :deep(.el-table__body tr td.el-table-fixed-column--right:last-child .table-actions),
+  :deep(.el-table__body tr td.el-table-fixed-column--right.el-table__cell:last-child .table-actions),
+  :deep(.el-table__body tr td[class*="el-table_"][class*="_column_"]:last-child .table-actions) {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .pro-table :deep(.table-actions) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+    
+    .el-button {
+      padding: 2px 4px !important;
+      min-width: auto !important;
+      margin: 0 2px !important;
+    }
+    
+    .el-button.el-button--text {
+      padding: 0 !important;
+      margin: 0 2px !important;
+      font-size: 13px !important;
+    }
+    
+    .el-button + .el-button {
+      margin-left: 6px !important;
+    }
   }
 
   .pro-table-pagination {

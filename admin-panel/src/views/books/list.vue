@@ -134,7 +134,7 @@
             :search="false"
             :toolBar="toolBarConfig"
             :params="searchParams"
-            :action-column="{ width: 200, fixed: 'right' }"
+            :action-column="{ width: 200, fixed: 'right', align: 'center' }"
             row-key="id"
             @create="handleAdd"
             @selection-change="handleProTableSelectionChange"
@@ -389,47 +389,54 @@ const bookTableColumns = [
     key: 'bookInfo',
     title: '图书信息',
     slot: 'bookInfo',
-    minWidth: 260
+    minWidth: 260,
+    align: 'center'
   },
   {
     key: 'category',
     title: '分类',
     slot: 'category',
     minWidth: 100,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'status',
     title: '状态',
     slot: 'status',
     minWidth: 90,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'location',
     title: '位置',
     slot: 'location',
-    minWidth: 130
+    minWidth: 130,
+    align: 'center'
   },
   ...(showStock.value ? [{
     key: 'stock',
     title: '库存信息',
     slot: 'stock',
-    minWidth: 100
+    minWidth: 100,
+    align: 'center'
   }] : []),
   {
     key: 'rating',
     title: '评分',
     slot: 'rating',
     minWidth: 130,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'createdAt',
     title: '添加时间',
     slot: 'time',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   }
 ]
 
@@ -460,25 +467,25 @@ const rowActions = [
   {
     key: 'view',
     text: '查看',
-    type: 'primary',
+    type: 'text',
     onClick: (record) => handleView(record)
   },
   {
     key: 'edit',
     text: '编辑',
-    type: 'success',
+    type: 'text',
     onClick: (record) => handleEdit(record)
   },
   {
     key: 'borrow',
     text: '借阅',
-    type: 'warning',
+    type: 'text',
     onClick: (record) => handleBorrow(record)
   },
   {
     key: 'delete',
     text: '删除',
-    type: 'danger',
+    type: 'text',
     onClick: (record) => handleDelete(record)
   }
 ]

@@ -74,7 +74,12 @@
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_navigate_back",
       "mcp__playwright__browser_wait_for",
-      "mcp__playwright__browser_take_screenshot"
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__serena__find_file",
+      "mcp__serena__get_symbols_overview",
+      "Bash(\"taskkill\" \"/PID\" \"17764\" \"/F\")",
+      "Bash(\"taskkill\" \"/PID\" \"6868\" \"/F\")",
+      "Bash(\"taskkill\" \"/PID\" \"31800\" \"/F\")"
     ],
     "deny": []
   }

@@ -2,16 +2,14 @@
   <div class="users-container">
 
     <!-- 搜索筛选区域 -->
-    <el-card shadow="never" class="search-card">
-      <SearchFilterSimple
-        v-model="searchForm"
-        :fields="searchFields"
-        :loading="loading"
-        :collapsible="false"
-        @search="handleSearch"
-        @reset="handleReset"
-      />
-    </el-card>
+    <SearchFilterSimple
+      v-model="searchForm"
+      :fields="searchFields"
+      :loading="loading"
+      :collapsible="false"
+      @search="handleSearch"
+      @reset="handleReset"
+    />
 
 
     <!-- 用户表格 -->
@@ -28,7 +26,7 @@
           :search="false"
           :toolBar="userToolBarConfig"
           :params="userSearchParams"
-          :action-column="{ width: 240, fixed: 'right' }"
+          :action-column="{ width: 280, fixed: 'right', align: 'center' }"
           row-key="id"
           @create="handleAdd"
           @selection-change="handleProTableSelectionChange"
@@ -111,7 +109,29 @@
           </template>
 
           <!-- 工具栏插槽 -->
-          <template #toolBarRender>
+          <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+            <!-- 新增用户按钮 -->
+            <el-button type="primary" @click="handleAdd">
+              新增用户
+            </el-button>
+            
+            <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+            <el-button 
+              type="danger" 
+              :disabled="selectedRowKeys.length === 0"
+              @click="handleBatchDeleteFromTable(selectedRows)"
+            >
+              批量删除
+            </el-button>
+            <el-button 
+              type="warning" 
+              :disabled="selectedRowKeys.length === 0"
+              @click="handleBatchToggleStatusFromTable(selectedRows)"
+            >
+              批量状态切换
+            </el-button>
+            
+            <!-- 常规工具栏按钮 -->
             <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
               导出数据
             </el-button>
@@ -207,33 +227,38 @@ const userTableColumns = [
     key: 'userInfo',
     title: '用户信息',
     slot: 'userInfo',
-    minWidth: 180
+    minWidth: 180,
+    align: 'center'
   },
   {
     key: 'contact',
     title: '联系方式',
     slot: 'contact',
-    minWidth: 160
+    minWidth: 160,
+    align: 'center'
   },
   {
     key: 'role',
     title: '角色',
     slot: 'role',
     minWidth: 90,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'status',
     title: '状态',
     slot: 'status',
     minWidth: 90,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'borrowStats',
     title: '借阅统计',
     slot: 'borrowStats',
-    minWidth: 110
+    minWidth: 110,
+    align: 'center'
   },
   {
     key: 'points',
@@ -248,14 +273,16 @@ const userTableColumns = [
     title: '最后登录',
     slot: 'lastLogin',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'created_at',
     title: '注册时间',
     slot: 'createdTime',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   }
 ]
 
@@ -280,31 +307,31 @@ const userRowActions = [
   {
     key: 'view',
     text: '查看',
-    type: 'primary',
+    type: 'text',
     onClick: (record) => handleView(record)
   },
   {
     key: 'edit',
     text: '编辑',
-    type: 'success',
+    type: 'text',
     onClick: (record) => handleEdit(record)
   },
   {
     key: 'resetPassword',
     text: '重置密码',
-    type: 'warning',
+    type: 'text',
     onClick: (record) => handleAction('resetPassword', record)
   },
   {
     key: 'toggleStatus',
     text: '状态切换',
-    type: 'info',
+    type: 'text',
     onClick: (record) => handleAction('toggleStatus', record)
   },
   {
     key: 'delete',
     text: '删除',
-    type: 'danger',
+    type: 'text',
     onClick: (record) => handleAction('delete', record)
   }
 ]
@@ -659,56 +686,6 @@ const handleDelete = async user => {
   }
 }
 
-const handleBatchDelete = async () => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedUsers.value.length} 个用户吗？此操作不可撤销！`,
-      '批量删除',
-      { type: 'warning' }
-    )
-
-    const userIds = selectedUsers.value.map(user => user.id)
-    await userApi.batchDeleteUsers(userIds)
-
-    ElMessage.success('批量删除成功')
-    proTableRef.value?.refresh()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
-    }
-  }
-}
-
-const handleBatchToggleStatus = async () => {
-  try {
-    const { value: action } = await ElMessageBox.prompt(
-      `选择要对选中的 ${selectedUsers.value.length} 个用户执行的操作：`,
-      '批量操作',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputType: 'select',
-        inputOptions: [
-          { value: 'active', label: '启用' },
-          { value: 'inactive', label: '禁用' }
-        ]
-      }
-    )
-
-    const userIds = selectedUsers.value.map(user => user.id)
-    await userApi.batchUpdateStatus(userIds, action)
-
-    ElMessage.success('批量操作成功')
-    proTableRef.value?.refresh()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量操作失败:', error)
-      ElMessage.error('批量操作失败')
-    }
-  }
-}
-
 // ProTable批量操作处理函数
 const handleBatchDeleteFromTable = async (selectedRows) => {
   try {
@@ -811,7 +788,6 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .users-container {
-  padding: 20px;
   background-color: var(--content-bg-color);
 }
 
@@ -839,35 +815,23 @@ onMounted(() => {
   margin-top: 20px;
   
   .table-card {
-    :deep(.el-card__body) {
-      padding: 0;
-    }
     
     :deep(.pro-table-wrapper) {
       .pro-table-toolbar {
-        padding: 20px 24px;
+        padding: 0 24px 20px 24px !important;
         border-bottom: 1px solid var(--el-border-color-lighter);
       }
       
-      .el-table {
-        th {
-          padding: 16px 0;
-          font-weight: 600;
-          background-color: var(--el-fill-color-lighter);
-        }
+      // 操作列居中显示
+      .table-actions {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 100% !important;
         
-        td {
-          padding: 12px 0;
+        .el-button {
+          margin: 0 2px !important;
         }
-        
-        .cell {
-          padding: 0 16px;
-        }
-      }
-      
-      .pro-table-pagination {
-        padding: 20px 24px;
-        border-top: 1px solid var(--el-border-color-lighter);
       }
     }
   }

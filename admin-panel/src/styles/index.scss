@@ -259,8 +259,20 @@ button {
 
 // 表格操作列
 .table-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  
   .el-button + .el-button {
-    margin-left: 8px;
+    margin-left: 6px;
+  }
+  
+  // 文字按钮特殊样式
+  .el-button.el-button--text {
+    padding: 0 !important;
+    margin: 0 2px !important;
+    font-size: 13px !important;
   }
 }
 

@@ -50,7 +50,6 @@ import type {
   ProTableInstance,
   ValueEnumItem
 } from './ProTable.types'
-import styles from './ProTable.module.scss'
 
 export interface ProTableProps<T = any> {
   request: RequestFunction<T>
@@ -415,14 +414,14 @@ export default defineComponent({
       if (props.search === false) return null
 
       return (
-        <div class={styles.proTableSearch}>
-          <ElCard shadow="never" class={styles.searchCard}>
+        <div class="pro-table-search">
+          <ElCard shadow="never" class="search-card">
             <ElForm
               ref={searchFormRef}
               model={searchForm}
               inline={true}
               labelWidth={props.labelWidth}
-              class={styles.searchForm}
+              class="search-form"
             >
               {searchableColumns.value.map(column => {
                 if (column.valueType === 'text' || !column.valueType) {
@@ -502,7 +501,7 @@ export default defineComponent({
                 return null
               })}
 
-              <ElFormItem class={styles.searchActions}>
+              <ElFormItem class="search-actions">
                 <ElButton type="primary" onClick={handleSearch} loading={loading.value}>
                   <ElIcon><Search /></ElIcon>
                   查询
@@ -534,33 +533,12 @@ export default defineComponent({
       if (props.toolBar === false) return null
 
       return (
-        <div class={styles.proTableToolbar}>
-          <div class={styles.toolbarLeft}>
-            {props.batchActions.length > 0 && (
-              <div class={styles.batchActions}>
-                {selectedRowKeys.value.length > 0 && (
-                  <ElAlert 
-                    title={`已选择 ${selectedRowKeys.value.length} 项`}
-                    type="info" 
-                    showIcon={true}
-                  />
-                )}
-                {slots.batchActions ? 
-                  slots.batchActions({ selectedRowKeys: selectedRowKeys.value, selectedRows: selectedRows.value }) :
-                  props.batchActions.map(action => (
-                    <ElButton
-                      key={action.key}
-                      type={action.type}
-                      danger={action.danger}
-                      disabled={selectedRowKeys.value.length === 0}
-                      onClick={() => action.onClick?.(selectedRowKeys.value, selectedRows.value)}
-                    >
-                      {action.text}
-                    </ElButton>
-                  ))
-                }
-              </div>
-            )}
+        <div class="pro-table-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0 16px 0' }}>
+          <div class="toolbar-content" style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+            {slots.toolBarRender && slots.toolBarRender({ 
+              selectedRowKeys: selectedRowKeys.value, 
+              selectedRows: selectedRows.value
+            })}
           </div>
         </div>
       )
@@ -649,6 +627,7 @@ export default defineComponent({
       return (
         <ElTableColumn
           label="操作"
+          align="center"
           width={props.actionColumn?.width || 150}
           fixed={props.actionColumn?.fixed || 'right'}
         >
@@ -656,7 +635,7 @@ export default defineComponent({
             default: (scope: any) => (
               slots.actions ? 
                 slots.actions({ record: scope.row, index: scope.$index }) :
-                <div class={styles.tableActions}>
+                <div class="table-actions">
                   {getRowActions(scope.row).map(action => (
                     <>
                       <ElButton
@@ -684,7 +663,7 @@ export default defineComponent({
       if (props.pagination === false) return null
 
       return (
-        <div class={styles.proTablePagination}>
+        <div class="pro-table-pagination" style={{ display: 'flex', justifyContent: 'flex-end', padding: '20px', borderTop: '1px solid var(--el-border-color-lighter)' }}>
           <ElPagination
             v-model:current-page={paginationState.current}
             v-model:page-size={paginationState.pageSize}
@@ -700,11 +679,11 @@ export default defineComponent({
     }
 
     return () => (
-      <div class={styles.proTable}>
+      <div class="pro-table">
         {renderSearchForm()}
         {renderToolBar()}
         
-        <div class={styles.proTableContent}>
+        <div class="pro-table-content">
           <ElTable
             ref={tableRef}
             v-loading={loading.value}

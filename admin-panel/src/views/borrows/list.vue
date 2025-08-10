@@ -69,7 +69,7 @@
           :row-selection="{ type: 'checkbox' }"
           :search="false"
           :toolBar="false"
-          :action-column="{ width: 200, fixed: 'right' }"
+          :action-column="{ width: 200, fixed: 'right', align: 'center' }"
           :params="borrowSearchParams"
           row-key="id"
           @selection-change="handleSelectionChange"
@@ -164,7 +164,7 @@
             <div class="row-actions">
               <el-button 
                 v-if="record.status === 'borrowed'" 
-                type="success" 
+                type="text" 
                 size="small" 
                 @click="handleQuickReturn(record)"
               >
@@ -172,7 +172,7 @@
               </el-button>
               <el-button 
                 v-if="record.status === 'borrowed' && record.renewalCount < record.maxRenewals" 
-                type="warning" 
+                type="text" 
                 size="small" 
                 @click="handleRenew(record)"
               >
@@ -180,7 +180,7 @@
               </el-button>
               <el-button 
                 v-if="record.isCurrentlyOverdue" 
-                type="primary" 
+                type="text" 
                 size="small" 
                 @click="handleSendReminder(record)"
               >
@@ -293,41 +293,47 @@ const borrowTableColumns = [
     key: 'user',
     title: '借阅用户',
     slot: 'user',
-    minWidth: 180
+    minWidth: 180,
+    align: 'center'
   },
   {
     key: 'book',
     title: '图书信息',
     slot: 'book',
-    minWidth: 220
+    minWidth: 220,
+    align: 'center'
   },
   {
     key: 'status',
     title: '状态',
     slot: 'status',
     minWidth: 100,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'borrowDate',
     title: '借阅时间',
     slot: 'borrowDate',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'dueDate',
     title: '应还时间',
     slot: 'dueDate',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'returnDate',
     title: '归还时间',
     slot: 'returnDate',
     minWidth: 140,
-    sorter: true
+    sorter: true,
+    align: 'center'
   },
   {
     key: 'renewalCount',
