@@ -284,15 +284,154 @@ class BorrowsService {
    * Get overdue records with pagination
    */
   async getOverdueRecordsPaginated(filters = {}) {
-    const result = await BorrowService.findWithPagination({
-      ...filters,
-      overdue_only: true
-    });
+    const {
+      page = 1,
+      limit = 20,
+      keyword = '',
+      minOverdueDays = '',
+      maxOverdueDays = '',
+      sortBy = 'currentOverdueDays',
+      sortOrder = 'desc'
+    } = filters;
 
-    return {
-      borrows: result.data.map(borrow => this.formatBorrowResponse(borrow)),
-      pagination: result.pagination
+    const skip = (Number(page) - 1) * Number(limit);
+    const where = { 
+      is_deleted: false,
+      status: BORROW_STATUS.BORROWED,
+      due_date: { lt: new Date() }
     };
+
+    // 关键字搜索（用户名、真实姓名、图书标题）
+    if (keyword && keyword.trim()) {
+      where.OR = [
+        {
+          borrower: {
+            username: { contains: keyword.trim() }
+          }
+        },
+        {
+          borrower: {
+            real_name: { contains: keyword.trim() }
+          }
+        },
+        {
+          book: {
+            title: { contains: keyword.trim() }
+          }
+        }
+      ];
+    }
+
+    // 逾期天数过滤
+    const now = new Date();
+    if (minOverdueDays !== '' && !isNaN(Number(minOverdueDays))) {
+      const minDate = new Date(now);
+      minDate.setDate(minDate.getDate() - Number(minOverdueDays));
+      where.due_date = { 
+        ...where.due_date,
+        lte: minDate
+      };
+    }
+
+    if (maxOverdueDays !== '' && !isNaN(Number(maxOverdueDays))) {
+      const maxDate = new Date(now);
+      maxDate.setDate(maxDate.getDate() - Number(maxOverdueDays));
+      where.due_date = {
+        ...where.due_date,
+        gte: maxDate
+      };
+    }
+
+    // 排序字段映射
+    const sortMapping = {
+      'currentOverdueDays': 'due_date',
+      'borrowDate': 'borrow_date',
+      'dueDate': 'due_date',
+      'userName': 'borrower.username',
+      'bookTitle': 'book.title'
+    };
+
+    let orderBy = {};
+    const mappedSortBy = sortMapping[sortBy] || 'due_date';
+    
+    if (mappedSortBy.includes('.')) {
+      // 处理关联字段排序
+      const [relation, field] = mappedSortBy.split('.');
+      orderBy = { [relation]: { [field]: sortOrder } };
+    } else {
+      orderBy = { [mappedSortBy]: sortOrder };
+    }
+
+    // 对于currentOverdueDays，我们按due_date升序排列（最早到期的在前，逾期天数最多）
+    if (sortBy === 'currentOverdueDays') {
+      orderBy = { due_date: sortOrder === 'desc' ? 'asc' : 'desc' };
+    }
+
+    try {
+      const [records, total] = await Promise.all([
+        prisma.borrows.findMany({
+          where,
+          skip,
+          take: Number(limit),
+          orderBy,
+          include: {
+            borrower: {
+              select: {
+                id: true,
+                username: true,
+                real_name: true,
+                email: true,
+                phone: true
+              }
+            },
+            book: {
+              include: {
+                bookCategory: true
+              }
+            },
+            processor: {
+              select: {
+                id: true,
+                username: true,
+                real_name: true
+              }
+            }
+          }
+        }),
+        prisma.borrows.count({ where })
+      ]);
+
+      // 计算逾期天数并添加到记录中
+      const recordsWithOverdueDays = records.map(record => {
+        const overdueDays = Math.floor((now - new Date(record.due_date)) / (1000 * 60 * 60 * 24));
+        return {
+          ...record,
+          currentOverdueDays: overdueDays,
+          overdue_days: overdueDays // 保持与现有字段的兼容性
+        };
+      });
+
+      // 获取统计信息
+      const statistics = {
+        totalOverdueRecords: total,
+        totalOverdueDays: recordsWithOverdueDays.reduce((sum, record) => sum + record.currentOverdueDays, 0),
+        averageOverdueDays: total > 0 ? recordsWithOverdueDays.reduce((sum, record) => sum + record.currentOverdueDays, 0) / total : 0,
+        maxOverdueDays: Math.max(...recordsWithOverdueDays.map(record => record.currentOverdueDays), 0)
+      };
+
+      return {
+        records: recordsWithOverdueDays.map(record => this.formatBorrowResponse(record)),
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          totalPages: Math.ceil(total / Number(limit))
+        },
+        statistics
+      };
+    } catch (error) {
+      throw new Error(`获取逾期记录失败: ${error.message}`);
+    }
   }
 
   /**
@@ -434,6 +573,7 @@ class BorrowsService {
       renewalCount: borrow.renewalCount,
       maxRenewals: borrow.maxRenewals,
       overdueDays: borrow.overdueDays,
+      currentOverdueDays: borrow.currentOverdueDays || borrow.overdue_days || 0, // 支持新的currentOverdueDays字段
       fine: parseFloat(borrow.fine || 0),
       finePaid: borrow.fine_paid,
       condition: borrow.condition,

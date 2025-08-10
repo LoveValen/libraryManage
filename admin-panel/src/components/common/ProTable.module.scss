@@ -1,0 +1,157 @@
+.proTable {
+  .searchCard {
+    margin-bottom: 16px;
+    border: 1px solid var(--el-border-color-light);
+    
+    :global(.el-card__body) {
+      padding: 16px;
+    }
+  }
+
+  .searchForm {
+    :global(.el-form-item) {
+      margin-bottom: 16px;
+      margin-right: 16px;
+    }
+
+    .searchActions {
+      margin-left: auto;
+    }
+  }
+
+  .proTableToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+
+    .toolbarLeft {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+
+      .tableTitle h3 {
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .batchActions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+    }
+
+    .toolbarRight {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .proTableContent {
+    background: var(--el-bg-color);
+    border-radius: 6px;
+    overflow: hidden;
+    
+    :global(.el-table) {
+      width: 100%;
+      table-layout: fixed;
+      
+      .el-table__header-wrapper,
+      .el-table__body-wrapper {
+        width: 100% !important;
+      }
+      
+      .el-table__header,
+      .el-table__body {
+        width: 100% !important;
+      }
+      
+      // 确保列占满整个表格宽度
+      .el-table__cell {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
+      // 对于没有设置宽度的列，让其自动占满剩余空间
+      .el-table__body .el-table-column--selection {
+        width: 50px;
+      }
+    }
+  }
+
+  .tableActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .proTablePagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 20px;
+    background: var(--el-fill-color-blank);
+    border-top: 1px solid var(--el-border-color-lighter);
+    color: var(--el-text-color-primary);
+
+    :global(.el-pagination) {
+      --el-pagination-text-color: var(--el-text-color-primary);
+      --el-pagination-bg-color: var(--el-fill-color-blank);
+      --el-pagination-button-color: var(--el-text-color-regular);
+      --el-pagination-button-bg-color: var(--el-fill-color);
+      --el-pagination-button-hover-color: var(--el-color-primary);
+      --el-pagination-button-hover-bg-color: var(--el-color-primary-light-9);
+    }
+
+    :global(.el-pagination .el-pager li.is-active) {
+      color: #ffffff !important;
+      background-color: var(--el-color-primary) !important;
+    }
+
+    :global(.el-pagination .el-pager li:hover:not(.is-active)) {
+      color: var(--el-color-primary) !important;
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+  }
+
+  .columnSettings {
+    .columnItem {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--el-border-color-lighter);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .proTable {
+    .proTableToolbar {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+
+      .toolbarLeft,
+      .toolbarRight {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    .searchForm {
+      :global(.el-form-item) {
+        width: 100%;
+        margin-right: 0;
+      }
+    }
+
+    .proTablePagination {
+      justify-content: center;
+    }
+  }
+}

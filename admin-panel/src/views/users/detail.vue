@@ -117,7 +117,7 @@
               <template #header>
                 <div class="card-header">
                   <span class="card-title">基本信息</span>
-                  <el-button type="text" @click="handleEdit">
+                  <el-button link @click="handleEdit">
                     <el-icon><Edit /></el-icon>
                     编辑
                   </el-button>
@@ -231,7 +231,7 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">最近活动</span>
-              <el-button type="text" @click="viewAllActivities">查看全部</el-button>
+              <el-button link @click="viewAllActivities">查看全部</el-button>
             </div>
           </template>
 

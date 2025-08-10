@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button :icon="ArrowLeft" @click="handleBack" type="text" size="large">返回</el-button>
+        <el-button :icon="ArrowLeft" @click="handleBack" link size="large">返回</el-button>
         <div class="header-info">
           <h1>新增借阅</h1>
           <p class="description">创建新的图书借阅记录</p>
@@ -60,7 +60,7 @@
         </div>
       </template>
 
-      <BorrowForm
+      <BorrowFormProSimple
         :preset-user-id="presetUserId"
         :preset-book-id="presetBookId"
         @success="handleSuccess"
@@ -77,7 +77,7 @@
             最近借阅记录
           </div>
           <div class="header-actions">
-            <el-button type="text" :icon="Refresh" @click="loadRecentBorrows" :loading="recentLoading">刷新</el-button>
+            <el-button link :icon="Refresh" @click="loadRecentBorrows" :loading="recentLoading">刷新</el-button>
           </div>
         </div>
       </template>
@@ -112,10 +112,10 @@
             </div>
 
             <div class="borrow-actions">
-              <el-button type="text" :icon="View" @click="viewBorrowDetail(borrow)" size="small">查看</el-button>
+              <el-button link :icon="View" @click="viewBorrowDetail(borrow)" size="small">查看</el-button>
               <el-button
                 v-if="borrow.status === 'borrowed'"
-                type="text"
+                link
                 :icon="Check"
                 @click="quickReturn(borrow)"
                 size="small"
@@ -139,9 +139,9 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
-import { Plus, Lightning, DocumentAdd, QrCode, Clock, Refresh, View, Check, ArrowLeft } from '@element-plus/icons-vue'
+import { Plus, Lightning, DocumentAdd, Clock, Refresh, View, Check, ArrowLeft } from '@element-plus/icons-vue'
 import { StatusTag } from '@/components/common'
-import BorrowForm from './components/BorrowForm.vue'
+import BorrowFormProSimple from './components/BorrowFormProSimple.vue'
 import ScanBorrowDialog from './components/ScanBorrowDialog.vue'
 import { getBorrows, returnBook } from '@/api/borrows'
 import { formatRelativeTime } from '@/utils/date'

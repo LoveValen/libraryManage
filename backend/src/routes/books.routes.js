@@ -1,5 +1,4 @@
 const express = require('express');
-const multer = require('multer');
 const path = require('path');
 const booksController = require('../controllers/books.controller');
 const reviewsController = require('../controllers/reviews.controller');
@@ -13,43 +12,6 @@ const {
   sanitizeInput,
 } = require('../middlewares/validation.middleware');
 const { bookSchemas } = require('../utils/validation');
-
-// 配置文件上传
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadPath = path.join(process.cwd(), 'uploads', 'imports');
-    const fs = require('fs');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'import-' + uniqueSuffix + ext);
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
-  },
-  fileFilter: function (req, file, cb) {
-    const allowedTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-      'application/vnd.ms-excel', // .xls
-      'text/csv' // .csv
-    ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only Excel (.xlsx, .xls) and CSV (.csv) files are allowed'), false);
-    }
-  }
-});
 
 const router = express.Router();
 
@@ -208,16 +170,6 @@ router.post('/',
 );
 
 /**
- * @route   POST /api/v1/books/import
- * @desc    批量导入图书
- * @access  Private (Admin/Librarian)
- */
-router.post('/import',
-  requireRole(['admin', 'librarian']),
-  booksController.bulkImportBooks
-);
-
-/**
  * @route   PUT /api/v1/books/:id
  * @desc    更新图书信息
  * @access  Private (Admin/Librarian)
@@ -248,66 +200,6 @@ router.patch('/:id/stock',
  * 图书导入相关路由
  */
 
-/**
- * @route   GET /api/v1/books/import/template
- * @desc    下载图书导入模板
- * @access  Private (Admin/Librarian)
- */
-router.get('/import/template',
-  requireRole(['admin', 'librarian']),
-  booksController.downloadImportTemplate
-);
-
-/**
- * @route   POST /api/v1/books/import/upload
- * @desc    上传导入文件并预览
- * @access  Private (Admin/Librarian)
- */
-router.post('/import/upload',
-  requireRole(['admin', 'librarian']),
-  upload.single('file'),
-  booksController.uploadImportFile
-);
-
-/**
- * @route   POST /api/v1/books/import/validate
- * @desc    验证导入数据
- * @access  Private (Admin/Librarian)
- */
-router.post('/import/validate',
-  requireRole(['admin', 'librarian']),
-  booksController.validateImportData
-);
-
-/**
- * @route   POST /api/v1/books/import
- * @desc    执行图书数据导入
- * @access  Private (Admin/Librarian)
- */
-router.post('/import',
-  requireRole(['admin', 'librarian']),
-  booksController.importBooks
-);
-
-/**
- * @route   GET /api/v1/books/import/history
- * @desc    获取导入历史记录
- * @access  Private (Admin/Librarian)
- */
-router.get('/import/history',
-  requireRole(['admin', 'librarian']),
-  booksController.getImportHistory
-);
-
-/**
- * @route   GET /api/v1/books/import/status/:taskId
- * @desc    获取导入任务状态
- * @access  Private (Admin/Librarian)
- */
-router.get('/import/status/:taskId',
-  requireRole(['admin', 'librarian']),
-  booksController.getImportTaskStatus
-);
 
 /**
  * @route   DELETE /api/v1/books/:id

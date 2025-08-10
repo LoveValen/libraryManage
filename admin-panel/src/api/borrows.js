@@ -161,7 +161,7 @@ export function getBorrowTrends(params = {}) {
  * @param {Object} data - 批量操作数据
  */
 export function batchProcessBorrows(data) {
-  return request.post('/borrows/batch-process', data)
+  return request.post('/borrows/batch', data)
 }
 
 /**

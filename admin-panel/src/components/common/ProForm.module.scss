@@ -1,0 +1,82 @@
+.proForm {
+  width: 100%;
+
+  &--inline {
+    :global(.el-form) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  }
+}
+
+.formGroup {
+  margin-bottom: 24px;
+
+  .groupHeader {
+    margin-bottom: 16px;
+
+    .groupTitle {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .groupDescription {
+      margin: 8px 0 0 0;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.5;
+    }
+  }
+}
+
+.formActions {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  &--left {
+    text-align: left;
+  }
+
+  &--center {
+    text-align: center;
+  }
+
+  &--right {
+    text-align: right;
+  }
+
+  &--fixed {
+    position: sticky;
+    bottom: 0;
+    background: var(--el-bg-color);
+    z-index: 10;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    margin: 0 -24px -24px -24px;
+    padding: 16px 24px;
+  }
+
+  :global(.el-button) {
+    margin-right: 12px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .proForm {
+    .formActions {
+      text-align: center;
+      
+      :global(.el-button) {
+        margin-bottom: 12px;
+        width: 100%;
+        margin-right: 0;
+      }
+    }
+  }
+}

@@ -156,20 +156,6 @@ export const bookApi = {
     })
   },
 
-  /**
-   * 导入图书数据
-   * @param {FormData} formData - 包含文件的表单数据
-   */
-  importBooks(formData) {
-    return request({
-      url: '/admin/books/import',
-      method: 'post',
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  },
 
   /**
    * 获取图书统计数据

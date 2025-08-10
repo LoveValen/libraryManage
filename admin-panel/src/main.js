@@ -22,6 +22,9 @@ import { setupGlobalProperties } from './utils/global'
 // 主题系统
 import { useTheme } from './composables/useTheme'
 
+// 全局组件
+import SvgIcon from './components/common/SvgIcon.vue'
+
 // 创建应用实例
 const app = createApp(App)
 
@@ -33,6 +36,9 @@ pinia.use(piniaPluginPersistedstate)
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 注册全局组件
+app.component('svg-icon', SvgIcon)
 
 // 配置 NProgress
 NProgress.configure({

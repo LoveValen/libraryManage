@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import vueJsx from '@vitejs/plugin-vue-jsx'
 import { resolve } from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
@@ -7,7 +8,18 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 export default defineConfig({
   plugins: [
-    vue(),
+    vue({
+      // 启用JSX/TSX支持
+      script: {
+        defineModel: true,
+        propsDestructure: true
+      }
+    }),
+    vueJsx({
+      // Vue JSX 配置
+      mergeProps: false,
+      enableObjectSlots: false
+    }),
     // Element Plus 自动导入
     AutoImport({
       resolvers: [ElementPlusResolver()],

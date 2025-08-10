@@ -2,200 +2,124 @@
   <div class="users-container">
 
     <!-- 搜索筛选区域 -->
-    <SearchFilterSimple
-      v-model="searchForm"
-      :fields="searchFields"
-      :loading="loading"
-      :collapsible="false"
-      @search="handleSearch"
-      @reset="handleReset"
-    />
+    <el-card shadow="never" class="search-card">
+      <SearchFilterSimple
+        v-model="searchForm"
+        :fields="searchFields"
+        :loading="loading"
+        :collapsible="false"
+        @search="handleSearch"
+        @reset="handleReset"
+      />
+    </el-card>
 
 
     <!-- 用户表格 -->
     <div class="table-section">
       <el-card shadow="never" class="table-card">
-        <!-- 表格工具栏 -->
-        <div class="table-toolbar">
-          <div class="toolbar-left">
-            <el-button type="danger" :disabled="selectedUsers.length === 0" @click="handleBatchDelete">
-              删除
-            </el-button>
-            <el-button
-              type="warning"
-              :disabled="selectedUsers.length === 0"
-              @click="handleBatchToggleStatus"
-            >
-              启用/禁用
-            </el-button>
-          </div>
-          <div class="toolbar-right">
-            <el-tooltip content="刷新数据">
-              <el-button icon="Refresh" @click="fetchUsers" :loading="loading" />
-            </el-tooltip>
-            <el-tooltip content="列设置">
-              <el-button icon="Setting" @click="showColumnSettings = true" />
-            </el-tooltip>
-          </div>
-        </div>
-
-        <!-- 数据表格 -->
-        <el-table
-          ref="tableRef"
-          v-loading="loading"
-          :data="userList"
-          stripe
-          border
-          height="600"
-          @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange"
+        <!-- 用户管理表格 -->
+        <ProTable
+          ref="proTableRef"
+          :request="requestUsers"
+          :columns="userTableColumns"
+          :batch-actions="userBatchActions"
+          :actions="userRowActions"
+          :row-selection="{ type: 'checkbox' }"
+          :search="false"
+          :toolBar="userToolBarConfig"
+          :params="userSearchParams"
+          :action-column="{ width: 240, fixed: 'right' }"
+          row-key="id"
+          @create="handleAdd"
+          @selection-change="handleProTableSelectionChange"
         >
-          <el-table-column type="selection" width="50" fixed="left" />
-          <el-table-column label="序号" type="index" width="60" fixed="left" />
-
-          <el-table-column label="用户信息" min-width="200" fixed="left">
-            <template #default="{ row }">
-              <div class="user-info">
-                <el-avatar :size="40" :src="row.avatar" class="user-avatar">
-                  <el-icon><User /></el-icon>
-                </el-avatar>
-                <div class="user-details">
-                  <div class="user-name">{{ row.username }}</div>
-                  <div class="user-real-name">{{ row.realName || '-' }}</div>
-                </div>
+          <!-- 用户信息插槽 -->
+          <template #userInfo="{ record }">
+            <div class="user-info">
+              <el-avatar :size="40" :src="record.avatar" class="user-avatar">
+                <el-icon><User /></el-icon>
+              </el-avatar>
+              <div class="user-details">
+                <div class="user-name">{{ record.username }}</div>
+                <div class="user-real-name">{{ record.realName || '-' }}</div>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="联系方式" min-width="180">
-            <template #default="{ row }">
-              <div class="contact-info">
-                <div class="contact-item">
-                  <el-icon><Message /></el-icon>
-                  <span>{{ row.email || '-' }}</span>
-                </div>
-                <div class="contact-item">
-                  <el-icon><Phone /></el-icon>
-                  <span>{{ row.phone || '-' }}</span>
-                </div>
+          <!-- 联系方式插槽 -->
+          <template #contact="{ record }">
+            <div class="contact-info">
+              <div class="contact-item">
+                <el-icon><Message /></el-icon>
+                <span>{{ record.email || '-' }}</span>
               </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="角色" width="100" sortable="custom" prop="role">
-            <template #default="{ row }">
-              <StatusTag
-                :status="row.role"
-                :text="getRoleText(row.role)"
-                :type="getRoleTagType(row.role)"
-                size="small"
-              />
-            </template>
-          </el-table-column>
-
-          <el-table-column label="状态" width="100" sortable="custom" prop="status">
-            <template #default="{ row }">
-              <StatusTag :status="row.status" :preset="'user'" size="small" />
-            </template>
-          </el-table-column>
-
-          <el-table-column label="借阅统计" width="120">
-            <template #default="{ row }">
-              <div class="borrow-stats">
-                <div class="stat-item">
-                  <span class="stat-label">当前:</span>
-                  <span class="stat-value">{{ row.currentBorrows || 0 }}</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-label">历史:</span>
-                  <span class="stat-value">{{ row.totalBorrows || 0 }}</span>
-                </div>
+              <div class="contact-item">
+                <el-icon><Phone /></el-icon>
+                <span>{{ record.phone || '-' }}</span>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="积分" width="80" sortable="custom" prop="points">
-            <template #default="{ row }">
-              <span class="points-value">{{ row.points?.balance || row.pointsBalance || 0 }}</span>
-            </template>
-          </el-table-column>
+          <!-- 角色插槽 -->
+          <template #role="{ record }">
+            <StatusTag
+              :status="record.role"
+              :text="getRoleText(record.role)"
+              :type="getRoleTagType(record.role)"
+              size="small"
+            />
+          </template>
 
-          <el-table-column label="最后登录" width="160" sortable="custom" prop="lastLoginAt">
-            <template #default="{ row }">
-              <div class="time-info">
-                <div>{{ formatDate(row.lastLoginAt) }}</div>
-                <div class="time-ago">{{ formatTimeAgo(row.lastLoginAt) }}</div>
+          <!-- 状态插槽 -->
+          <template #status="{ record }">
+            <StatusTag :status="record.status" :preset="'user'" size="small" />
+          </template>
+
+          <!-- 借阅统计插槽 -->
+          <template #borrowStats="{ record }">
+            <div class="borrow-stats">
+              <div class="stat-item">
+                <span class="stat-label">当前:</span>
+                <span class="stat-value">{{ record.currentBorrows || 0 }}</span>
               </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="注册时间" width="160" sortable="custom" prop="createdAt">
-            <template #default="{ row }">
-              <div class="time-info">
-                <div>{{ formatDate(row.createdAt) }}</div>
-                <div class="time-ago">{{ formatTimeAgo(row.createdAt) }}</div>
+              <div class="stat-item">
+                <span class="stat-label">历史:</span>
+                <span class="stat-value">{{ record.totalBorrows || 0 }}</span>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button type="primary" link size="small" @click="handleView(row)">
-                  <el-icon><View /></el-icon>
-                  查看
-                </el-button>
-                <el-button type="success" link size="small" @click="handleEdit(row)">
-                  <el-icon><Edit /></el-icon>
-                  编辑
-                </el-button>
-                <el-dropdown @command="command => handleAction(command, row)">
-                  <el-button type="info" link size="small">
-                    更多
-                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item command="resetPassword">
-                        <el-icon><Key /></el-icon>
-                        重置密码
-                      </el-dropdown-item>
-                      <el-dropdown-item command="toggleStatus">
-                        <el-icon><Switch /></el-icon>
-                        {{ row.status === 'active' ? '禁用' : '启用' }}
-                      </el-dropdown-item>
-                      <el-dropdown-item command="viewBorrows">
-                        <el-icon><Reading /></el-icon>
-                        借阅记录
-                      </el-dropdown-item>
-                      <el-dropdown-item command="viewPoints">
-                        <el-icon><TrophyBase /></el-icon>
-                        积分记录
-                      </el-dropdown-item>
-                      <el-dropdown-item command="delete" divided>
-                        <el-icon><Delete /></el-icon>
-                        删除用户
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
+          <!-- 积分插槽 -->
+          <template #points="{ record }">
+            <span class="points-value">{{ record.points?.balance || record.pointsBalance || 0 }}</span>
+          </template>
 
-        <!-- 分页 -->
-        <div class="pagination-wrapper">
-          <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.size"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-          />
-        </div>
+          <!-- 最后登录时间插槽 -->
+          <template #lastLogin="{ record }">
+            <div class="time-info">
+              <div>{{ formatDate(record.lastLoginAt) }}</div>
+              <div class="time-ago">{{ formatTimeAgo(record.lastLoginAt) }}</div>
+            </div>
+          </template>
+
+          <!-- 注册时间插槽 -->
+          <template #createdTime="{ record }">
+            <div class="time-info">
+              <div>{{ formatDate(record.createdAt) }}</div>
+              <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
+            </div>
+          </template>
+
+          <!-- 工具栏插槽 -->
+          <template #toolBarRender>
+            <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
+              导出数据
+            </el-button>
+            <el-button type="success" :icon="Upload" @click="handleImport">
+              导入用户
+            </el-button>
+          </template>
+        </ProTable>
       </el-card>
     </div>
 
@@ -225,10 +149,18 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import {
+  User,
+  Message,
+  Phone,
+  Download,
+  Upload
+} from '@element-plus/icons-vue'
 import { userApi } from '@/api/user'
 import { formatDate, formatTimeAgo } from '@/utils/date'
-import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import StatusTag from '@/components/common/StatusTag.vue'
+import { ProTable } from '@/components/common'
 
 const router = useRouter()
 
@@ -241,6 +173,7 @@ const selectAll = ref(false)
 const isIndeterminate = ref(false)
 const showColumnSettings = ref(false)
 const tableRef = ref()
+const proTableRef = ref()
 
 // 搜索表单
 const searchForm = reactive({
@@ -263,21 +196,144 @@ const sortInfo = reactive({
   order: ''
 })
 
+// ProTable配置
+const userSearchParams = computed(() => ({
+  ...searchForm
+}))
 
-// 搜索字段配置
+// 表格列配置
+const userTableColumns = [
+  {
+    key: 'userInfo',
+    title: '用户信息',
+    slot: 'userInfo',
+    minWidth: 180
+  },
+  {
+    key: 'contact',
+    title: '联系方式',
+    slot: 'contact',
+    minWidth: 160
+  },
+  {
+    key: 'role',
+    title: '角色',
+    slot: 'role',
+    minWidth: 90,
+    sorter: true
+  },
+  {
+    key: 'status',
+    title: '状态',
+    slot: 'status',
+    minWidth: 90,
+    sorter: true
+  },
+  {
+    key: 'borrowStats',
+    title: '借阅统计',
+    slot: 'borrowStats',
+    minWidth: 110
+  },
+  {
+    key: 'points',
+    title: '积分',
+    slot: 'points',
+    minWidth: 70,
+    sorter: true,
+    align: 'center'
+  },
+  {
+    key: 'lastLoginAt',
+    title: '最后登录',
+    slot: 'lastLogin',
+    minWidth: 140,
+    sorter: true
+  },
+  {
+    key: 'created_at',
+    title: '注册时间',
+    slot: 'createdTime',
+    minWidth: 140,
+    sorter: true
+  }
+]
+
+// 批量操作配置
+const userBatchActions = [
+  {
+    key: 'batchDelete',
+    text: '批量删除',
+    type: 'danger',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchDeleteFromTable(selectedRows)
+  },
+  {
+    key: 'batchToggleStatus',
+    text: '批量状态切换',
+    type: 'warning',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchToggleStatusFromTable(selectedRows)
+  }
+]
+
+// 行操作配置
+const userRowActions = [
+  {
+    key: 'view',
+    text: '查看',
+    type: 'primary',
+    onClick: (record) => handleView(record)
+  },
+  {
+    key: 'edit',
+    text: '编辑',
+    type: 'success',
+    onClick: (record) => handleEdit(record)
+  },
+  {
+    key: 'resetPassword',
+    text: '重置密码',
+    type: 'warning',
+    onClick: (record) => handleAction('resetPassword', record)
+  },
+  {
+    key: 'toggleStatus',
+    text: '状态切换',
+    type: 'info',
+    onClick: (record) => handleAction('toggleStatus', record)
+  },
+  {
+    key: 'delete',
+    text: '删除',
+    type: 'danger',
+    onClick: (record) => handleAction('delete', record)
+  }
+]
+
+// 工具栏配置
+const userToolBarConfig = {
+  create: true,
+  createText: '新增用户',
+  reload: true,
+  density: true,
+  columnSetting: true,
+  fullScreen: true
+}
+
+
+// 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
   {
-    type: 'input',
-    key: 'keyword',
+    name: 'keyword',
+    valueType: 'text',
     label: '关键词',
-    placeholder: '请输入用户名、真实姓名或邮箱',
+    placeholder: '输入用户名、真实姓名或邮箱',
     clearable: true
   },
   {
-    type: 'select',
-    key: 'role',
+    name: 'role',
+    valueType: 'select',
     label: '用户角色',
-    placeholder: '请选择角色',
+    placeholder: '选择角色',
     options: [
       { label: '管理员', value: 'admin' },
       { label: '图书管理员', value: 'librarian' },
@@ -285,21 +341,20 @@ const searchFields = [
     ]
   },
   {
-    type: 'select',
-    key: 'status',
+    name: 'status',
+    valueType: 'select',
     label: '账户状态',
-    placeholder: '请选择状态',
+    placeholder: '选择状态',
     options: [
       { label: '启用', value: 'active' },
       { label: '禁用', value: 'inactive' }
     ]
   },
   {
-    type: 'date',
-    key: 'dateRange',
+    name: 'dateRange',
+    valueType: 'dateRange',
     label: '注册时间',
-    placeholder: ['开始时间', '结束时间'],
-    dateType: 'daterange'
+    placeholder: ['开始时间', '结束时间']
   }
 ]
 
@@ -429,10 +484,45 @@ const fetchUsers = async () => {
   }
 }
 
+// ProTable数据请求函数
+const requestUsers = async (params) => {
+  try {
+    console.log('ProTable请求参数:', params)
+    
+    const requestParams = {
+      page: params.current || 1,
+      limit: params.pageSize || 20,
+      sortBy: params.sorter || 'created_at',
+      sortOrder: params.order === 'ascend' ? 'asc' : 'desc',
+      ...searchForm
+    }
+
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      requestParams.startDate = searchForm.dateRange[0]
+      requestParams.endDate = searchForm.dateRange[1]
+    }
+
+    const response = await userApi.getUsers(requestParams)
+    
+    return {
+      success: true,
+      data: response.data || [],
+      total: response.pagination?.total || 0
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
+  }
+}
 
 const handleSearch = () => {
   pagination.page = 1
-  fetchUsers()
+  proTableRef.value?.reload(true)
 }
 
 const handleReset = () => {
@@ -443,24 +533,21 @@ const handleReset = () => {
     dateRange: null
   })
   pagination.page = 1
-  fetchUsers()
+  proTableRef.value?.reload(true)
 }
 
 const handleSizeChange = size => {
   pagination.size = size
   pagination.page = 1
-  fetchUsers()
 }
 
 const handlePageChange = page => {
   pagination.page = page
-  fetchUsers()
 }
 
 const handleSortChange = ({ prop, order }) => {
   sortInfo.prop = prop
   sortInfo.order = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : ''
-  fetchUsers()
 }
 
 const handleSelectionChange = selection => {
@@ -470,6 +557,11 @@ const handleSelectionChange = selection => {
 
   selectAll.value = selectedCount === totalCount && totalCount > 0
   isIndeterminate.value = selectedCount > 0 && selectedCount < totalCount
+}
+
+// ProTable选择变化处理
+const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
+  selectedUsers.value = selectedRows
 }
 
 const handleAdd = () => {
@@ -558,7 +650,7 @@ const handleDelete = async user => {
 
     await userApi.deleteUser(user.id)
     ElMessage.success('用户删除成功')
-    fetchUsers()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除用户失败:', error)
@@ -579,8 +671,7 @@ const handleBatchDelete = async () => {
     await userApi.batchDeleteUsers(userIds)
 
     ElMessage.success('批量删除成功')
-    fetchUsers()
-    tableRef.value.clearSelection()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量删除失败:', error)
@@ -609,12 +700,67 @@ const handleBatchToggleStatus = async () => {
     await userApi.batchUpdateStatus(userIds, action)
 
     ElMessage.success('批量操作成功')
-    fetchUsers()
-    tableRef.value.clearSelection()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量操作失败:', error)
       ElMessage.error('批量操作失败')
+    }
+  }
+}
+
+// ProTable批量操作处理函数
+const handleBatchDeleteFromTable = async (selectedRows) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.length} 个用户吗？此操作不可撤销！`,
+      '批量删除',
+      { type: 'warning' }
+    )
+
+    const userIds = selectedRows.map(user => user.id)
+    await userApi.batchDeleteUsers(userIds)
+
+    ElMessage.success('批量删除成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+const handleBatchToggleStatusFromTable = async (selectedRows) => {
+  if (selectedRows.length === 0) {
+    ElMessage.warning('请选择要切换状态的用户')
+    return
+  }
+
+  try {
+    const { value: action } = await ElMessageBox.prompt(
+      `选择要对选中的 ${selectedRows.length} 个用户执行的操作：`,
+      '批量状态切换',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputType: 'select',
+        inputOptions: [
+          { value: 'active', label: '启用' },
+          { value: 'inactive', label: '禁用' }
+        ]
+      }
+    )
+
+    const userIds = selectedRows.map(user => user.id)
+    await userApi.batchUpdateStatus(userIds, action)
+
+    ElMessage.success('批量状态切换成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量状态切换失败:', error)
+      ElMessage.error('批量状态切换失败')
     }
   }
 }
@@ -659,23 +805,26 @@ const applyColumnSettings = () => {
 
 // 生命周期
 onMounted(() => {
-  fetchUsers()
+  // ProTable will auto-load data when mounted
 })
 </script>
 
 <style lang="scss" scoped>
 .users-container {
+  padding: 20px;
   background-color: var(--content-bg-color);
 }
 
 
 .search-section {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .search-card {
+  margin-bottom: 24px;
+  
   :deep(.el-card__body) {
-    padding: 20px;
+    padding: 20px 24px;
   }
 }
 
@@ -687,9 +836,39 @@ onMounted(() => {
 
 
 .table-section {
+  margin-top: 20px;
+  
   .table-card {
     :deep(.el-card__body) {
       padding: 0;
+    }
+    
+    :deep(.pro-table-wrapper) {
+      .pro-table-toolbar {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--el-border-color-lighter);
+      }
+      
+      .el-table {
+        th {
+          padding: 16px 0;
+          font-weight: 600;
+          background-color: var(--el-fill-color-lighter);
+        }
+        
+        td {
+          padding: 12px 0;
+        }
+        
+        .cell {
+          padding: 0 16px;
+        }
+      }
+      
+      .pro-table-pagination {
+        padding: 20px 24px;
+        border-top: 1px solid var(--el-border-color-lighter);
+      }
     }
   }
 }
@@ -698,14 +877,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .toolbar-right {
@@ -717,6 +897,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 8px 0;
 }
 
 .user-avatar {
@@ -739,11 +920,13 @@ onMounted(() => {
 }
 
 .contact-info {
+  padding: 8px 0;
+  
   .contact-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
+    gap: 8px;
+    margin-bottom: 6px;
     font-size: 13px;
     color: var(--el-text-color-regular);
 
@@ -752,18 +935,20 @@ onMounted(() => {
     }
 
     .el-icon {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--el-text-color-secondary);
     }
   }
 }
 
 .borrow-stats {
+  padding: 8px 0;
+  
   .stat-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 2px;
-    font-size: 12px;
+    margin-bottom: 4px;
+    font-size: 13px;
 
     &:last-child {
       margin-bottom: 0;
@@ -786,6 +971,8 @@ onMounted(() => {
 }
 
 .time-info {
+  padding: 8px 0;
+  
   .time-ago {
     font-size: 12px;
     color: var(--el-text-color-secondary);
@@ -795,12 +982,13 @@ onMounted(() => {
 
 .action-buttons {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 8px 0;
 }
 
 .pagination-wrapper {
-  padding: 16px 20px;
+  padding: 20px 24px;
   border-top: 1px solid var(--el-border-color-lighter);
   display: flex;
   justify-content: flex-end;

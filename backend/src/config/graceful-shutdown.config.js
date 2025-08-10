@@ -180,12 +180,12 @@ class GracefulShutdownHandler {
         console.log('🔍 健康监控服务已停止');
       }
       
-      // 尝试停止备份服务
-      const backupService = require('../services/backup.service');
-      if (backupService && backupService.isRunning) {
-        await backupService.stop();
-        console.log('💾 备份服务已停止');
-      }
+      // 备份服务已删除
+      // const backupService = require('../services/backup.service');
+      // if (backupService && backupService.isRunning) {
+      //   await backupService.stop();
+      //   console.log('💾 备份服务已停止');
+      // }
       
       // 尝试停止恢复服务
       const restoreService = require('../services/restore.service');

@@ -22,7 +22,7 @@
         <div class="header-right">
           <slot name="header-actions" />
 
-          <el-button v-if="collapsible" type="text" size="small" @click="toggleCollapse" class="collapse-btn">
+          <el-button v-if="collapsible" link size="small" @click="toggleCollapse" class="collapse-btn">
             <el-icon>
               <component :is="collapsed ? 'ArrowDown' : 'ArrowUp'" />
             </el-icon>

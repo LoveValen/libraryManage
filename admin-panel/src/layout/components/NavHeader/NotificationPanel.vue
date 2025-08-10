@@ -135,7 +135,7 @@ const notifications = ref([
     message: '用户数据导出任务已完成，文件已保存到下载目录。',
     read: true,
     createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1天前
-    link: '/system/backup'
+    link: '/system/settings'
   }
 ])
 

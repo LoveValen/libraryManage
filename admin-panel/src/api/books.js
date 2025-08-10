@@ -109,59 +109,6 @@ export function getRecentBooks(params = {}) {
 }
 
 /**
- * 下载图书导入模板
- */
-export function downloadImportTemplate() {
-  return request.get('/books/import/template', {
-    responseType: 'blob'
-  })
-}
-
-/**
- * 上传导入文件并预览
- * @param {FormData} formData - 包含文件的表单数据
- */
-export function uploadImportFile(formData) {
-  return request.post('/books/import/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
-}
-
-/**
- * 验证导入数据
- * @param {string} fileId - 文件ID
- */
-export function validateImportData(fileId) {
-  return request.post('/books/import/validate', { fileId })
-}
-
-/**
- * 执行图书数据导入
- * @param {Object} importData - 导入配置数据
- */
-export function importBooks(importData) {
-  return request.post('/books/import', importData)
-}
-
-/**
- * 获取导入历史记录
- * @param {Object} params - 查询参数
- */
-export function getImportHistory(params = {}) {
-  return request.get('/books/import/history', { params })
-}
-
-/**
- * 获取导入任务状态
- * @param {string} taskId - 任务ID
- */
-export function getImportTaskStatus(taskId) {
-  return request.get(`/books/import/status/${taskId}`)
-}
-
-/**
  * 获取图书统计信息
  * @param {Object} params - 查询参数
  */

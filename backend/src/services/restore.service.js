@@ -268,33 +268,9 @@ class RestoreService {
    * 创建恢复前备份
    */
   async createPreRestoreBackup(operation) {
-    const backupService = require('./backup.service');
-    
-    const preBackupData = {
-      name: `pre_restore_${operation.name}_${Date.now()}`,
-      description: `Pre-restore backup for operation: ${operation.name}`,
-      backupType: 'full',
-      trigger: 'pre_restore',
-      triggeredBy: operation.triggeredBy,
-      backupConfig: {
-        includeDatabases: true,
-        includeFiles: true,
-        includeUploads: true,
-        includeEbooks: true,
-        compression: true,
-        retentionDays: 7
-      },
-      tags: ['pre-restore', 'safety']
-    };
-
-    const preBackupJob = await backupService.createBackupJob(preBackupData);
-    const result = await backupService.executeBackupJob(preBackupJob);
-    
-    if (!result.success) {
-      throw new Error(`Pre-restore backup failed: ${result.error}`);
-    }
-
-    return preBackupJob;
+    // 备份功能已删除 - 跳过预还原备份
+    console.log('预还原备份功能已禁用');
+    return null;
   }
 
   /**

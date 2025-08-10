@@ -6,7 +6,9 @@
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
-      :collapsible="false"
+      :collapsible="true"
+      :default-collapsed="true"
+      :collapsed-rows="1"
       @search="handleSearch"
       @reset="handleReset"
     />
@@ -122,188 +124,88 @@
 
         <!-- 图书列表 - 表格视图 -->
         <div v-else class="table-section">
-          <el-card shadow="never" class="table-card">
-            <!-- 表格工具栏 -->
-            <div class="flex justify-between items-center mb-4">
-              <div class="toolbar-left">
-                    <el-button type="primary" @click="handleAdd">
-                      新增
-                    </el-button>
-                  <el-button 
-                    type="danger" 
-                    :disabled="selectedBooks.length === 0" 
-                    @click="handleBatchDelete"
-                  >
-                    删除
-                  </el-button>
-              </div>
-              
-              <div class="toolbar-right">
-                <div class="toolbar-actions">
-                  <el-tooltip content="刷新数据" placement="top">
-                    <el-button 
-                      icon="Refresh" 
-                      :loading="loading"
-                      @click="fetchBooks" 
-                    />
-                  </el-tooltip>
-                  <el-tooltip content="导出全部数据" placement="top">
-                    <el-button 
-                      icon="Download" 
-                      :loading="exportLoading"
-                      @click="handleExport" 
-                    />
-                  </el-tooltip>
-                  <el-tooltip content="列显示设置" placement="top">
-                    <el-button 
-                      icon="Setting" 
-                      @click="showColumnSettings = true" 
-                    />
-                  </el-tooltip>
+          <ProTable
+            ref="proTableRef"
+            :request="requestBooks"
+            :columns="bookTableColumns"
+            :batch-actions="batchActions"
+            :actions="rowActions"
+            :row-selection="{ type: 'checkbox' }"
+            :search="false"
+            :toolBar="toolBarConfig"
+            :params="searchParams"
+            :action-column="{ width: 200, fixed: 'right' }"
+            row-key="id"
+            @create="handleAdd"
+            @selection-change="handleProTableSelectionChange"
+          >
+            <!-- 图书信息插槽 -->
+            <template #bookInfo="{ record }">
+              <div class="book-info-cell">
+                <img v-if="showCover" :src="record.cover" :alt="record.title" class="book-cover-small" />
+                <div class="book-details">
+                  <div class="book-title-cell">{{ record.title }}</div>
+                  <div class="book-author-cell">{{ record.author }}</div>
+                  <div class="book-isbn-cell">ISBN: {{ record.isbn }}</div>
                 </div>
               </div>
-            </div>
+            </template>
 
-            <!-- 数据表格 -->
-            <el-table
-              ref="tableRef"
-              v-loading="loading"
-              :data="bookList"
-              stripe
-              border
-              height="600"
-              @selection-change="handleSelectionChange"
-              @sort-change="handleSortChange"
-            >
-              <el-table-column type="selection" width="50" fixed="left" />
-              <el-table-column label="序号" type="index" width="60" fixed="left" />
+            <!-- 分类插槽 -->
+            <template #category="{ record }">
+              <StatusTag :status="record.categoryId" :text="getCategoryName(record.categoryId)" size="small" />
+            </template>
 
-              <el-table-column label="图书信息" min-width="300" fixed="left">
-                <template #default="{ row }">
-                  <div class="book-info-cell">
-                    <img v-if="showCover" :src="row.cover" :alt="row.title" class="book-cover-small" />
-                    <div class="book-details">
-                      <div class="book-title-cell">{{ row.title }}</div>
-                      <div class="book-author-cell">{{ row.author }}</div>
-                      <div class="book-isbn-cell">ISBN: {{ row.isbn }}</div>
-                    </div>
-                  </div>
-                </template>
-              </el-table-column>
+            <!-- 状态插槽 -->
+            <template #status="{ record }">
+              <StatusTag :status="record.status" :preset="'book'" size="small" />
+            </template>
 
-              <el-table-column label="分类" width="120" sortable="custom" prop="categoryId">
-                <template #default="{ row }">
-                  <StatusTag :status="row.categoryId" :text="getCategoryName(row.categoryId)" size="small" />
-                </template>
-              </el-table-column>
+            <!-- 位置插槽 -->
+            <template #location="{ record }">
+              <div class="location-info">
+                <el-icon><Position /></el-icon>
+                <span>{{ record.location }}</span>
+              </div>
+            </template>
 
-              <el-table-column label="状态" width="100" sortable="custom" prop="status">
-                <template #default="{ row }">
-                  <StatusTag :status="row.status" :preset="'book'" size="small" />
-                </template>
-              </el-table-column>
+            <!-- 库存信息插槽 -->
+            <template #stock="{ record }" v-if="showStock">
+              <div class="stock-info">
+                <div class="stock-item">
+                  <span class="stock-label">库存:</span>
+                  <span class="stock-value">{{ record.stock || 0 }}</span>
+                </div>
+                <div class="stock-item">
+                  <span class="stock-label">在借:</span>
+                  <span class="borrowed-value">{{ record.borrowedCount || 0 }}</span>
+                </div>
+              </div>
+            </template>
 
-              <el-table-column label="位置" width="150">
-                <template #default="{ row }">
-                  <div class="location-info">
-                    <el-icon><Position /></el-icon>
-                    <span>{{ row.location }}</span>
-                  </div>
-                </template>
-              </el-table-column>
+            <!-- 评分插槽 -->
+            <template #rating="{ record }">
+              <div class="rating-info">
+                <el-rate v-model="record.rating" disabled size="small" />
+                <span class="rating-count">({{ record.reviewCount || 0 }})</span>
+              </div>
+            </template>
 
-              <el-table-column v-if="showStock" label="库存信息" width="120">
-                <template #default="{ row }">
-                  <div class="stock-info">
-                    <div class="stock-item">
-                      <span class="stock-label">库存:</span>
-                      <span class="stock-value">{{ row.stock || 0 }}</span>
-                    </div>
-                    <div class="stock-item">
-                      <span class="stock-label">在借:</span>
-                      <span class="borrowed-value">{{ row.borrowedCount || 0 }}</span>
-                    </div>
-                  </div>
-                </template>
-              </el-table-column>
+            <!-- 时间插槽 -->
+            <template #time="{ record }">
+              <div class="time-info">
+                <div>{{ formatDate(record.createdAt) }}</div>
+                <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
+              </div>
+            </template>
 
-              <el-table-column label="评分" width="150" sortable="custom" prop="rating">
-                <template #default="{ row }">
-                  <div class="rating-info">
-                    <el-rate v-model="row.rating" disabled size="small" />
-                    <span class="rating-count">({{ row.reviewCount || 0 }})</span>
-                  </div>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="添加时间" width="160" sortable="custom" prop="createdAt">
-                <template #default="{ row }">
-                  <div class="time-info">
-                    <div>{{ formatDate(row.createdAt) }}</div>
-                    <div class="time-ago">{{ formatTimeAgo(row.createdAt) }}</div>
-                  </div>
-                </template>
-              </el-table-column>
-
-              <el-table-column label="操作" width="200" fixed="right">
-                <template #default="{ row }">
-                  <div class="action-buttons">
-                    <el-button type="primary" link size="small" @click="handleView(row)">
-                      <el-icon><View /></el-icon>
-                      查看
-                    </el-button>
-                    <el-button type="success" link size="small" @click="handleEdit(row)">
-                      <el-icon><Edit /></el-icon>
-                      编辑
-                    </el-button>
-                    <el-dropdown @command="command => handleAction(command, row)">
-                      <el-button type="info" link size="small">
-                        更多
-                        <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                      </el-button>
-                      <template #dropdown>
-                        <el-dropdown-menu>
-                          <el-dropdown-item command="copy">
-                            <el-icon><CopyDocument /></el-icon>
-                            复制
-                          </el-dropdown-item>
-                          <el-dropdown-item command="toggleStatus">
-                            <el-icon><Switch /></el-icon>
-                            {{ row.status === 'available' ? '下架' : '上架' }}
-                          </el-dropdown-item>
-                          <el-dropdown-item command="viewBorrows">
-                            <el-icon><Reading /></el-icon>
-                            借阅记录
-                          </el-dropdown-item>
-                          <el-dropdown-item command="viewReviews">
-                            <el-icon><ChatDotRound /></el-icon>
-                            查看评价
-                          </el-dropdown-item>
-                          <el-dropdown-item command="delete" divided>
-                            <el-icon><Delete /></el-icon>
-                            删除图书
-                          </el-dropdown-item>
-                        </el-dropdown-menu>
-                      </template>
-                    </el-dropdown>
-                  </div>
-                </template>
-              </el-table-column>
-            </el-table>
-
-            <!-- 分页 -->
-            <div class="pagination-wrapper">
-              <el-pagination
-                v-model:current-page="pagination.page"
-                v-model:page-size="pagination.size"
-                :page-sizes="[10, 20, 50, 100]"
-                :total="pagination.total"
-                layout="total, sizes, prev, pager, next, jumper"
-                @size-change="handleSizeChange"
-                @current-change="handlePageChange"
-              />
-            </div>
-          </el-card>
+            <!-- 工具栏插槽 -->
+            <template #toolBarRender>
+              <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
+                导出数据
+              </el-button>
+            </template>
+          </ProTable>
         </div>
       </div>
     </el-card>
@@ -374,8 +276,8 @@ import {
 } from '@element-plus/icons-vue'
 import { bookApi } from '@/api/book'
 import { formatDate, formatTimeAgo } from '@/utils/date'
-import { DataTable, StatusTag, PRESETS } from '@/components/common'
-import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
+import { StatusTag, PRESETS, ProTable } from '@/components/common'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import CategoryManager from './components/CategoryManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
@@ -402,6 +304,7 @@ const showBorrowDialog = ref(false)
 const showQRCodeDialog = ref(false)
 const selectedBook = ref(null)
 const tableRef = ref()
+const proTableRef = ref()
 
 // 搜索表单
 const searchForm = reactive({
@@ -412,54 +315,57 @@ const searchForm = reactive({
   dateRange: null
 })
 
-// 搜索字段配置
+// 计算属性 - 选项数据
+const categoryOptions = computed(() => 
+  categories.value?.filter(cat => cat && cat.name && cat.id)
+    .map(cat => ({ label: cat.name, value: cat.id })) || []
+)
+
+const locationOptions = computed(() => 
+  locations.value?.filter(loc => loc && typeof loc === 'string')
+    .map(loc => ({ label: loc, value: loc })) || []
+)
+
+// 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
   {
-    key: 'keyword',
-    type: 'input',
+    name: 'keyword',
+    valueType: 'text',
     label: '关键词',
-    placeholder: '搜索书名、作者、ISBN',
-    inputWidth: '250px'
+    placeholder: '输入书名、作者或ISBN搜索',
+    clearable: true
   },
   {
-    key: 'category',
-    type: 'select',
-    label: '分类',
-    placeholder: '选择分类',
-    options: computed(() => 
-      categories.value?.filter(cat => cat && cat.name && cat.id)
-        .map(cat => ({ label: cat.name, value: cat.id })) || []
-    )
+    name: 'category',
+    valueType: 'select',
+    label: '图书分类',
+    placeholder: '选择图书分类',
+    options: categoryOptions
   },
   {
-    key: 'status',
-    type: 'select',
-    label: '状态',
-    placeholder: '选择状态',
+    name: 'status',
+    valueType: 'select',
+    label: '图书状态',
+    placeholder: '选择图书状态',
     options: [
-      { label: '可借', value: 'available' },
+      { label: '可借阅', value: 'available' },
       { label: '已借出', value: 'borrowed' },
-      { label: '维修中', value: 'maintenance' },
+      { label: '维护中', value: 'maintenance' },
       { label: '已下架', value: 'offline' }
     ]
   },
   {
-    key: 'location',
-    type: 'select',
-    label: '位置',
-    placeholder: '选择位置',
-    options: computed(() => 
-      locations.value?.filter(loc => loc && typeof loc === 'string')
-        .map(loc => ({ label: loc, value: loc })) || []
-    )
+    name: 'location',
+    valueType: 'select',
+    label: '存放位置',
+    placeholder: '选择存放位置',
+    options: locationOptions
   },
   {
-    key: 'dateRange',
-    type: 'date',
-    dateType: 'daterange',
+    name: 'dateRange',
+    valueType: 'dateRange',
     label: '添加时间',
-    startPlaceholder: '开始日期',
-    endPlaceholder: '结束日期'
+    placeholder: ['开始日期', '结束日期']
   }
 ]
 
@@ -469,6 +375,123 @@ const pagination = reactive({
   size: 24,
   total: 0
 })
+
+// ProTable配置
+const searchParams = computed(() => ({
+  ...searchForm,
+  sortBy: sortBy.value,
+  sortOrder: sortOrder.value
+}))
+
+// 表格列配置
+const bookTableColumns = [
+  {
+    key: 'bookInfo',
+    title: '图书信息',
+    slot: 'bookInfo',
+    minWidth: 260
+  },
+  {
+    key: 'category',
+    title: '分类',
+    slot: 'category',
+    minWidth: 100,
+    sorter: true
+  },
+  {
+    key: 'status',
+    title: '状态',
+    slot: 'status',
+    minWidth: 90,
+    sorter: true
+  },
+  {
+    key: 'location',
+    title: '位置',
+    slot: 'location',
+    minWidth: 130
+  },
+  ...(showStock.value ? [{
+    key: 'stock',
+    title: '库存信息',
+    slot: 'stock',
+    minWidth: 100
+  }] : []),
+  {
+    key: 'rating',
+    title: '评分',
+    slot: 'rating',
+    minWidth: 130,
+    sorter: true
+  },
+  {
+    key: 'createdAt',
+    title: '添加时间',
+    slot: 'time',
+    minWidth: 140,
+    sorter: true
+  }
+]
+
+// 批量操作配置
+const batchActions = [
+  {
+    key: 'batchDelete',
+    text: '批量删除',
+    type: 'danger',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchDeleteFromTable(selectedRows)
+  },
+  {
+    key: 'batchUpdateStatus',
+    text: '批量状态更新',
+    type: 'warning',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchUpdateStatusFromTable(selectedRows)
+  },
+  {
+    key: 'batchMove',
+    text: '批量移动',
+    type: 'info',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchMoveFromTable(selectedRows)
+  }
+]
+
+// 行操作配置
+const rowActions = [
+  {
+    key: 'view',
+    text: '查看',
+    type: 'primary',
+    onClick: (record) => handleView(record)
+  },
+  {
+    key: 'edit',
+    text: '编辑',
+    type: 'success',
+    onClick: (record) => handleEdit(record)
+  },
+  {
+    key: 'borrow',
+    text: '借阅',
+    type: 'warning',
+    onClick: (record) => handleBorrow(record)
+  },
+  {
+    key: 'delete',
+    text: '删除',
+    type: 'danger',
+    onClick: (record) => handleDelete(record)
+  }
+]
+
+// 工具栏配置
+const toolBarConfig = {
+  create: true,
+  createText: '新增图书',
+  reload: true,
+  density: true,
+  columnSetting: true,
+  fullScreen: true
+}
 
 // 列设置
 const visibleColumns = ref([
@@ -569,6 +592,43 @@ const fetchBooks = async () => {
   }
 }
 
+// ProTable数据请求函数
+const requestBooks = async (params) => {
+  try {
+    console.log('ProTable请求参数:', params)
+    
+    const requestParams = {
+      page: params.current || 1,
+      size: params.pageSize || 20,
+      sortBy: params.sorter || 'createdAt',
+      sortOrder: params.order === 'ascend' ? 'asc' : 'desc',
+      ...searchForm
+    }
+
+    // 处理日期范围
+    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
+      requestParams.startDate = searchForm.dateRange[0]
+      requestParams.endDate = searchForm.dateRange[1]
+    }
+
+    const { data } = await bookApi.getBooks(requestParams)
+    
+    return {
+      success: true,
+      data: data.books || [],
+      total: data.total || 0
+    }
+  } catch (error) {
+    console.error('获取图书列表失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
+  }
+}
+
 const fetchCategories = async () => {
   try {
     const { data } = await bookApi.getCategories()
@@ -636,6 +696,11 @@ const handleSelectionChange = selection => {
 
   selectAll.value = selectedCount === totalCount && totalCount > 0
   isIndeterminate.value = selectedCount > 0 && selectedCount < totalCount
+}
+
+// ProTable选择变化处理
+const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
+  selectedBooks.value = selectedRows
 }
 
 const handleSelectAll = checked => {
@@ -812,6 +877,74 @@ const handleBatchDelete = async () => {
     if (error !== 'cancel') {
       console.error('批量删除失败:', error)
       ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+// ProTable批量操作处理函数
+const handleBatchDeleteFromTable = async (selectedRows) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.length} 本图书吗？此操作不可撤销！`,
+      '批量删除',
+      { type: 'warning' }
+    )
+
+    const bookIds = selectedRows.map(book => book.id)
+    await bookApi.batchDeleteBooks(bookIds)
+
+    ElMessage.success('批量删除成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+const handleBatchUpdateStatusFromTable = async (selectedRows) => {
+  try {
+    const { value: newStatus } = await ElMessageBox.prompt(`选择要设置的状态：`, '批量更新状态', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputType: 'select',
+      inputOptions: [
+        { value: 'available', label: '可借' },
+        { value: 'maintenance', label: '维修中' },
+        { value: 'offline', label: '已下架' }
+      ]
+    })
+
+    const bookIds = selectedRows.map(book => book.id)
+    await bookApi.batchUpdateStatus(bookIds, newStatus)
+
+    ElMessage.success('批量更新成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量更新失败:', error)
+      ElMessage.error('批量更新失败')
+    }
+  }
+}
+
+const handleBatchMoveFromTable = async (selectedRows) => {
+  try {
+    const { value: newLocation } = await ElMessageBox.prompt('请输入新的位置：', '批量移动位置', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    })
+
+    const bookIds = selectedRows.map(book => book.id)
+    await bookApi.batchUpdateLocation(bookIds, newLocation)
+
+    ElMessage.success('批量移动成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量移动失败:', error)
+      ElMessage.error('批量移动失败')
     }
   }
 }

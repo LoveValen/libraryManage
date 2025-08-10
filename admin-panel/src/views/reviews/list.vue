@@ -30,185 +30,99 @@
       <!-- 表格区域 -->
       <div class="table-section">
         <el-card shadow="never" class="table-card">
-          <!-- 表格工具栏 -->
-          <div class="table-toolbar">
-            <div class="toolbar-left">
-              <div v-if="selectedReviews.length > 0" class="selection-info">
-                <el-icon><Check /></el-icon>
-                <span>已选择 <strong>{{ selectedReviews.length }}</strong> 项</span>
-              </div>
-              <div class="batch-actions" :class="{ 'show': selectedReviews.length > 0 }">
-                <el-button type="success" :disabled="selectedReviews.length === 0" @click="handleBatchToggleStatus">
-                  <el-icon><Check /></el-icon>
-                  批量审核
-                </el-button>
-                <el-button type="danger" :disabled="selectedReviews.length === 0" @click="handleBatchDelete">
-                  <el-icon><Delete /></el-icon>
-                  批量删除
-                </el-button>
-                <el-button @click="clearSelection" v-if="selectedReviews.length > 0">
-                  取消选择
-                </el-button>
-              </div>
-            </div>
-            <div class="toolbar-right">
-              <el-tooltip content="刷新数据">
-                <el-button icon="Refresh" @click="fetchReviews" :loading="loading" />
-              </el-tooltip>
-              <el-tooltip content="导出数据">
-                <el-button icon="Download" @click="exportReviews" />
-              </el-tooltip>
-              <el-tooltip content="数据分析">
-                <el-button icon="TrendCharts" @click="showAnalytics" />
-              </el-tooltip>
-              <el-tooltip content="列设置">
-                <el-button icon="Setting" @click="showColumnSettings = true" />
-              </el-tooltip>
-            </div>
-          </div>
-
-          <!-- 数据表格 -->
-          <el-table
-            ref="tableRef"
-            v-loading="loading"
-            :data="reviewList"
-            stripe
-            border
-            height="600"
-            @selection-change="handleSelectionChange"
-            @sort-change="handleSortChange"
+          <!-- 评论管理表格 -->
+          <ProTable
+            ref="proTableRef"
+            :request="requestReviews"
+            :columns="reviewTableColumns"
+            :batch-actions="reviewBatchActions"
+            :actions="reviewRowActions"
+            :row-selection="{ type: 'checkbox' }"
+            :search="false"
+            :toolBar="reviewToolBarConfig"
+            :params="reviewSearchParams"
+            :action-column="{ width: 220, fixed: 'right' }"
+            row-key="id"
+            @create="handleAdd"
+            @selection-change="handleProTableSelectionChange"
           >
-            <el-table-column type="selection" width="50" fixed="left" />
-            <el-table-column label="序号" type="index" width="60" fixed="left" />
-
-            <el-table-column label="用户信息" min-width="180" fixed="left">
-              <template #default="{ row }">
-                <div class="user-info">
-                  <el-avatar :src="row.user?.avatar" :size="32">
-                    {{ row.user?.username?.charAt(0) }}
-                  </el-avatar>
-                  <div class="user-details">
-                    <div class="user-name">{{ row.user?.username }}</div>
-                    <div class="user-meta">{{ row.user?.email }}</div>
-                  </div>
+            <!-- 用户信息插槽 -->
+            <template #userInfo="{ record }">
+              <div class="user-info">
+                <el-avatar :src="record.user?.avatar" :size="32">
+                  {{ record.user?.username?.charAt(0) }}
+                </el-avatar>
+                <div class="user-details">
+                  <div class="user-name">{{ record.user?.username }}</div>
+                  <div class="user-meta">{{ record.user?.email }}</div>
                 </div>
-              </template>
-            </el-table-column>
+              </div>
+            </template>
 
-            <el-table-column label="图书信息" min-width="250">
-              <template #default="{ row }">
-                <div class="book-info">
-                  <img :src="row.book?.cover" :alt="row.book?.title" class="book-cover-small" />
-                  <div class="book-details">
-                    <div class="book-title">{{ row.book?.title }}</div>
-                    <div class="book-author">{{ row.book?.author }}</div>
-                  </div>
+            <!-- 图书信息插槽 -->
+            <template #bookInfo="{ record }">
+              <div class="book-info">
+                <img :src="record.book?.cover" :alt="record.book?.title" class="book-cover-small" />
+                <div class="book-details">
+                  <div class="book-title">{{ record.book?.title }}</div>
+                  <div class="book-author">{{ record.book?.author }}</div>
                 </div>
-              </template>
-            </el-table-column>
+              </div>
+            </template>
 
-            <el-table-column label="评分" width="120" sortable="custom" prop="rating">
-              <template #default="{ row }">
-                <el-rate v-model="row.rating" disabled size="small" />
-              </template>
-            </el-table-column>
+            <!-- 评分插槽 -->
+            <template #rating="{ record }">
+              <el-rate v-model="record.rating" disabled size="small" />
+            </template>
 
-            <el-table-column label="评价内容" min-width="300">
-              <template #default="{ row }">
-                <div class="review-content">
-                  <p class="review-text">{{ row.content }}</p>
-                  <div v-if="row.images?.length" class="review-images">
-                    <el-image
-                      v-for="(image, index) in row.images.slice(0, 3)"
-                      :key="index"
-                      :src="image"
-                      class="review-image"
-                      fit="cover"
-                      :preview-src-list="row.images"
-                    />
-                    <span v-if="row.images.length > 3" class="more-images">
-                      +{{ row.images.length - 3 }}
-                    </span>
-                  </div>
+            <!-- 评价内容插槽 -->
+            <template #reviewContent="{ record }">
+              <div class="review-content">
+                <p class="review-text">{{ record.content }}</p>
+                <div v-if="record.images?.length" class="review-images">
+                  <el-image
+                    v-for="(image, index) in record.images.slice(0, 3)"
+                    :key="index"
+                    :src="image"
+                    class="review-image"
+                    fit="cover"
+                    :preview-src-list="record.images"
+                  />
+                  <span v-if="record.images.length > 3" class="more-images">
+                    +{{ record.images.length - 3 }}
+                  </span>
                 </div>
-              </template>
-            </el-table-column>
+              </div>
+            </template>
 
-            <el-table-column label="状态" width="100" sortable="custom" prop="status">
-              <template #default="{ row }">
-                <StatusTag :status="row.status" :preset="'review'" size="small" />
-              </template>
-            </el-table-column>
+            <!-- 状态插槽 -->
+            <template #status="{ record }">
+              <StatusTag :status="record.status" :preset="'review'" size="small" />
+            </template>
 
-            <el-table-column label="点赞数" width="80" sortable="custom" prop="likeCount">
-              <template #default="{ row }">
-                <span class="like-count">{{ row.likeCount || 0 }}</span>
-              </template>
-            </el-table-column>
+            <!-- 点赞数插槽 -->
+            <template #likeCount="{ record }">
+              <span class="like-count">{{ record.likeCount || 0 }}</span>
+            </template>
 
-            <el-table-column label="评价时间" width="160" sortable="custom" prop="createdAt">
-              <template #default="{ row }">
-                <div class="time-info">
-                  <div>{{ formatDate(row.createdAt) }}</div>
-                  <div class="time-ago">{{ formatTimeAgo(row.createdAt) }}</div>
-                </div>
-              </template>
-            </el-table-column>
+            <!-- 评价时间插槽 -->
+            <template #createdTime="{ record }">
+              <div class="time-info">
+                <div>{{ formatDate(record.createdAt) }}</div>
+                <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
+              </div>
+            </template>
 
-            <el-table-column label="操作" width="200" fixed="right">
-              <template #default="{ row }">
-                <div class="action-buttons">
-                  <el-button type="primary" link size="small" @click="handleView(row)">
-                    <el-icon><View /></el-icon>
-                    查看
-                  </el-button>
-                  <el-button type="success" link size="small" @click="handleApprove(row)">
-                    <el-icon><Check /></el-icon>
-                    审核
-                  </el-button>
-                  <el-dropdown @command="command => handleAction(command, row)">
-                    <el-button type="info" link size="small">
-                      更多
-                      <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item command="edit">
-                          <el-icon><Edit /></el-icon>
-                          编辑
-                        </el-dropdown-item>
-                        <el-dropdown-item command="reply">
-                          <el-icon><ChatDotRound /></el-icon>
-                          回复
-                        </el-dropdown-item>
-                        <el-dropdown-item command="report">
-                          <el-icon><Warning /></el-icon>
-                          举报处理
-                        </el-dropdown-item>
-                        <el-dropdown-item command="delete" divided>
-                          <el-icon><Delete /></el-icon>
-                          删除
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </div>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <!-- 分页 -->
-          <div class="pagination-wrapper">
-            <el-pagination
-              v-model:current-page="pagination.page"
-              v-model:page-size="pagination.size"
-              :page-sizes="[10, 20, 50, 100]"
-              :total="pagination.total"
-              layout="total, sizes, prev, pager, next, jumper"
-              @size-change="handleSizeChange"
-              @current-change="handlePageChange"
-            />
-          </div>
+            <!-- 工具栏插槽 -->
+            <template #toolBarRender>
+              <el-button type="info" :icon="TrendCharts" @click="showAnalytics">
+                数据分析
+              </el-button>
+              <el-button type="success" :icon="Download" @click="exportReviews">
+                导出数据
+              </el-button>
+            </template>
+          </ProTable>
         </el-card>
       </div>
     </div>
@@ -216,8 +130,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus, 
   ChatDotRound, 
@@ -232,8 +146,9 @@ import {
   Setting,
   TrendCharts
 } from '@element-plus/icons-vue'
-import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import StatusTag from '@/components/common/StatusTag.vue'
+import { ProTable } from '@/components/common'
 import { formatDate, formatTimeAgo } from '@/utils/date'
 
 // 响应式数据
@@ -241,6 +156,7 @@ const loading = ref(false)
 const reviewList = ref([])
 const selectedReviews = ref([])
 const tableRef = ref()
+const proTableRef = ref()
 const showColumnSettings = ref(false)
 
 // 搜索表单
@@ -251,46 +167,44 @@ const searchForm = reactive({
   dateRange: null
 })
 
-// 搜索字段配置
+// 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
   {
-    key: 'keyword',
-    type: 'input',
+    name: 'keyword',
+    valueType: 'text',
     label: '关键词',
-    placeholder: '搜索用户名、图书名、评价内容',
-    inputWidth: '250px'
+    placeholder: '输入用户名、图书名或评价内容搜索',
+    clearable: true
   },
   {
-    key: 'status',
-    type: 'select',
-    label: '状态',
-    placeholder: '选择状态',
+    name: 'status',
+    valueType: 'select',
+    label: '审核状态',
+    placeholder: '选择审核状态',
     options: [
       { label: '待审核', value: 'pending' },
-      { label: '已通过', value: 'approved' },
-      { label: '已拒绝', value: 'rejected' }
+      { label: '审核通过', value: 'approved' },
+      { label: '审核拒绝', value: 'rejected' }
     ]
   },
   {
-    key: 'rating',
-    type: 'select',
-    label: '评分',
-    placeholder: '选择评分',
+    name: 'rating',
+    valueType: 'select',
+    label: '评分等级',
+    placeholder: '选择评分等级',
     options: [
-      { label: '5星', value: '5' },
-      { label: '4星', value: '4' },
-      { label: '3星', value: '3' },
-      { label: '2星', value: '2' },
-      { label: '1星', value: '1' }
+      { label: '⭐⭐⭐⭐⭐ 5星', value: '5' },
+      { label: '⭐⭐⭐⭐ 4星', value: '4' },
+      { label: '⭐⭐⭐ 3星', value: '3' },
+      { label: '⭐⭐ 2星', value: '2' },
+      { label: '⭐ 1星', value: '1' }
     ]
   },
   {
-    key: 'dateRange',
-    type: 'date',
-    dateType: 'daterange',
+    name: 'dateRange',
+    valueType: 'dateRange',
     label: '评价时间',
-    startPlaceholder: '开始日期',
-    endPlaceholder: '结束日期'
+    placeholder: ['开始日期', '结束日期']
   }
 ]
 
@@ -300,6 +214,123 @@ const pagination = reactive({
   size: 20,
   total: 0
 })
+
+// ProTable配置
+const reviewSearchParams = computed(() => ({
+  ...searchForm
+}))
+
+// 表格列配置
+const reviewTableColumns = [
+  {
+    key: 'userInfo',
+    title: '用户信息',
+    slot: 'userInfo',
+    minWidth: 160
+  },
+  {
+    key: 'bookInfo',
+    title: '图书信息',
+    slot: 'bookInfo',
+    minWidth: 220
+  },
+  {
+    key: 'rating',
+    title: '评分',
+    slot: 'rating',
+    minWidth: 100,
+    sorter: true,
+    align: 'center'
+  },
+  {
+    key: 'reviewContent',
+    title: '评价内容',
+    slot: 'reviewContent',
+    minWidth: 260
+  },
+  {
+    key: 'status',
+    title: '状态',
+    slot: 'status',
+    minWidth: 90,
+    sorter: true
+  },
+  {
+    key: 'likeCount',
+    title: '点赞数',
+    slot: 'likeCount',
+    minWidth: 70,
+    sorter: true,
+    align: 'center'
+  },
+  {
+    key: 'createdAt',
+    title: '评价时间',
+    slot: 'createdTime',
+    minWidth: 140,
+    sorter: true
+  }
+]
+
+// 批量操作配置
+const reviewBatchActions = [
+  {
+    key: 'batchApprove',
+    text: '批量审核',
+    type: 'success',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchApproveFromTable(selectedRows)
+  },
+  {
+    key: 'batchDelete',
+    text: '批量删除',
+    type: 'danger',
+    onClick: (selectedRowKeys, selectedRows) => handleBatchDeleteFromTable(selectedRows)
+  }
+]
+
+// 行操作配置
+const reviewRowActions = [
+  {
+    key: 'view',
+    text: '查看',
+    type: 'primary',
+    onClick: (record) => handleView(record)
+  },
+  {
+    key: 'approve',
+    text: '审核',
+    type: 'success',
+    onClick: (record) => handleApprove(record)
+  },
+  {
+    key: 'edit',
+    text: '编辑',
+    type: 'info',
+    onClick: (record) => handleAction('edit', record)
+  },
+  {
+    key: 'reply',
+    text: '回复',
+    type: 'warning',
+    onClick: (record) => handleAction('reply', record)
+  },
+  {
+    key: 'delete',
+    text: '删除',
+    type: 'danger',
+    onClick: (record) => handleAction('delete', record)
+  }
+]
+
+// 工具栏配置
+const reviewToolBarConfig = {
+  create: true,
+  createText: '新增评论',
+  reload: true,
+  density: true,
+  columnSetting: true,
+  fullScreen: true
+}
 
 // 方法
 const fetchReviews = async () => {
@@ -331,6 +362,56 @@ const fetchReviews = async () => {
   }
 }
 
+// ProTable数据请求函数
+const requestReviews = async (params) => {
+  try {
+    console.log('ProTable请求参数:', params)
+    
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    // 模拟数据
+    const mockData = [
+      {
+        id: 1,
+        user: { username: 'user1', email: 'user1@example.com', avatar: '' },
+        book: { title: '《JavaScript权威指南》', author: 'David Flanagan', cover: '' },
+        rating: 5,
+        content: '非常好的JavaScript参考书，内容详实，讲解清晰。',
+        status: 'approved',
+        likeCount: 12,
+        createdAt: new Date().toISOString(),
+        images: []
+      },
+      {
+        id: 2,
+        user: { username: 'user2', email: 'user2@example.com', avatar: '' },
+        book: { title: '《Vue.js设计与实现》', author: '霍春阳', cover: '' },
+        rating: 4,
+        content: '深入Vue.js源码，对理解框架原理很有帮助。',
+        status: 'pending',
+        likeCount: 8,
+        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        images: []
+      }
+    ]
+
+    return {
+      success: true,
+      data: mockData,
+      total: mockData.length
+    }
+  } catch (error) {
+    console.error('获取评论列表失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
+  }
+}
+
 const handleSearch = () => {
   pagination.page = 1
   fetchReviews()
@@ -349,6 +430,11 @@ const handleReset = () => {
 
 const handleSelectionChange = (selection) => {
   selectedReviews.value = selection
+}
+
+// ProTable选择变化处理
+const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
+  selectedReviews.value = selectedRows
 }
 
 const handleSortChange = ({ prop, order }) => {
@@ -406,6 +492,63 @@ const exportReviews = () => {
 
 const showAnalytics = () => {
   ElMessage.info('显示数据分析')
+}
+
+// ProTable批量操作处理函数
+const handleBatchApproveFromTable = async (selectedRows) => {
+  if (selectedRows.length === 0) {
+    ElMessage.warning('请选择要审核的评论')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要批量审核选中的 ${selectedRows.length} 条评论吗？`,
+      '批量审核',
+      { type: 'warning' }
+    )
+
+    // 这里应该调用批量审核API
+    // await reviewApi.batchApprove(selectedRows.map(row => row.id))
+    
+    ElMessage.success('批量审核成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量审核失败:', error)
+      ElMessage.error('批量审核失败')
+    }
+  }
+}
+
+const handleBatchDeleteFromTable = async (selectedRows) => {
+  if (selectedRows.length === 0) {
+    ElMessage.warning('请选择要删除的评论')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.length} 条评论吗？此操作不可撤销！`,
+      '批量删除',
+      { type: 'warning' }
+    )
+
+    // 这里应该调用批量删除API
+    // await reviewApi.batchDelete(selectedRows.map(row => row.id))
+    
+    ElMessage.success('批量删除成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+const handleAdd = () => {
+  ElMessage.info('新增评论功能开发中')
 }
 
 const clearSelection = () => {

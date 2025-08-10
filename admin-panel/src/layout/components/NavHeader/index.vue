@@ -66,7 +66,7 @@
       <el-dropdown class="header-item" @command="handleLanguageChange">
         <div class="language-selector">
           <el-icon class="header-icon">
-            <Translate />
+            <Switch />
           </el-icon>
           <span class="language-text">{{ currentLanguage.label }}</span>
         </div>
@@ -122,6 +122,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import { Switch, QuestionFilled, SwitchButton } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useRouter } from 'vue-router'

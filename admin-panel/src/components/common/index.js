@@ -1,11 +1,15 @@
 // 通用组件统一导出
 
-// 数据展示组件
-export { default as DataTable } from './DataTable.vue'
+// 数据展示组件 (TSX版本)
+export { default as ProTable } from './ProTable.tsx'
 export { default as StatusTag } from './StatusTag.vue'
 export { default as DetailTabs } from './DetailTabs.vue'
+export { default as SvgIcon } from './SvgIcon.vue'
 
-// 表单组件
+// 表单组件 (TSX版本)
+export { default as ProForm } from './ProForm.tsx'
+export { default as FormFieldRender } from './FormFieldRender.tsx'
+export { default as SearchFilterSimple } from './SearchFilterSimple.tsx'
 export { default as FormCard } from './FormCard.vue'
 export { default as FileUpload } from './FileUpload.vue'
 
@@ -17,12 +21,16 @@ export { default as ThemeManager } from './ThemeManager.vue'
 
 // 批量注册函数
 export function registerCommonComponents(app) {
-  // 数据展示组件
-  app.component('DataTable', () => import('./DataTable.vue'))
+  // 数据展示组件 (TSX版本)
+  app.component('ProTable', () => import('./ProTable.tsx'))
   app.component('StatusTag', () => import('./StatusTag.vue'))
   app.component('DetailTabs', () => import('./DetailTabs.vue'))
+  app.component('SvgIcon', () => import('./SvgIcon.vue'))
 
-  // 表单组件
+  // 表单组件 (TSX版本)
+  app.component('ProForm', () => import('./ProForm.tsx'))
+  app.component('FormFieldRender', () => import('./FormFieldRender.tsx'))
+  app.component('SearchFilterSimple', () => import('./SearchFilterSimple.tsx'))
   app.component('FormCard', () => import('./FormCard.vue'))
   app.component('FileUpload', () => import('./FileUpload.vue'))
 
@@ -486,23 +494,31 @@ export const PRESETS = {
   }
 }
 
-// 导入组件用于默认导出
-import DataTable from './DataTable.vue'
+// 导入组件用于默认导出 (TSX版本)
+import ProTable from './ProTable.tsx'
+import ProForm from './ProForm.tsx'
+import FormFieldRender from './FormFieldRender.tsx'
+import SearchFilterSimple from './SearchFilterSimple.tsx'
 import StatusTag from './StatusTag.vue'
 import DetailTabs from './DetailTabs.vue'
 import FormCard from './FormCard.vue'
 import FileUpload from './FileUpload.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import ThemeManager from './ThemeManager.vue'
+import SvgIcon from './SvgIcon.vue'
 
 export default {
-  DataTable,
+  ProTable,
+  ProForm,
+  FormFieldRender,
+  SearchFilterSimple,
   StatusTag,
   DetailTabs,
   FormCard,
   FileUpload,
   ConfirmDialog,
   ThemeManager,
+  SvgIcon,
   registerCommonComponents,
   COMPONENT_CONFIGS,
   COMPONENT_UTILS,

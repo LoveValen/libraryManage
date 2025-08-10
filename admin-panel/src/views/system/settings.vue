@@ -263,20 +263,6 @@
             <el-col :span="8">
               <div class="maintenance-item">
                 <div class="item-icon">
-                  <el-icon><FolderOpened /></el-icon>
-                </div>
-                <div class="item-content">
-                  <div class="item-title">数据备份</div>
-                  <div class="item-description">备份系统数据</div>
-                </div>
-                <el-button type="primary" size="small" @click="createBackup" :loading="backupLoading">
-                  备份
-                </el-button>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="maintenance-item">
-                <div class="item-icon">
                   <el-icon><Document /></el-icon>
                 </div>
                 <div class="item-content">
@@ -327,7 +313,6 @@ import InputNumber from '@/components/InputNumber.vue'
 
 // 响应式数据
 const saving = ref(false)
-const backupLoading = ref(false)
 const cleaningLogs = ref(false)
 const cleaningCache = ref(false)
 const currentTime = ref('')
@@ -410,30 +395,6 @@ const resetSettings = () => {
 }
 
 // 系统维护操作
-const createBackup = async () => {
-  try {
-    await ElMessageBox.confirm('确定要创建数据备份吗？', '创建备份', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
-
-    backupLoading.value = true
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    ElNotification.success({
-      title: '备份成功',
-      message: '数据备份已创建完成'
-    })
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('备份失败')
-    }
-  } finally {
-    backupLoading.value = false
-  }
-}
-
 const cleanLogs = async () => {
   try {
     await ElMessageBox.confirm('确定要清理过期日志吗？', '清理日志', {

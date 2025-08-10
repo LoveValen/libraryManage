@@ -104,163 +104,11 @@ model audit_logs {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model backup_jobs {
-  id                                                                       Int                         @id @default(autoincrement()) @db.UnsignedInt
-  backup_type                                                              backup_jobs_backup_type     @default(full)
-  status                                                                   backup_jobs_status          @default(pending)
-  name                                                                     String                      @db.VarChar(200)
-  description                                                              String?                     @db.Text
-  scheduled_at                                                             DateTime?                   @db.DateTime(0)
-  started_at                                                               DateTime?                   @db.DateTime(0)
-  completed_at                                                             DateTime?                   @db.DateTime(0)
-  duration                                                                 Int?
-  file_path                                                                String?                     @db.Text
-  file_size                                                                BigInt?
-  file_count                                                               Int?
-  compressed_size                                                          BigInt?
-  compression_ratio                                                        Float?                      @db.Float
-  encrypted                                                                Boolean                     @default(false)
-  encryption_algorithm                                                     String?                     @db.VarChar(50)
-  checksum                                                                 String?                     @db.VarChar(128)
-  checksum_algorithm                                                       String?                     @default("sha256") @db.VarChar(20)
-  storage_backend                                                          backup_jobs_storage_backend @default(local)
-  storage_config                                                           Json?
-  storage_path                                                             String?                     @db.Text
-  backup_config                                                            Json?
-  backup_scope                                                             Json?
-  error_message                                                            String?                     @db.Text
-  error_details                                                            Json?
-  warnings                                                                 Json?
-  statistics                                                               Json?
-  progress                                                                 Float                       @default(0) @db.Float
-  current_operation                                                        String?                     @db.VarChar(200)
-  trigger                                                                  backup_jobs_trigger         @default(manual)
-  triggered_by                                                             Int?                        @db.UnsignedInt
-  schedule_id                                                              Int?                        @db.UnsignedInt
-  parent_backup_id                                                         Int?                        @db.UnsignedInt
-  expires_at                                                               DateTime?                   @db.DateTime(0)
-  verified                                                                 Boolean                     @default(false)
-  verified_at                                                              DateTime?                   @db.DateTime(0)
-  verification_result                                                      Json?
-  tags                                                                     Json?
-  metadata                                                                 Json?
-  created_at                                                               DateTime                    @db.DateTime(0)
-  updated_at                                                               DateTime                    @db.DateTime(0)
-  deleted_at                                                               DateTime?                   @db.DateTime(0)
-  triggeredByUser                                                          users?                      @relation(fields: [triggered_by], references: [id], map: "backup_jobs_ibfk_1")
-  schedule                                                                 backup_schedules?           @relation(fields: [schedule_id], references: [id], map: "backup_jobs_ibfk_2")
-  parentBackup                                                             backup_jobs?                @relation("BackupJobHierarchy", fields: [parent_backup_id], references: [id], map: "backup_jobs_ibfk_3")
-  childBackups                                                             backup_jobs[]               @relation("BackupJobHierarchy")
-  restoreOperations                                                        restore_operations[]        @relation("RestoreFromBackup")
-  preRestoreBackups                                                        restore_operations[]        @relation("PreRestoreBackup")
+// backup_jobs model removed
 
-  @@index([backup_type], map: "backup_jobs_backup_type")
-  @@index([completed_at], map: "backup_jobs_completed_at")
-  @@index([expires_at], map: "backup_jobs_expires_at")
-  @@index([parent_backup_id], map: "backup_jobs_parent_backup_id")
-  @@index([schedule_id], map: "backup_jobs_schedule_id")
-  @@index([scheduled_at], map: "backup_jobs_scheduled_at")
-  @@index([started_at], map: "backup_jobs_started_at")
-  @@index([status], map: "backup_jobs_status")
-  @@index([storage_backend], map: "backup_jobs_storage_backend")
-  @@index([triggered_by], map: "backup_jobs_triggered_by")
-  @@index([verified], map: "backup_jobs_verified")
-}
+// backup_schedules model removed
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model backup_schedules {
-  id                                       Int                               @id @default(autoincrement()) @db.UnsignedInt
-  name                                     String                            @unique(map: "name") @db.VarChar(200)
-  description                              String?                           @db.Text
-  enabled                                  Boolean                           @default(true)
-  backup_type                              backup_schedules_backup_type      @default(full)
-  cron_expression                          String                            @db.VarChar(100)
-  timezone                                 String                            @default("Asia/Shanghai") @db.VarChar(50)
-  backup_config                            Json
-  storage_config                           Json
-  notification_config                      Json?
-  retry_config                             Json?
-  priority                                 Int                               @default(5)
-  timeout                                  Int                               @default(3600)
-  concurrency_limit                        Int                               @default(1)
-  next_run_at                              DateTime?                         @db.DateTime(0)
-  last_run_at                              DateTime?                         @db.DateTime(0)
-  last_run_status                          backup_schedules_last_run_status?
-  last_run_result                          Json?
-  run_count                                Int                               @default(0)
-  success_count                            Int                               @default(0)
-  failure_count                            Int                               @default(0)
-  consecutive_failures                     Int                               @default(0)
-  avg_duration                             Float?                            @db.Float
-  last_error                               String?                           @db.Text
-  created_by                               Int?                              @db.UnsignedInt
-  updated_by                               Int?                              @db.UnsignedInt
-  environment                              String                            @default("production") @db.VarChar(50)
-  tags                                     Json?
-  conditions                               Json?
-  hooks                                    Json?
-  metadata                                 Json?
-  created_at                               DateTime                          @db.DateTime(0)
-  updated_at                               DateTime                          @db.DateTime(0)
-  deleted_at                               DateTime?                         @db.DateTime(0)
-  backupJobs                               backup_jobs[]
-  creator                                  users?                            @relation("BackupScheduleCreator", fields: [created_by], references: [id], map: "backup_schedules_ibfk_1")
-  updater                                  users?                            @relation("BackupScheduleUpdater", fields: [updated_by], references: [id], map: "backup_schedules_ibfk_2")
-
-  @@index([consecutive_failures], map: "backup_schedules_consecutive_failures")
-  @@index([created_by], map: "backup_schedules_created_by")
-  @@index([cron_expression], map: "backup_schedules_cron_expression")
-  @@index([enabled], map: "backup_schedules_enabled")
-  @@index([environment], map: "backup_schedules_environment")
-  @@index([last_run_at], map: "backup_schedules_last_run_at")
-  @@index([next_run_at], map: "backup_schedules_next_run_at")
-  @@index([priority], map: "backup_schedules_priority")
-  @@index([updated_by], map: "updated_by")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model backup_storages {
-  id                                      Int                               @id @default(autoincrement()) @db.UnsignedInt
-  name                                    String                            @unique(map: "name") @db.VarChar(100)
-  type                                    backup_storages_type
-  description                             String?                           @db.Text
-  enabled                                 Boolean                           @default(true)
-  is_default                              Boolean                           @default(false)
-  connection_config                       Json
-  auth_config                             Json?
-  path_config                             Json
-  limits                                  Json?
-  transfer_config                         Json?
-  encryption_config                       Json?
-  retention_policy                        Json?
-  monitoring_config                       Json?
-  connection_status                       backup_storages_connection_status @default(unknown)
-  last_connected_at                       DateTime?                         @db.DateTime(0)
-  last_connection_error                   String?                           @db.Text
-  usage_stats                             Json?
-  performance_metrics                     Json?
-  quota_info                              Json?
-  tags                                    Json?
-  priority                                Int                               @default(5)
-  environment                             String                            @default("production") @db.VarChar(50)
-  created_by                              Int?                              @db.UnsignedInt
-  updated_by                              Int?                              @db.UnsignedInt
-  metadata                                Json?
-  created_at                              DateTime                          @db.DateTime(0)
-  updated_at                              DateTime                          @db.DateTime(0)
-  deleted_at                              DateTime?                         @db.DateTime(0)
-  creator                                 users?                            @relation("BackupStorageCreator", fields: [created_by], references: [id], map: "backup_storages_ibfk_1")
-  updater                                 users?                            @relation("BackupStorageUpdater", fields: [updated_by], references: [id], map: "backup_storages_ibfk_2")
-
-  @@index([connection_status], map: "backup_storages_connection_status")
-  @@index([created_by], map: "backup_storages_created_by")
-  @@index([enabled], map: "backup_storages_enabled")
-  @@index([environment], map: "backup_storages_environment")
-  @@index([is_default], map: "backup_storages_is_default")
-  @@index([priority], map: "backup_storages_priority")
-  @@index([type], map: "backup_storages_type")
-  @@index([updated_by], map: "updated_by")
-}
+// backup_storages model removed
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model book_categories {
@@ -292,45 +140,45 @@ model book_categories {
 model books {
   id                       Int                        @id @default(autoincrement()) @db.UnsignedInt
   title                    String                     @db.VarChar(255)
-  subtitle                 String?                    @db.VarChar(255)
+  // subtitle removed
   isbn                     String                     @unique(map: "books_isbn") @db.VarChar(20)
   authors                  Json
   publisher                String?                    @db.VarChar(100)
   publication_year         Int?
-  publication_date         DateTime?                  @db.Date
+  // publication_date removed
   language                 String                     @default("zh-CN") @db.VarChar(20)
   category_id              Int?                       @db.UnsignedInt
   category                 String?                    @db.VarChar(50)
-  subcategory              String?                    @db.VarChar(50)
+  // subcategory removed
   tags                     Json?
   summary                  String?                    @db.Text
   description              String?                    @db.Text
-  table_of_contents        String?                    @db.Text
+  // table_of_contents removed
   cover_image              String?                    @db.VarChar(255)
-  back_cover_image         String?                    @db.VarChar(255)
+  // back_cover_image removed
   total_stock              Int                        @default(0) @db.UnsignedInt
   available_stock          Int                        @default(0) @db.UnsignedInt
   reserved_stock           Int                        @default(0) @db.UnsignedInt
   status                   books_status               @default(available)
   location                 String?                    @db.VarChar(50)
-  call_number              String?                    @db.VarChar(50)
+  // call_number removed
   price                    Decimal?                   @db.Decimal(10, 2)
   pages                    Int?                       @db.UnsignedInt
   format                   String?                    @db.VarChar(20)
-  dimensions               String?                    @db.VarChar(50)
-  weight                   Int?                       @db.UnsignedInt
-  ebook_url                String?                    @db.VarChar(255)
-  ebook_format             String?                    @db.VarChar(10)
-  ebook_file_size          Int?                       @db.UnsignedInt
+  // dimensions removed
+  // weight removed
+  // ebook_url removed
+  // ebook_format removed
+  // ebook_file_size removed
   has_ebook                Boolean?                   @default(false)
   borrow_count             Int?                       @default(0) @db.UnsignedInt
-  reserve_count            Int?                       @default(0) @db.UnsignedInt
+  // reserve_count removed
   view_count               Int?                       @default(0) @db.UnsignedInt
-  download_count           Int?                       @default(0) @db.UnsignedInt
+  // download_count removed
   average_rating           Decimal?                   @db.Decimal(3, 2)
   review_count             Int?                       @default(0) @db.UnsignedInt
-  acquired_date            DateTime?                  @db.Date
-  acquired_from            String?                    @db.VarChar(100)
+  // acquired_date removed
+  // acquired_from removed
   condition                books_condition?           @default(new)
   notes                    String?                    @db.Text
   is_deleted               Boolean?                   @default(false)
@@ -376,12 +224,12 @@ model borrows {
   damage_description                String?            @db.Text
   return_notes                      String?            @db.Text
   borrow_notes                      String?            @db.Text
-  notifications_sent                Json?
-  points_earned                     Int?               @default(0)
-  points_deducted                   Int?               @default(0)
+  // notifications_sent removed
+  // points_earned removed
+  // points_deducted removed
   processed_by                      Int?               @db.UnsignedInt
-  borrow_location                   String?            @db.VarChar(100)
-  return_location                   String?            @db.VarChar(100)
+  // borrow_location removed
+  // return_location removed
   is_deleted                        Boolean?           @default(false)
   created_at                        DateTime           @db.DateTime(0)
   updated_at                        DateTime           @db.DateTime(0)
@@ -440,29 +288,7 @@ model health_check_templates {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model import_files {
-  id                String              @id @db.Char(36)
-  original_name     String              @db.VarChar(255)
-  file_name         String              @db.VarChar(255)
-  file_path         String              @db.VarChar(500)
-  file_size         Int
-  mime_type         String              @db.VarChar(100)
-  uploaded_by       Int                 @db.UnsignedInt
-  status            import_files_status @default(uploaded)
-  record_count      Int?                @default(0)
-  metadata          Json?
-  validation_result Json?
-  import_result     Json?
-  processed_at      DateTime?           @db.DateTime(0)
-  deleted_at        DateTime?           @db.DateTime(0)
-  created_at        DateTime            @db.DateTime(0)
-  updated_at        DateTime            @db.DateTime(0)
-  uploader          users               @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, map: "import_files_ibfk_1")
-
-  @@index([created_at], map: "import_files_created_at")
-  @@index([status], map: "import_files_status")
-  @@index([uploaded_by], map: "import_files_uploaded_by")
-}
+// import_files model removed
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model login_attempts {
@@ -561,25 +387,25 @@ model notifications {
   status        notifications_status?   @default(pending)
   is_read       Boolean?                @default(false)
   read_at       DateTime?               @db.DateTime(0)
-  channel       Json?
+  // channel removed
   metadata      Json?
   related_id    Int?                    @db.UnsignedInt
   related_type  String?                 @db.VarChar(50)
   action_url    String?                 @db.VarChar(500)
-  expires_at    DateTime?               @db.DateTime(0)
-  scheduled_at  DateTime?               @db.DateTime(0)
-  sent_at       DateTime?               @db.DateTime(0)
-  retry_count   Int?                    @default(0)
-  error_message String?                 @db.Text
+  // expires_at removed
+  // scheduled_at removed
+  // sent_at removed
+  // retry_count removed
+  // error_message removed
   created_at    DateTime                @db.DateTime(0)
   updated_at    DateTime                @db.DateTime(0)
   deleted_at    DateTime?               @db.DateTime(0)
   relatedBorrow borrows?                @relation(fields: [related_id], references: [id], onDelete: Cascade, map: "notifications_ibfk_2")
 
   @@index([created_at], map: "notifications_created_at")
-  @@index([expires_at], map: "notifications_expires_at")
+  // expires_at index removed
   @@index([related_id, related_type], map: "notifications_related_id_related_type")
-  @@index([scheduled_at], map: "notifications_scheduled_at")
+  // scheduled_at index removed
   @@index([type, priority], map: "notifications_type_priority")
   @@index([user_id, status], map: "notifications_user_id_status")
 }
@@ -597,25 +423,22 @@ model points_transactions {
   related_entity_id                                                                          Int?                                 @db.UnsignedInt
   metadata                                                                                   Json?
   processed_by                                                                               Int?                                 @db.UnsignedInt
-  batch_id                                                                                   String?                              @db.VarChar(36)
+  // batch_id removed
   status                                                                                     points_transactions_status?          @default(completed)
-  reversal_transaction_id                                                                    BigInt?                              @db.UnsignedBigInt
-  original_transaction_id                                                                    BigInt?                              @db.UnsignedBigInt
-  expires_at                                                                                 DateTime?                            @db.DateTime(0)
-  ip_address                                                                                 String?                              @db.VarChar(45)
-  user_agent                                                                                 String?                              @db.VarChar(255)
-  notes                                                                                      String?                              @db.Text
+  // reversal_transaction_id removed
+  // original_transaction_id removed
+  // expires_at removed
+  // ip_address removed
+  // user_agent removed
+  // notes removed
   created_at                                                                                 DateTime                             @db.DateTime(0)
   updated_at                                                                                 DateTime                             @db.DateTime(0)
   user                                                                                       users                                @relation("UserPointsTransactions", fields: [user_id], references: [id], onDelete: Cascade, map: "points_transactions_ibfk_1")
   processor                                                                                  users?                               @relation("PointsTransactionProcessor", fields: [processed_by], references: [id], map: "points_transactions_ibfk_2")
-  reversalTransaction                                                                        points_transactions?                 @relation("ReversalTransaction", fields: [reversal_transaction_id], references: [id], map: "points_transactions_ibfk_3")
-  reversedByTransactions                                                                     points_transactions[]                @relation("ReversalTransaction")
-  originalTransaction                                                                        points_transactions?                 @relation("OriginalTransaction", fields: [original_transaction_id], references: [id], map: "points_transactions_ibfk_4")
-  reversalOfTransactions                                                                     points_transactions[]                @relation("OriginalTransaction")
+  // reversal transaction relations removed
+  // original transaction relations removed
 
-  @@index([original_transaction_id], map: "original_transaction_id")
-  @@index([batch_id], map: "points_transactions_batch_id")
+  // batch_id index removed
   @@index([created_at], map: "points_transactions_created_at")
   @@index([processed_by], map: "points_transactions_processed_by")
   @@index([related_entity_type, related_entity_id], map: "points_transactions_related_entity_type_related_entity_id")
@@ -624,7 +447,7 @@ model points_transactions {
   @@index([user_id], map: "points_transactions_user_id")
   @@index([user_id, created_at], map: "points_transactions_user_id_created_at")
   @@index([user_id, transaction_type], map: "points_transactions_user_id_transaction_type")
-  @@index([reversal_transaction_id], map: "reversal_transaction_id")
+  // reversal transaction indexes removed
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
@@ -786,65 +609,7 @@ model recommendations {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model restore_operations {
-  id                                                                Int                             @id @default(autoincrement()) @db.UnsignedInt
-  backup_job_id                                                     Int                             @db.UnsignedInt
-  restore_type                                                      restore_operations_restore_type @default(full)
-  status                                                            restore_operations_status       @default(pending)
-  name                                                              String                          @db.VarChar(200)
-  description                                                       String?                         @db.Text
-  target_timestamp                                                  DateTime?                       @db.DateTime(0)
-  scheduled_at                                                      DateTime?                       @db.DateTime(0)
-  started_at                                                        DateTime?                       @db.DateTime(0)
-  completed_at                                                      DateTime?                       @db.DateTime(0)
-  duration                                                          Int?
-  restore_config                                                    Json
-  restore_scope                                                     Json?
-  target_paths                                                      Json?
-  pre_check_results                                                 Json?
-  pre_restore_backup_id                                             Int?                            @db.UnsignedInt
-  progress                                                          Float                           @default(0) @db.Float
-  current_operation                                                 String?                         @db.VarChar(200)
-  statistics                                                        Json?
-  error_message                                                     String?                         @db.Text
-  error_details                                                     Json?
-  warnings                                                          Json?
-  verification_result                                               Json?
-  rollback_info                                                     Json?
-  trigger                                                           restore_operations_trigger      @default(manual)
-  triggered_by                                                      Int?                            @db.UnsignedInt
-  approved_by                                                       Int?                            @db.UnsignedInt
-  approved_at                                                       DateTime?                       @db.DateTime(0)
-  approval_note                                                     String?                         @db.Text
-  priority                                                          restore_operations_priority     @default(normal)
-  environment                                                       String                          @default("production") @db.VarChar(50)
-  is_test_restore                                                   Boolean                         @default(false)
-  auto_cleanup_at                                                   DateTime?                       @db.DateTime(0)
-  tags                                                              Json?
-  metadata                                                          Json?
-  execution_log                                                     String?                         @db.Text
-  created_at                                                        DateTime                        @db.DateTime(0)
-  updated_at                                                        DateTime                        @db.DateTime(0)
-  deleted_at                                                        DateTime?                       @db.DateTime(0)
-  sourceBackup                                                      backup_jobs                     @relation("RestoreFromBackup", fields: [backup_job_id], references: [id], onDelete: Cascade, map: "restore_operations_ibfk_1")
-  preRestoreBackup                                                  backup_jobs?                    @relation("PreRestoreBackup", fields: [pre_restore_backup_id], references: [id], map: "restore_operations_ibfk_2")
-  triggeredByUser                                                   users?                          @relation("RestoreTriggeredBy", fields: [triggered_by], references: [id], map: "restore_operations_ibfk_3")
-  approvedByUser                                                    users?                          @relation("RestoreApprovedBy", fields: [approved_by], references: [id], map: "restore_operations_ibfk_4")
-
-  @@index([pre_restore_backup_id], map: "pre_restore_backup_id")
-  @@index([approved_by], map: "restore_operations_approved_by")
-  @@index([auto_cleanup_at], map: "restore_operations_auto_cleanup_at")
-  @@index([backup_job_id], map: "restore_operations_backup_job_id")
-  @@index([completed_at], map: "restore_operations_completed_at")
-  @@index([environment], map: "restore_operations_environment")
-  @@index([is_test_restore], map: "restore_operations_is_test_restore")
-  @@index([priority], map: "restore_operations_priority")
-  @@index([restore_type], map: "restore_operations_restore_type")
-  @@index([scheduled_at], map: "restore_operations_scheduled_at")
-  @@index([started_at], map: "restore_operations_started_at")
-  @@index([status], map: "restore_operations_status")
-  @@index([triggered_by], map: "restore_operations_triggered_by")
-}
+// restore_operations model removed - unused enterprise feature
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model reviews {
@@ -864,8 +629,8 @@ model reviews {
   moderator_notes                   String?        @db.Text
   moderated_at                      DateTime?      @db.DateTime(0)
   is_verified_purchase              Boolean        @default(false)
-  reading_progress                  Int?
-  reading_time                      Int?
+  // reading_progress removed
+  // reading_time removed
   spoiler_alert                     Boolean        @default(false)
   language                          String         @default("zh-CN") @db.VarChar(10)
   created_at                        DateTime       @db.DateTime(0)
@@ -1033,13 +798,13 @@ model user_points {
   next_level_points      Int?      @db.UnsignedInt
   progress_to_next_level Decimal?  @default(0.00) @db.Decimal(5, 2)
   last_transaction_at    DateTime? @db.DateTime(0)
-  borrow_points          Int?      @default(0) @db.UnsignedInt
-  review_points          Int?      @default(0) @db.UnsignedInt
-  bonus_points           Int?      @default(0) @db.UnsignedInt
-  penalty_points         Int?      @default(0) @db.UnsignedInt
-  badge_count            Int?      @default(0) @db.UnsignedInt
-  rank_position          Int?      @db.UnsignedInt
-  last_rank_update       DateTime? @db.DateTime(0)
+  // borrow_points removed
+  // review_points removed
+  // bonus_points removed
+  // penalty_points removed
+  // badge_count removed
+  // rank_position removed
+  // last_rank_update removed
   created_at             DateTime  @db.DateTime(0)
   updated_at             DateTime  @db.DateTime(0)
   user                   users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_points_ibfk_1")
@@ -1047,7 +812,7 @@ model user_points {
   @@index([balance], map: "user_points_balance")
   @@index([last_transaction_at], map: "user_points_last_transaction_at")
   @@index([level], map: "user_points_level")
-  @@index([rank_position], map: "user_points_rank_position")
+  // rank_position index removed
   @@index([total_earned], map: "user_points_total_earned")
 }
 
@@ -1109,22 +874,22 @@ model users {
   real_name                                                     String?                    @db.VarChar(50)
   phone                                                         String?                    @db.VarChar(20)
   avatar                                                        String?                    @db.VarChar(255)
-  bio                                                           String?                    @db.Text
-  gender                                                        users_gender?
-  birthday                                                      DateTime?                  @db.DateTime(0)
-  student_id                                                    String?                    @db.VarChar(50)
-  department                                                    String?                    @db.VarChar(100)
-  points_balance                                                Int                        @default(0) @db.UnsignedInt
-  borrow_permission                                             Json?
-  borrow_limit                                                  Int                        @default(10) @db.UnsignedInt
-  wechat_openid                                                 String?                    @unique(map: "wechat_openid") @db.VarChar(128)
-  wechat_unionid                                                String?                    @unique(map: "wechat_unionid") @db.VarChar(128)
+  // bio removed
+  // gender removed
+  // birthday removed
+  // student_id removed
+  // department removed
+  // points_balance removed - duplicate with user_points table
+  // borrow_permission removed
+  // borrow_limit removed
+  // wechat_openid removed
+  // wechat_unionid removed
   role                                                          users_role                 @default(patron)
   status                                                        users_status               @default(active)
   last_login_at                                                 DateTime?                  @db.DateTime(0)
   last_login_ip                                                 String?                    @db.VarChar(45)
-  login_count                                                   Int?                       @default(0) @db.UnsignedInt
-  preferences                                                   Json?
+  // login_count removed
+  // preferences removed - use user_preferences table instead
   is_deleted                                                    Boolean?                   @default(false)
   deleted_at                                                    DateTime?                  @db.DateTime(0)
   created_at                                                    DateTime                   @db.DateTime(0)
@@ -1132,14 +897,14 @@ model users {
   acknowledgedAlerts                                            alerts[]                   @relation("AlertAcknowledger")
   resolvedAlerts                                                alerts[]                   @relation("AlertResolver")
   auditLogs                                                     audit_logs[]
-  triggeredBackupJobs                                           backup_jobs[]
-  createdBackupSchedules                                        backup_schedules[]         @relation("BackupScheduleCreator")
-  updatedBackupSchedules                                        backup_schedules[]         @relation("BackupScheduleUpdater")
-  createdBackupStorages                                         backup_storages[]          @relation("BackupStorageCreator")
-  updatedBackupStorages                                         backup_storages[]          @relation("BackupStorageUpdater")
+  // triggeredBackupJobs removed
+  // createdBackupSchedules removed
+  // updatedBackupSchedules removed
+  // createdBackupStorages removed
+  // updatedBackupStorages removed
   userBorrows                                                   borrows[]                  @relation("UserBorrows")
   processedBorrows                                              borrows[]                  @relation("BorrowProcessor")
-  uploadedFiles                                                 import_files[]
+  // uploadedFiles removed
   loginAttempts                                                 login_attempts[]
   pointsTransactions                                            points_transactions[]      @relation("UserPointsTransactions")
   processedPointsTransactions                                   points_transactions[]      @relation("PointsTransactionProcessor")
@@ -1147,8 +912,8 @@ model users {
   createdRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelCreator")
   updatedRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelUpdater")
   recommendations                                               recommendations[]
-  triggeredRestoreOperations                                    restore_operations[]       @relation("RestoreTriggeredBy")
-  approvedRestoreOperations                                     restore_operations[]       @relation("RestoreApprovedBy")
+  // triggeredRestoreOperations removed
+  // approvedRestoreOperations removed
   userReviews                                                   reviews[]                  @relation("UserReviews")
   moderatedReviews                                              reviews[]                  @relation("ReviewModerator")
   affectedBySecurityEvents                                      security_events[]          @relation("SecurityEventUser")
@@ -1163,7 +928,7 @@ model users {
   @@index([role], map: "users_role")
   @@index([status], map: "users_status")
   @@index([username], map: "users_username")
-  @@index([wechat_openid], map: "users_wechat_openid")
+  // wechat_openid index removed
 }
 
 enum alerts_alert_type {
@@ -1182,14 +947,7 @@ enum alerts_alert_type {
   custom
 }
 
-enum backup_jobs_backup_type {
-  full
-  incremental
-  differential
-  database_only
-  files_only
-  custom
-}
+// backup_jobs_backup_type enum removed
 
 enum security_events_event_type {
   authentication_failure
@@ -1235,29 +993,9 @@ enum alerts_severity {
   critical
 }
 
-enum backup_jobs_status {
-  pending
-  running
-  completed
-  failed
-  cancelled
-  expired
-}
+// backup_jobs_status enum removed
 
-enum backup_storages_type {
-  local
-  s3
-  azure
-  gcs
-  ftp
-  sftp
-  dropbox
-  onedrive
-  webdav
-  nfs
-  smb
-  custom
-}
+// backup_storages_type enum removed
 
 enum health_check_templates_check_type {
   database
@@ -1305,14 +1043,7 @@ enum recommendation_models_type {
   wide_and_deep
 }
 
-enum restore_operations_restore_type {
-  full
-  database_only
-  files_only
-  selective
-  point_in_time
-  partial
-}
+// restore_operations_restore_type enum removed
 
 enum security_events_severity {
   low
@@ -1343,15 +1074,7 @@ enum notification_templates_type {
   admin_alert
 }
 
-enum restore_operations_status {
-  pending
-  preparing
-  running
-  completed
-  failed
-  cancelled
-  rolled_back
-}
+// restore_operations_status enum removed
 
 enum security_events_status {
   new
@@ -1467,15 +1190,7 @@ enum borrows_status {
   damaged
 }
 
-enum import_files_status {
-  uploaded
-  processing
-  validation_passed
-  validation_failed
-  importing
-  completed
-  failed
-}
+// import_files_status enum removed
 
 enum recommendations_recommendation_type {
   personalized
@@ -1710,13 +1425,7 @@ enum login_attempts_mfa_method {
   biometric
 }
 
-enum restore_operations_trigger {
-  manual
-  scheduled
-  api
-  emergency
-  test
-}
+// restore_operations_trigger enum removed
 
 enum recommendations_source {
   system
@@ -1744,12 +1453,7 @@ enum backup_jobs_trigger {
   auto
 }
 
-enum restore_operations_priority {
-  low
-  normal
-  high
-  critical
-}
+// restore_operations_priority enum removed
 
 enum books_condition {
   new

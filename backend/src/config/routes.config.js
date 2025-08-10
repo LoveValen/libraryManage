@@ -14,7 +14,6 @@ const reviewsRoutes = require('../routes/reviews.routes');
 const pointsRoutes = require('../routes/points.routes');
 const notificationsRoutes = require('../routes/notifications.routes');
 const healthRoutes = require('../routes/health.routes');
-const backupRoutes = require('../routes/backup.routes');
 const restoreRoutes = require('../routes/restore.routes');
 const adminRoutes = require('../routes/admin.routes');
 
@@ -40,7 +39,6 @@ const setupApiInfo = (app) => {
         points: '/api/v1/points',
         notifications: '/api/v1/notifications',
         health: '/api/v1/health',
-        backup: '/api/v1/backup',
         restore: '/api/v1/restore',
         admin: '/api/v1/admin',
         systemHealth: '/health',
@@ -117,7 +115,6 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/points', pointsRoutes);
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/v1/health', healthRoutes);
-  app.use('/api/v1/backup', backupRoutes);
   app.use('/api/v1/restore', restoreRoutes);
   app.use('/api/v1/admin', adminRoutes);
 };

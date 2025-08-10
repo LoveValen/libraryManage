@@ -77,84 +77,85 @@
 
     <!-- 积分记录表格 -->
     <div class="table-section">
-      <el-table v-loading="loading" :data="pointsHistory" stripe border height="400" empty-text="暂无积分记录">
-        <el-table-column label="时间" width="160">
-          <template #default="{ row }">
-            <div class="time-info">
-              <div>{{ formatDate(row.createdAt) }}</div>
-              <div class="time-detail">{{ formatTime(row.createdAt) }}</div>
-            </div>
-          </template>
-        </el-table-column>
+      <ProTable
+        ref="proTableRef"
+        :request="requestPointsHistory"
+        :columns="pointsTableColumns"
+        :search="false"
+        :toolBar="false"
+        :pagination="{
+          current: pagination.page,
+          pageSize: pagination.size,
+          total: pagination.total,
+          pageSizes: [10, 20, 50],
+          showSizeChanger: true,
+          showQuickJumper: true,
+          onChange: handlePageChange,
+          onShowSizeChange: handleSizeChange
+        }"
+        row-key="id"
+        height="400"
+        empty-text="暂无积分记录"
+        stripe
+        border
+      >
+        <!-- 时间插槽 -->
+        <template #timeInfo="{ record }">
+          <div class="time-info">
+            <div>{{ formatDate(record.createdAt) }}</div>
+            <div class="time-detail">{{ formatTime(record.createdAt) }}</div>
+          </div>
+        </template>
 
-        <el-table-column label="类型" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.type === 'earn' ? 'success' : 'warning'" size="small">
-              {{ getTypeText(row.type) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <!-- 类型插槽 -->
+        <template #pointsType="{ record }">
+          <el-tag :type="record.type === 'earn' ? 'success' : 'warning'" size="small">
+            {{ getTypeText(record.type) }}
+          </el-tag>
+        </template>
 
-        <el-table-column label="来源" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getSourceTagType(row.source)" size="small">
-              {{ getSourceText(row.source) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <!-- 来源插槽 -->
+        <template #pointsSource="{ record }">
+          <el-tag :type="getSourceTagType(record.source)" size="small">
+            {{ getSourceText(record.source) }}
+          </el-tag>
+        </template>
 
-        <el-table-column label="积分变化" width="100">
-          <template #default="{ row }">
-            <span :class="['points-change', row.type === 'earn' ? 'earned' : 'spent']">
-              {{ row.type === 'earn' ? '+' : '-' }}{{ Math.abs(row.amount) }}
-            </span>
-          </template>
-        </el-table-column>
+        <!-- 积分变化插槽 -->
+        <template #pointsChange="{ record }">
+          <span :class="['points-change', record.type === 'earn' ? 'earned' : 'spent']">
+            {{ record.type === 'earn' ? '+' : '-' }}{{ Math.abs(record.amount) }}
+          </span>
+        </template>
 
-        <el-table-column label="余额" width="80">
-          <template #default="{ row }">
-            <span class="balance">{{ row.balance }}</span>
-          </template>
-        </el-table-column>
+        <!-- 余额插槽 -->
+        <template #balance="{ record }">
+          <span class="balance">{{ record.balance }}</span>
+        </template>
 
-        <el-table-column label="描述" min-width="200">
-          <template #default="{ row }">
-            <div class="description">
-              <div class="desc-title">{{ row.description }}</div>
-              <div class="desc-detail" v-if="row.detail">{{ row.detail }}</div>
-            </div>
-          </template>
-        </el-table-column>
+        <!-- 描述插槽 -->
+        <template #description="{ record }">
+          <div class="description">
+            <div class="desc-title">{{ record.description }}</div>
+            <div class="desc-detail" v-if="record.detail">{{ record.detail }}</div>
+          </div>
+        </template>
 
-        <el-table-column label="关联" width="120">
-          <template #default="{ row }">
-            <div v-if="row.relatedBook" class="related-info">
-              <el-button type="text" size="small" @click="viewBook(row.relatedBook)">
-                {{ row.relatedBook.title }}
-              </el-button>
-            </div>
-            <div v-else-if="row.relatedOrder" class="related-info">
-              <el-button type="text" size="small" @click="viewOrder(row.relatedOrder)">
-                订单#{{ row.relatedOrder.id }}
-              </el-button>
-            </div>
-            <span v-else class="no-related">-</span>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.size"
-          :page-sizes="[10, 20, 50]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
-        />
-      </div>
+        <!-- 关联插槽 -->
+        <template #related="{ record }">
+          <div v-if="record.relatedBook" class="related-info">
+            <el-button link size="small" @click="viewBook(record.relatedBook)">
+              {{ record.relatedBook.title }}
+            </el-button>
+          </div>
+          <div v-else-if="record.relatedOrder" class="related-info">
+            <el-button link size="small" @click="viewOrder(record.relatedOrder)">
+              订单#{{ record.relatedOrder.id }}
+            </el-button>
+          </div>
+          <span v-else class="no-related">-</span>
+        </template>
+      </ProTable>
     </div>
   </div>
 </template>
@@ -162,6 +163,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ProTable } from '@/components/common'
 import { pointsApi } from '@/api/points'
 import { formatDate, formatTime } from '@/utils/date'
 
@@ -177,6 +179,7 @@ const props = defineProps({
 const loading = ref(false)
 const pointsHistory = ref([])
 const pointsStats = ref({})
+const proTableRef = ref()
 
 // 筛选表单
 const filterForm = reactive({
@@ -191,6 +194,96 @@ const pagination = reactive({
   size: 20,
   total: 0
 })
+
+// ProTable配置
+const pointsTableColumns = [
+  {
+    key: 'createdAt',
+    title: '时间',
+    slot: 'timeInfo',
+    width: 160
+  },
+  {
+    key: 'type',
+    title: '类型',
+    slot: 'pointsType',
+    width: 80,
+    align: 'center'
+  },
+  {
+    key: 'source',
+    title: '来源',
+    slot: 'pointsSource',
+    width: 100,
+    align: 'center'
+  },
+  {
+    key: 'amount',
+    title: '积分变化',
+    slot: 'pointsChange',
+    width: 100,
+    align: 'center'
+  },
+  {
+    key: 'balance',
+    title: '余额',
+    slot: 'balance',
+    width: 80,
+    align: 'center'
+  },
+  {
+    key: 'description',
+    title: '描述',
+    slot: 'description',
+    minWidth: 200
+  },
+  {
+    key: 'related',
+    title: '关联',
+    slot: 'related',
+    width: 120,
+    align: 'center'
+  }
+]
+
+// ProTable数据请求函数
+const requestPointsHistory = async (params) => {
+  try {
+    console.log('ProTable请求参数:', params)
+    
+    const requestParams = {
+      userId: props.userId,
+      page: params.current || pagination.page,
+      size: params.pageSize || pagination.size,
+      ...filterForm
+    }
+
+    // 处理日期范围
+    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
+      requestParams.startDate = filterForm.dateRange[0]
+      requestParams.endDate = filterForm.dateRange[1]
+    }
+
+    const { data } = await pointsApi.getUserPointsHistory(requestParams)
+    
+    // 更新统计信息
+    pointsStats.value = data.stats || {}
+    
+    return {
+      success: true,
+      data: data.records || [],
+      total: data.total || 0
+    }
+  } catch (error) {
+    console.error('获取积分记录失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
+  }
+}
 
 // 方法
 const getTypeText = type => {
@@ -227,37 +320,11 @@ const getSourceTagType = source => {
   return typeMap[source] || 'info'
 }
 
-const fetchPointsHistory = async () => {
-  try {
-    loading.value = true
-    const params = {
-      userId: props.userId,
-      page: pagination.page,
-      size: pagination.size,
-      ...filterForm
-    }
-
-    // 处理日期范围
-    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
-      params.startDate = filterForm.dateRange[0]
-      params.endDate = filterForm.dateRange[1]
-    }
-
-    const { data } = await pointsApi.getUserPointsHistory(params)
-    pointsHistory.value = data.records
-    pointsStats.value = data.stats
-    pagination.total = data.total
-  } catch (error) {
-    console.error('获取积分记录失败:', error)
-    ElMessage.error('获取积分记录失败')
-  } finally {
-    loading.value = false
-  }
-}
+// 旧的fetchPointsHistory函数已被ProTable的requestPointsHistory替代
 
 const handleFilter = () => {
   pagination.page = 1
-  fetchPointsHistory()
+  proTableRef.value?.reload(true)
 }
 
 const handleReset = () => {
@@ -267,18 +334,16 @@ const handleReset = () => {
     dateRange: null
   })
   pagination.page = 1
-  fetchPointsHistory()
+  proTableRef.value?.reload(true)
 }
 
 const handleSizeChange = size => {
   pagination.size = size
   pagination.page = 1
-  fetchPointsHistory()
 }
 
 const handlePageChange = page => {
   pagination.page = page
-  fetchPointsHistory()
 }
 
 const viewBook = book => {
@@ -296,7 +361,7 @@ watch(
   () => props.userId,
   () => {
     if (props.userId) {
-      fetchPointsHistory()
+      proTableRef.value?.reload(true)
     }
   }
 )
@@ -304,7 +369,7 @@ watch(
 // 生命周期
 onMounted(() => {
   if (props.userId) {
-    fetchPointsHistory()
+    // ProTable will auto-load data when mounted
   }
 })
 </script>
@@ -405,13 +470,6 @@ onMounted(() => {
 
 .no-related {
   color: var(--el-text-color-secondary);
-}
-
-.pagination-wrapper {
-  padding: 16px;
-  border-top: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  justify-content: flex-end;
 }
 
 // 响应式设计

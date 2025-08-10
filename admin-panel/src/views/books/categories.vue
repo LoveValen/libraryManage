@@ -39,121 +39,84 @@
 
         <!-- 分类表格 -->
         <div v-else class="categories-table">
-          <el-table
-            :data="paginatedCategories"
-            style="width: 100%"
-            row-key="name"
+          <ProTable
+            ref="proTableRef"
+            :request="requestCategories"
+            :columns="categoryTableColumns"
+            :actions="categoryRowActions"
+            :search="false"
+            :toolBar="categoryToolBarConfig"
+            :pagination="false"
+            :action-column="{ width: 280, fixed: 'right' }"
+            row-key="id"
             :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
             default-expand-all
             stripe
             border
+            @create="handleAddCategory"
           >
-            <!-- 分类名称列 -->
-            <el-table-column prop="name" label="分类名称" min-width="320">
-              <template #default="scope">
-                <div class="category-name-cell" :style="{ paddingLeft: scope.row.level ? `${(scope.row.level - 1) * 20}px` : '0' }">
-                  <div class="category-icon" :style="{ 
-                    backgroundColor: getCategoryColorByLevel(scope.row.level) + '20', 
-                    color: getCategoryColorByLevel(scope.row.level),
-                    fontSize: scope.row.level > 1 ? '14px' : '16px'
-                  }">
-                    <el-icon>
-                      <FolderOpened v-if="scope.row.children && scope.row.children.length > 0" />
-                      <Document v-else />
-                    </el-icon>
-                  </div>
-                  <div class="category-info">
-                    <div class="name">
-                      {{ scope.row.name || '未分类' }}
-                      <el-tag v-if="scope.row.level > 1" size="small" type="info" class="level-tag">
-                        {{ scope.row.level }}级
-                      </el-tag>
-                    </div>
-                    <div class="description">{{ scope.row.description || '暂无描述' }}</div>
-                  </div>
+            <!-- 分类名称插槽 -->
+            <template #categoryName="{ record }">
+              <div class="category-name-cell" :style="{ paddingLeft: record.level ? `${(record.level - 1) * 20}px` : '0' }">
+                <div class="category-icon" :style="{ 
+                  backgroundColor: getCategoryColorByLevel(record.level) + '20', 
+                  color: getCategoryColorByLevel(record.level),
+                  fontSize: record.level > 1 ? '14px' : '16px'
+                }">
+                  <el-icon>
+                    <FolderOpened v-if="record.children && record.children.length > 0" />
+                    <Document v-else />
+                  </el-icon>
                 </div>
-              </template>
-            </el-table-column>
-            
-            <!-- 图书统计列 -->
-            <el-table-column prop="bookCount" label="总数" width="100" align="center">
-              <template #default="scope">
-                <el-tag type="info" size="small">{{ scope.row.bookCount }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column prop="availableCount" label="可借" width="100" align="center">
-              <template #default="scope">
-                <el-tag type="success" size="small">{{ scope.row.availableCount }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <el-table-column prop="borrowedCount" label="借出" width="100" align="center">
-              <template #default="scope">
-                <el-tag type="warning" size="small">{{ scope.row.borrowedCount }}</el-tag>
-              </template>
-            </el-table-column>
-            
-            <!-- 分类等级列 -->
-            <el-table-column label="分类等级" width="120" align="center">
-              <template #default="scope">
-                <el-tag :type="getCategoryTagType(scope.row.bookCount)" size="small">
-                  {{ getCategoryLevel(scope.row.bookCount) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            
-            <!-- 更新时间列 -->
-            <el-table-column prop="lastUpdated" label="更新时间" width="180" align="center">
-              <template #default="scope">
-                <span class="update-time">{{ formatDate(scope.row.lastUpdated) }}</span>
-              </template>
-            </el-table-column>
-            
-            <!-- 操作列 -->
-            <el-table-column label="操作" width="120" align="center" fixed="right">
-              <template #default="scope">
-                <el-dropdown @command="handleCategoryAction" trigger="click">
-                  <el-button type="text" class="action-trigger">
-                    <el-icon><MoreFilled /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item :command="{ action: 'viewBooks', category: scope.row.name }" :icon="View">
-                        查看图书
-                      </el-dropdown-item>
-                      <el-dropdown-item :command="{ action: 'addSubCategory', category: scope.row.name }" :icon="Plus">
-                        新增子分类
-                      </el-dropdown-item>
-                      <el-dropdown-item :command="{ action: 'editCategory', category: scope.row.name }" :icon="Edit">
-                        编辑分类
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :command="{ action: 'deleteCategory', category: scope.row.name }"
-                        :icon="Delete"
-                        divided
-                      >
-                        删除分类
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-        
-        <!-- 分页 -->
-        <div v-if="filteredCategories.length > 0" class="pagination-wrapper">
-          <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.pageSize"
-            :page-sizes="[12, 24, 48, 96]"
-            :total="filteredCategories.length"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-          />
+                <div class="category-info">
+                  <div class="name">
+                    {{ record.name || '未分类' }}
+                    <el-tag v-if="record.level > 1" size="small" type="info" class="level-tag">
+                      {{ record.level }}级
+                    </el-tag>
+                  </div>
+                  <div class="description">{{ record.description || '暂无描述' }}</div>
+                </div>
+              </div>
+            </template>
+
+            <!-- 图书统计插槽 -->
+            <template #bookStats="{ record }">
+              <div class="book-stats">
+                <div class="stat-item">
+                  <el-tag type="info" size="small">总数: {{ record.bookCount }}</el-tag>
+                </div>
+                <div class="stat-item">
+                  <el-tag type="success" size="small">可借: {{ record.availableCount }}</el-tag>
+                </div>
+                <div class="stat-item">
+                  <el-tag type="warning" size="small">借出: {{ record.borrowedCount }}</el-tag>
+                </div>
+              </div>
+            </template>
+
+            <!-- 分类等级插槽 -->
+            <template #categoryLevel="{ record }">
+              <el-tag :type="getCategoryTagType(record.bookCount)" size="small">
+                {{ getCategoryLevel(record.bookCount) }}
+              </el-tag>
+            </template>
+
+            <!-- 更新时间插槽 -->
+            <template #updateTime="{ record }">
+              <span class="update-time">{{ formatDate(record.lastUpdated) }}</span>
+            </template>
+
+            <!-- 工具栏插槽 -->
+            <template #toolBarRender>
+              <el-button type="info" :icon="TrendCharts" @click="showStatistics">
+                统计分析
+              </el-button>
+              <el-button type="success" :icon="Download" @click="exportCategories">
+                导出分类
+              </el-button>
+            </template>
+          </ProTable>
         </div>
       </div>
     </el-card>
@@ -187,8 +150,9 @@ import {
   TrendCharts,
   Reading
 } from '@element-plus/icons-vue'
-import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import CategoryEditDialog from './components/CategoryEditDialog.vue'
+import { ProTable } from '@/components/common'
 import { getBookCategories, getBookStatistics, getBooks, createBookCategory, updateBookCategory, deleteBookCategory } from '@/api/books'
 import { formatDate } from '@/utils/date'
 
@@ -198,6 +162,7 @@ const saving = ref(false)
 const categories = ref([])
 const editDialogVisible = ref(false)
 const editCategoryData = ref(null)
+const proTableRef = ref()
 
 // 搜索表单
 const searchForm = reactive({
@@ -222,18 +187,18 @@ const pagination = reactive({
 
 
 
-// 搜索字段配置
+// 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
   {
-    key: 'keyword',
-    type: 'input',
+    name: 'keyword',
+    valueType: 'text',
     label: '关键词',
-    placeholder: '搜索分类名称',
-    inputWidth: '250px'
+    placeholder: '输入分类名称或描述搜索',
+    clearable: true
   },
   {
-    key: 'sortBy',
-    type: 'select',
+    name: 'sortBy',
+    valueType: 'select',
     label: '排序方式',
     placeholder: '选择排序方式',
     options: [
@@ -243,8 +208,8 @@ const searchFields = [
     ]
   },
   {
-    key: 'sortOrder',
-    type: 'select',
+    name: 'sortOrder',
+    valueType: 'select',
     label: '排序顺序',
     placeholder: '选择排序顺序',
     options: [
@@ -254,6 +219,75 @@ const searchFields = [
   }
 ]
 
+// ProTable配置
+// 表格列配置
+const categoryTableColumns = [
+  {
+    key: 'categoryName',
+    title: '分类名称',
+    slot: 'categoryName',
+    minWidth: 280
+  },
+  {
+    key: 'bookStats',
+    title: '图书统计',
+    slot: 'bookStats',
+    minWidth: 250
+  },
+  {
+    key: 'categoryLevel',
+    title: '分类等级',
+    slot: 'categoryLevel',
+    minWidth: 100,
+    align: 'center'
+  },
+  {
+    key: 'lastUpdated',
+    title: '更新时间',
+    slot: 'updateTime',
+    minWidth: 150,
+    align: 'center',
+    sorter: true
+  }
+]
+
+// 行操作配置
+const categoryRowActions = [
+  {
+    key: 'viewBooks',
+    text: '查看图书',
+    type: 'primary',
+    onClick: (record) => handleCategoryAction({ action: 'viewBooks', category: record.name })
+  },
+  {
+    key: 'addSubCategory',
+    text: '新增子分类',
+    type: 'success',
+    onClick: (record) => handleCategoryAction({ action: 'addSubCategory', category: record.name })
+  },
+  {
+    key: 'editCategory',
+    text: '编辑分类',
+    type: 'info',
+    onClick: (record) => handleCategoryAction({ action: 'editCategory', category: record.name })
+  },
+  {
+    key: 'deleteCategory',
+    text: '删除分类',
+    type: 'danger',
+    onClick: (record) => handleCategoryAction({ action: 'deleteCategory', category: record.name })
+  }
+]
+
+// 工具栏配置
+const categoryToolBarConfig = {
+  create: true,
+  createText: '新增分类',
+  reload: true,
+  density: true,
+  columnSetting: true,
+  fullScreen: true
+}
 
 // 计算属性
 const filteredCategories = computed(() => {
@@ -286,6 +320,81 @@ const paginatedCategories = computed(() => {
   const end = start + pagination.pageSize
   return filteredCategories.value.slice(start, end)
 })
+
+// ProTable数据请求函数
+const requestCategories = async (params) => {
+  try {
+    console.log('ProTable请求参数:', params)
+    
+    // 获取分类列表（后端已经包含统计信息）
+    const categoriesResponse = await getBookCategories()
+    const backendCategories = categoriesResponse.data.categories
+
+    console.log('后端返回的分类数据:', backendCategories)
+
+    // 构建分类的父子关系映射
+    const categoryMap = new Map()
+    const rootCategories = []
+    
+    // 首先将所有分类放入map中
+    backendCategories.forEach(category => {
+      const categoryData = {
+        id: category.id,
+        parentId: category.parent_id,
+        name: category.name,
+        description: category.description || '',
+        bookCount: category.stats?.total || category._count?.books || 0,
+        availableCount: category.stats?.available || 0,
+        borrowedCount: category.stats?.borrowed || 0,
+        lastUpdated: new Date(category.updated_at || Date.now()),
+        level: category.level || 1,
+        children: []
+      }
+      categoryMap.set(category.id, categoryData)
+    })
+    
+    // 构建树形结构
+    categoryMap.forEach(category => {
+      if (category.parentId) {
+        // 如果有父分类，将其添加到父分类的children中
+        const parent = categoryMap.get(category.parentId)
+        if (parent) {
+          parent.children.push(category)
+          parent.hasChildren = true
+        }
+      } else {
+        // 如果没有父分类，则为根分类
+        rootCategories.push(category)
+      }
+    })
+    
+    // 对每个层级的分类进行排序
+    const sortCategories = (categories) => {
+      categories.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+      categories.forEach(category => {
+        if (category.children && category.children.length > 0) {
+          sortCategories(category.children)
+        }
+      })
+    }
+    
+    sortCategories(rootCategories)
+
+    return {
+      success: true,
+      data: rootCategories,
+      total: rootCategories.length
+    }
+  } catch (error) {
+    console.error('获取分类列表失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
+  }
+}
 
 // 方法
 const loadCategories = async () => {
@@ -410,7 +519,7 @@ const handleAddCategory = () => {
 const handleAddSubCategory = (parentCategoryName) => {
   const parentCategory = findCategoryData(parentCategoryName, categories.value)
   editCategoryData.value = {
-    parentCategory: parentCategory,
+    parentCategory,
     isSubCategory: true
   }
   editDialogVisible.value = true
@@ -587,6 +696,15 @@ const getCategoryDescription = categoryName => {
     艺术: '美术、音乐、设计等艺术类书籍'
   }
   return defaultDescriptions[categoryName] || '暂无描述'
+}
+
+// ProTable工具栏处理函数
+const showStatistics = () => {
+  ElMessage.info('统计分析功能开发中...')
+}
+
+const exportCategories = () => {
+  ElMessage.info('导出分类功能开发中...')
 }
 
 const getCategoryTagType = bookCount => {
@@ -779,6 +897,17 @@ onMounted(() => {
   .update-time {
     font-size: 12px;
     color: var(--el-text-color-secondary);
+  }
+
+  .book-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .stat-item {
+      display: flex;
+      justify-content: flex-start;
+    }
   }
 }
 

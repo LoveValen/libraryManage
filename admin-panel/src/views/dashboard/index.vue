@@ -79,7 +79,7 @@
             图书分类统计
           </h3>
           <el-dropdown @command="handleCategoryAction">
-            <el-button type="text">
+            <el-button link>
               更多操作
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </el-button>
@@ -105,7 +105,7 @@
             <el-icon><Bell /></el-icon>
             最新动态
           </h3>
-          <el-button type="text" @click="viewAllActivities">查看全部</el-button>
+          <el-button link @click="viewAllActivities">查看全部</el-button>
         </div>
         <div class="activity-list">
           <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
@@ -136,7 +136,7 @@
             <el-icon><List /></el-icon>
             待办事项
           </h3>
-          <el-button type="text" @click="addTodo">添加</el-button>
+          <el-button link @click="addTodo">添加</el-button>
         </div>
         <div class="todo-list">
           <div v-for="todo in todoList" :key="todo.id" class="todo-item" :class="{ completed: todo.completed }">
@@ -150,7 +150,7 @@
                 <span class="todo-deadline">{{ formatDate(todo.deadline) }}</span>
               </div>
             </div>
-            <el-button type="text" size="small" @click="removeTodo(todo.id)">
+            <el-button link size="small" @click="removeTodo(todo.id)">
               <el-icon><Delete /></el-icon>
             </el-button>
           </div>
@@ -330,13 +330,6 @@ const todoList = ref([
     completed: false,
     priority: 'medium',
     deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-  },
-  {
-    id: 3,
-    text: '系统备份检查',
-    completed: true,
-    priority: 'low',
-    deadline: new Date(Date.now() - 24 * 60 * 60 * 1000)
   }
 ])
 

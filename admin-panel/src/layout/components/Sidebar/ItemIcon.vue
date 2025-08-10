@@ -3,10 +3,6 @@
     <component :is="icon" />
   </el-icon>
 
-  <el-icon v-else-if="isSvgIcon" class="menu-icon">
-    <svg-icon :name="icon" />
-  </el-icon>
-
   <i v-else-if="isClassIcon" :class="icon" class="menu-icon" />
 
   <el-icon v-else class="menu-icon">
@@ -16,6 +12,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { Menu } from '@element-plus/icons-vue'
 
 const props = defineProps({
   icon: {
@@ -28,11 +25,6 @@ const props = defineProps({
 const isIconComponent = computed(() => {
   // Element Plus 图标通常是PascalCase命名
   return /^[A-Z][a-zA-Z]*$/.test(props.icon)
-})
-
-// 判断是否为SVG图标
-const isSvgIcon = computed(() => {
-  return props.icon.startsWith('svg-')
 })
 
 // 判断是否为CSS类图标

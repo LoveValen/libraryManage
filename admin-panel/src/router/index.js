@@ -169,15 +169,6 @@ export const asyncRoutes = [
           title: '图书分类',
           icon: 'Menu'
         }
-      },
-      {
-        path: 'import',
-        name: 'BookImport',
-        component: () => import('@/views/books/import.vue'),
-        meta: {
-          title: '批量导入',
-          icon: 'Upload'
-        }
       }
     ]
   },
@@ -222,7 +213,7 @@ export const asyncRoutes = [
       {
         path: 'overdue',
         name: 'BorrowOverdue',
-        component: () => import('@/views/borrows/overdue.vue'),
+        component: () => import('@/views/borrows/overdue-pro.vue'),
         meta: {
           title: '逾期管理',
           icon: 'Warning'
@@ -369,15 +360,6 @@ export const asyncRoutes = [
         meta: {
           title: '系统日志',
           icon: 'Document'
-        }
-      },
-      {
-        path: 'backup',
-        name: 'SystemBackup',
-        component: () => import('@/views/system/backup.vue'),
-        meta: {
-          title: '数据备份',
-          icon: 'FolderOpened'
         }
       }
     ]

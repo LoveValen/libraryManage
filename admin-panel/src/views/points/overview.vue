@@ -88,7 +88,7 @@
               </div>
               <div class="header-actions">
                 <el-button
-                  type="text"
+                  link
                   :icon="Refresh"
                   @click="loadRecentTransactions"
                   :loading="transactionsLoading"
@@ -139,7 +139,7 @@
             积分规则说明
           </div>
           <div class="header-actions">
-            <el-button type="text" :icon="Edit" @click="showRulesDialog = true" size="small">编辑规则</el-button>
+            <el-button link :icon="Edit" @click="showRulesDialog = true" size="small">编辑规则</el-button>
           </div>
         </div>
       </template>
@@ -197,10 +197,10 @@
     <PointsTransferDialog v-model="showTransferDialog" @success="handleOperationSuccess" />
 
     <!-- 统计分析对话框 -->
-    <PointsStatisticsDialog v-model="showStatisticsDialog" />
+    <!-- <PointsStatisticsDialog v-model="showStatisticsDialog" /> -->
 
     <!-- 积分规则编辑对话框 -->
-    <PointsRulesDialog v-model="showRulesDialog" @success="loadPointsRules" />
+    <!-- <PointsRulesDialog v-model="showRulesDialog" @success="loadPointsRules" /> -->
   </div>
 </template>
 
@@ -225,8 +225,8 @@ import {
 } from '@element-plus/icons-vue'
 import PointsOperationDialog from './components/PointsOperationDialog.vue'
 import PointsTransferDialog from './components/PointsTransferDialog.vue'
-import PointsStatisticsDialog from './components/PointsStatisticsDialog.vue'
-import PointsRulesDialog from './components/PointsRulesDialog.vue'
+// import PointsStatisticsDialog from './components/PointsStatisticsDialog.vue'
+// import PointsRulesDialog from './components/PointsRulesDialog.vue'
 import { getPointsStatistics, getPointsLeaderboard, getPointsHistory, getPointsRules } from '@/api/points'
 import { formatRelativeTime } from '@/utils/date'
 

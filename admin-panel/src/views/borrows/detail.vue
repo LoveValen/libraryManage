@@ -3,7 +3,7 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button :icon="ArrowLeft" @click="handleBack" type="text" size="large">返回</el-button>
+        <el-button :icon="ArrowLeft" @click="handleBack" link size="large">返回</el-button>
         <div class="header-info">
           <h1>借阅详情</h1>
           <p class="description">借阅记录 #{{ borrowRecord?.id || '' }} 的详细信息</p>
@@ -50,8 +50,8 @@
                       <div class="user-meta">学号: {{ borrowRecord.user?.studentId || '未设置' }}</div>
                     </div>
                     <div class="user-actions">
-                      <el-button type="text" :icon="User" @click="viewUserDetail" size="small">查看用户</el-button>
-                      <el-button type="text" :icon="Phone" @click="contactUser" size="small">联系用户</el-button>
+                      <el-button link :icon="User" @click="viewUserDetail" size="small">查看用户</el-button>
+                      <el-button link :icon="Phone" @click="contactUser" size="small">联系用户</el-button>
                     </div>
                   </div>
                 </div>
@@ -83,7 +83,7 @@
                       <div class="book-meta">出版社: {{ borrowRecord.book?.publisher || '未知' }}</div>
                     </div>
                     <div class="book-actions">
-                      <el-button type="text" :icon="Reading" @click="viewBookDetail" size="small">查看图书</el-button>
+                      <el-button link :icon="Reading" @click="viewBookDetail" size="small">查看图书</el-button>
                     </div>
                   </div>
                 </div>
@@ -161,7 +161,7 @@
               </div>
               <div class="header-actions">
                 <el-button
-                  type="text"
+                  link
                   :icon="Refresh"
                   @click="loadBorrowHistory"
                   :loading="historyLoading"

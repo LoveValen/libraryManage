@@ -1,28 +1,6 @@
 <template>
   <div class="borrows-container">
 
-
-    <!-- 快速操作区域 -->
-    <el-card shadow="never" class="quick-actions-card">
-      <template #header>
-        <div class="card-header">
-          <div class="header-title">
-            <el-icon><Lightning /></el-icon>
-            快速操作
-          </div>
-        </div>
-      </template>
-
-      <div class="quick-actions">
-        <el-button type="primary" :icon="Plus" @click="showBorrowDialog = true" size="large">新增借阅</el-button>
-        <el-button type="success" :icon="RefreshRight" @click="showQuickReturnDialog = true" size="large">
-          快速归还
-        </el-button>
-        <el-button type="warning" :icon="Clock" @click="showOverdueDialog = true" size="large">逾期管理</el-button>
-        <el-button type="info" :icon="TrendCharts" @click="showTrendsDialog = true" size="large">借阅趋势</el-button>
-      </div>
-    </el-card>
-
     <!-- 搜索筛选区域 -->
     <SearchFilterSimple
       v-model="searchForm"
@@ -69,7 +47,7 @@
           </div>
           <div class="toolbar-right">
             <el-tooltip content="刷新数据">
-              <el-button icon="Refresh" @click="loadBorrows" :loading="loading" />
+              <el-button icon="Refresh" @click="loadData" :loading="loading" />
             </el-tooltip>
             <el-tooltip content="导出数据">
               <el-button icon="Download" @click="exportBorrows" />
@@ -84,200 +62,146 @@
         </div>
 
         <!-- 数据表格 -->
-        <el-table
-          ref="tableRef"
-          v-loading="loading"
-          :data="borrows"
-          stripe
-          border
-          height="600"
+        <ProTable
+          ref="proTableRef"
+          :request="requestBorrows"
+          :columns="borrowTableColumns"
+          :row-selection="{ type: 'checkbox' }"
+          :search="false"
+          :toolBar="false"
+          :action-column="{ width: 200, fixed: 'right' }"
+          :params="borrowSearchParams"
+          row-key="id"
           @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" width="50" fixed="left" />
-          <el-table-column label="序号" type="index" width="60" fixed="left" />
-
-          <el-table-column label="用户信息" min-width="200" fixed="left">
-            <template #default="{ row }">
-              <div class="user-info">
-                <el-avatar :src="row.user?.avatar" :size="32" class="user-avatar">
-                  {{ row.user?.realName?.charAt(0) || row.user?.username?.charAt(0) }}
-                </el-avatar>
-                <div class="user-details">
-                  <div class="user-name">{{ row.user?.realName || row.user?.username }}</div>
-                  <div class="user-meta">{{ row.user?.email }}</div>
-                </div>
+          <!-- 用户信息插槽 -->
+          <template #user="{ record }">
+            <div class="user-info">
+              <el-avatar :src="record.user?.avatar" :size="32" class="user-avatar">
+                {{ record.user?.realName?.charAt(0) || record.user?.username?.charAt(0) }}
+              </el-avatar>
+              <div class="user-details">
+                <div class="user-name">{{ record.user?.realName || record.user?.username }}</div>
+                <div class="user-meta">{{ record.user?.email }}</div>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="图书信息" min-width="250">
-            <template #default="{ row }">
-              <div class="book-info">
-                <el-image
-                  :src="row.book?.coverImage"
-                  :preview-src-list="[row.book?.coverImage]"
-                  class="book-cover"
-                  fit="cover"
-                >
-                  <template #error>
-                    <div class="book-cover-placeholder">
-                      <el-icon><Reading /></el-icon>
-                    </div>
-                  </template>
-                </el-image>
-                <div class="book-details">
-                  <div class="book-title">{{ row.book?.title }}</div>
-                  <div class="book-meta">
-                    作者: {{ Array.isArray(row.book?.authors) ? row.book.authors.join(', ') : row.book?.authors }}
+          <!-- 图书信息插槽 -->
+          <template #book="{ record }">
+            <div class="book-info">
+              <el-image
+                :src="record.book?.coverImage"
+                :preview-src-list="[record.book?.coverImage]"
+                class="book-cover"
+                fit="cover"
+              >
+                <template #error>
+                  <div class="book-cover-placeholder">
+                    <el-icon><Reading /></el-icon>
                   </div>
-                  <div class="book-meta">ISBN: {{ row.book?.isbn }}</div>
+                </template>
+              </el-image>
+              <div class="book-details">
+                <div class="book-title">{{ record.book?.title }}</div>
+                <div class="book-meta">
+                  作者: {{ Array.isArray(record.book?.authors) ? record.book.authors.join(', ') : record.book?.authors }}
                 </div>
+                <div class="book-meta">ISBN: {{ record.book?.isbn }}</div>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="状态" width="120" sortable="custom" prop="status">
-            <template #default="{ row }">
-              <StatusTag :value="row.status" :config="borrowStatusConfig" :show-icon="true" />
-              <div v-if="row.isCurrentlyOverdue" class="overdue-info">
-                <el-tag type="danger" size="small" class="mt-1">逾期 {{ row.currentOverdueDays }} 天</el-tag>
+          <!-- 状态插槽 -->
+          <template #status="{ record }">
+            <StatusTag :status="record.status" :status-map="borrowStatusConfig" :show-icon="true" />
+            <div v-if="record.isCurrentlyOverdue" class="overdue-info">
+              <el-tag type="danger" size="small" class="mt-1">逾期 {{ record.currentOverdueDays }} 天</el-tag>
+            </div>
+          </template>
+
+          <!-- 借阅时间插槽 -->
+          <template #borrowDate="{ record }">
+            <div class="date-info">
+              <div>{{ formatDate(record.borrowDate) }}</div>
+              <div class="date-meta">{{ formatRelativeTime(record.borrowDate) }}</div>
+            </div>
+          </template>
+
+          <!-- 应还时间插槽 -->
+          <template #dueDate="{ record }">
+            <div class="date-info">
+              <div :class="getDueDateClass(record)">
+                {{ formatDate(record.dueDate) }}
               </div>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="借阅时间" width="160" sortable="custom" prop="borrowDate">
-            <template #default="{ row }">
-              <div class="date-info">
-                <div>{{ formatDate(row.borrowDate) }}</div>
-                <div class="date-meta">{{ formatRelativeTime(row.borrowDate) }}</div>
+              <div class="date-meta">
+                <span v-if="record.status === 'borrowed'" :class="getDaysRemainingClass(record)">
+                  {{ getDaysRemainingText(record) }}
+                </span>
+                <span v-else>-</span>
               </div>
-            </template>
-          </el-table-column>
+            </div>
+          </template>
 
-          <el-table-column label="应还时间" width="160" sortable="custom" prop="dueDate">
-            <template #default="{ row }">
-              <div class="date-info">
-                <div :class="getDueDateClass(row)">
-                  {{ formatDate(row.dueDate) }}
-                </div>
-                <div class="date-meta">
-                  <span v-if="row.status === 'borrowed'" :class="getDaysRemainingClass(row)">
-                    {{ getDaysRemainingText(row) }}
-                  </span>
-                  <span v-else>-</span>
-                </div>
-              </div>
-            </template>
-          </el-table-column>
+          <!-- 归还时间插槽 -->
+          <template #returnDate="{ record }">
+            <div v-if="record.returnDate" class="date-info">
+              <div>{{ formatDate(record.returnDate) }}</div>
+              <div class="date-meta">{{ formatRelativeTime(record.returnDate) }}</div>
+            </div>
+            <span v-else class="text-muted">-</span>
+          </template>
 
-          <el-table-column label="归还时间" width="160" sortable="custom" prop="returnDate">
-            <template #default="{ row }">
-              <div v-if="row.returnDate" class="date-info">
-                <div>{{ formatDate(row.returnDate) }}</div>
-                <div class="date-meta">{{ formatRelativeTime(row.returnDate) }}</div>
-              </div>
-              <span v-else class="text-muted">-</span>
-            </template>
-          </el-table-column>
+          <!-- 续借次数插槽 -->
+          <template #renewal="{ record }">
+            <el-tag :type="getRenewalTagType(record.renewalCount, record.maxRenewals)" size="small">
+              {{ record.renewalCount }}/{{ record.maxRenewals }}
+            </el-tag>
+          </template>
 
-          <el-table-column label="续借次数" width="100">
-            <template #default="{ row }">
-              <el-tag :type="getRenewalTagType(row.renewalCount, row.maxRenewals)" size="small">
-                {{ row.renewalCount }}/{{ row.maxRenewals }}
-              </el-tag>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="操作" width="200" fixed="right">
-            <template #default="{ row }">
-              <div class="action-buttons">
-                <el-button type="primary" link size="small" @click="viewBorrowDetail(row)">
-                  <el-icon><View /></el-icon>
-                  查看
+          <!-- 操作插槽 -->
+          <template #actions="{ record }">
+            <div class="row-actions">
+              <el-button 
+                v-if="record.status === 'borrowed'" 
+                type="success" 
+                size="small" 
+                @click="handleQuickReturn(record)"
+              >
+                归还
+              </el-button>
+              <el-button 
+                v-if="record.status === 'borrowed' && record.renewalCount < record.maxRenewals" 
+                type="warning" 
+                size="small" 
+                @click="handleRenew(record)"
+              >
+                续借
+              </el-button>
+              <el-button 
+                v-if="record.isCurrentlyOverdue" 
+                type="primary" 
+                size="small" 
+                @click="handleSendReminder(record)"
+              >
+                催还
+              </el-button>
+              <el-dropdown @command="(cmd) => handleMoreActions(cmd, record)">
+                <el-button size="small" type="text">
+                  更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
                 </el-button>
-                <el-button
-                  v-if="row.status === 'borrowed' && row.canRenew"
-                  type="warning" link size="small"
-                  @click="renewBorrow(row)"
-                >
-                  <el-icon><RefreshLeft /></el-icon>
-                  续借
-                </el-button>
-                <el-button
-                  v-if="['borrowed', 'overdue'].includes(row.status)"
-                  type="success" link size="small"
-                  @click="returnBorrow(row)"
-                >
-                  <el-icon><Check /></el-icon>
-                  归还
-                </el-button>
-                <el-dropdown @command="command => handleRowAction(command, row)">
-                  <el-button type="info" link size="small">
-                    更多
-                    <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item
-                        :command="{ action: 'markLost', row }"
-                        v-if="['borrowed', 'overdue'].includes(row.status)"
-                      >
-                        <el-icon><Warning /></el-icon>
-                        标记丢失
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :command="{ action: 'sendReminder', row }"
-                        v-if="['borrowed', 'overdue'].includes(row.status)"
-                      >
-                        <el-icon><Bell /></el-icon>
-                        发送提醒
-                      </el-dropdown-item>
-                      <el-dropdown-item :command="{ action: 'viewHistory', row }">
-                        <el-icon><Timer /></el-icon>
-                        借阅历史
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <!-- 分页 -->
-        <div class="pagination-wrapper">
-          <el-pagination
-            v-model:current-page="pagination.page"
-            v-model:page-size="pagination.size"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="pagination.total"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-          />
-        </div>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="detail">查看详情</el-dropdown-item>
+                    <el-dropdown-item command="history">借阅历史</el-dropdown-item>
+                    <el-dropdown-item v-if="record.status === 'borrowed'" command="markLost">标记丢失</el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
+          </template>
+        </ProTable>
       </el-card>
-    </div>
-
-    <!-- 批量操作工具栏 -->
-    <div v-if="selectedBorrows.length > 0" class="batch-toolbar">
-      <div class="toolbar-content">
-        <div class="selected-info">
-          已选择
-          <strong>{{ selectedBorrows.length }}</strong>
-          条记录
-        </div>
-        <div class="toolbar-actions">
-          <el-button @click="clearSelection">取消选择</el-button>
-          <el-button type="success" :icon="Check" @click="batchReturn" :disabled="!canBatchReturn">批量归还</el-button>
-          <el-button type="warning" :icon="RefreshLeft" @click="batchRenew" :disabled="!canBatchRenew">
-            批量续借
-          </el-button>
-          <el-button type="info" :icon="Bell" @click="batchSendReminder">批量提醒</el-button>
-          <el-button type="danger" :icon="Warning" @click="batchMarkLost">批量标记丢失</el-button>
-        </div>
-      </div>
     </div>
 
     <!-- 新增借阅对话框 -->
@@ -298,6 +222,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import {
   DocumentCopy,
@@ -320,8 +245,8 @@ import {
   Setting,
   ArrowDown
 } from '@element-plus/icons-vue'
-import { DataTable, StatusTag } from '@/components/common'
-import SearchFilterSimple from '@/components/common/SearchFilterSimple.vue'
+import { StatusTag, ProTable } from '@/components/common'
+import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import BorrowForm from './components/BorrowForm.vue'
 import QuickReturnDialog from './components/QuickReturnDialog.vue'
 import OverdueDialog from './components/OverdueDialog.vue'
@@ -337,14 +262,16 @@ import {
 import { formatDate, formatRelativeTime } from '@/utils/date'
 
 // 响应式数据
+const router = useRouter()
 const loading = ref(false)
-const borrows = ref([])
 const selectedBorrows = ref([])
+const selectedRecord = ref(null)
 const showBorrowDialog = ref(false)
 const showQuickReturnDialog = ref(false)
 const showOverdueDialog = ref(false)
 const showTrendsDialog = ref(false)
 const showColumnSettings = ref(false)
+const proTableRef = ref()
 
 // 搜索表单
 const searchForm = reactive({
@@ -359,120 +286,118 @@ const searchForm = reactive({
   sortOrder: 'desc'
 })
 
-// 分页数据
-const pagination = reactive({
-  page: 1,
-  pageSize: 20,
-  total: 0
-})
 
-
-
-// 搜索字段配置
-const searchFields = [
+// 表格列配置
+const borrowTableColumns = [
   {
-    key: 'keyword',
-    type: 'input',
-    label: '关键词',
-    placeholder: '搜索用户姓名、图书标题、ISBN',
-    inputWidth: '250px'
+    key: 'user',
+    title: '借阅用户',
+    slot: 'user',
+    minWidth: 180
+  },
+  {
+    key: 'book',
+    title: '图书信息',
+    slot: 'book',
+    minWidth: 220
   },
   {
     key: 'status',
-    type: 'select',
-    label: '状态',
-    placeholder: '选择状态',
+    title: '状态',
+    slot: 'status',
+    minWidth: 100,
+    sorter: true
+  },
+  {
+    key: 'borrowDate',
+    title: '借阅时间',
+    slot: 'borrowDate',
+    minWidth: 140,
+    sorter: true
+  },
+  {
+    key: 'dueDate',
+    title: '应还时间',
+    slot: 'dueDate',
+    minWidth: 140,
+    sorter: true
+  },
+  {
+    key: 'returnDate',
+    title: '归还时间',
+    slot: 'returnDate',
+    minWidth: 140,
+    sorter: true
+  },
+  {
+    key: 'renewalCount',
+    title: '续借次数',
+    slot: 'renewal',
+    minWidth: 90,
+    align: 'center'
+  },
+  {
+    key: 'actions',
+    title: '操作',
+    slot: 'actions',
+    minWidth: 180,
+    fixed: 'right'
+  }
+]
+
+// 搜索参数
+const borrowSearchParams = ref({})
+
+
+
+// 搜索字段配置（基于 ProForm 设计）
+const searchFields = [
+  {
+    name: 'keyword',
+    valueType: 'text',
+    label: '关键词',
+    placeholder: '输入用户姓名、图书标题或ISBN搜索',
+    clearable: true
+  },
+  {
+    name: 'status',
+    valueType: 'select',
+    label: '借阅状态',
+    placeholder: '选择借阅状态',
     options: [
       { label: '借阅中', value: 'borrowed' },
       { label: '已归还', value: 'returned' },
-      { label: '逾期', value: 'overdue' },
-      { label: '丢失', value: 'lost' },
-      { label: '损坏', value: 'damaged' }
+      { label: '逾期未还', value: 'overdue' },
+      { label: '图书丢失', value: 'lost' },
+      { label: '图书损坏', value: 'damaged' }
     ]
   },
   {
-    key: 'isOverdue',
-    type: 'select',
+    name: 'isOverdue',
+    valueType: 'select',
     label: '逾期状态',
     placeholder: '选择逾期状态',
     options: [
-      { label: '正常', value: 'false' },
-      { label: '逾期', value: 'true' }
+      { label: '正常借阅', value: 'false' },
+      { label: '已经逾期', value: 'true' }
     ]
   },
   {
-    key: 'dateRange',
-    type: 'date',
-    dateType: 'daterange',
+    name: 'dateRange',
+    valueType: 'dateRange',
     label: '借阅时间',
-    startPlaceholder: '开始日期',
-    endPlaceholder: '结束日期'
+    placeholder: ['开始日期', '结束日期']
   }
 ]
 
-// 表格列配置
-const tableColumns = [
-  {
-    prop: 'user',
-    label: '借阅用户',
-    minWidth: 200,
-    slot: 'user'
-  },
-  {
-    prop: 'book',
-    label: '图书信息',
-    minWidth: 250,
-    slot: 'book'
-  },
-  {
-    prop: 'status',
-    label: '状态',
-    width: 120,
-    slot: 'status'
-  },
-  {
-    prop: 'borrowDate',
-    label: '借阅时间',
-    width: 160,
-    sortable: 'custom',
-    slot: 'borrowDate'
-  },
-  {
-    prop: 'dueDate',
-    label: '应还时间',
-    width: 160,
-    sortable: 'custom',
-    slot: 'dueDate'
-  },
-  {
-    prop: 'returnDate',
-    label: '归还时间',
-    width: 160,
-    slot: 'returnDate'
-  },
-  {
-    prop: 'renewalCount',
-    label: '续借次数',
-    width: 100,
-    align: 'center',
-    slot: 'renewalCount'
-  },
-  {
-    prop: 'actions',
-    label: '操作',
-    width: 180,
-    fixed: 'right',
-    slot: 'actions'
-  }
-]
 
-// 借阅状态配置
+// 借阅状态配置 
 const borrowStatusConfig = {
-  borrowed: { type: 'success', text: '借阅中', icon: 'Reading' },
-  returned: { type: 'info', text: '已归还', icon: 'Check' },
-  overdue: { type: 'danger', text: '逾期', icon: 'Warning' },
-  lost: { type: 'danger', text: '丢失', icon: 'Close' },
-  damaged: { type: 'warning', text: '损坏', icon: 'Warning' }
+  borrowed: { text: '借阅中', type: 'success', icon: 'Reading' },
+  returned: { text: '已归还', type: 'info', icon: 'Check' },
+  overdue: { text: '逾期', type: 'danger', icon: 'Warning' },
+  lost: { text: '丢失', type: 'danger', icon: 'Close' },
+  damaged: { text: '损坏', type: 'warning', icon: 'Warning' }
 }
 
 // 计算属性
@@ -492,28 +417,39 @@ const canBatchRenewCount = computed(() => {
   return selectedBorrows.value.filter(borrow => borrow.status === 'borrowed' && borrow.canRenew).length
 })
 
-// 方法
-const loadBorrows = async () => {
-  loading.value = true
+// 数据加载方法
+const loadData = () => {
+  proTableRef.value?.refresh()
+}
+
+// ProTable数据请求函数
+const requestBorrows = async (params) => {
   try {
-    const params = {
-      page: pagination.page,
-      limit: pagination.pageSize,
-      ...searchForm
+    loading.value = true
+    
+    const requestParams = {
+      page: params.current || 1,
+      limit: params.pageSize || 20,
+      sortBy: params.sorter || 'borrow_date',
+      sortOrder: params.order === 'ascend' ? 'asc' : 'desc',
+      ...borrowSearchParams.value
     }
 
-    // 处理日期范围
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startDate = searchForm.dateRange[0]
-      params.endDate = searchForm.dateRange[1]
+    const response = await getBorrows(requestParams)
+    
+    return {
+      success: true,
+      data: response.data || [],
+      total: response.pagination?.total || 0
     }
-
-    const response = await getBorrows(params)
-    borrows.value = response.data.borrows
-    pagination.total = response.data.pagination.total
   } catch (error) {
-    console.error('加载借阅记录失败:', error)
-    ElMessage.error('加载借阅记录失败')
+    console.error('获取借阅记录失败:', error)
+    return {
+      success: false,
+      data: [],
+      total: 0,
+      message: error.message || '数据加载失败'
+    }
   } finally {
     loading.value = false
   }
@@ -522,55 +458,97 @@ const loadBorrows = async () => {
 
 
 
-const handleSearch = () => {
-  pagination.page = 1
-  loadBorrows()
+const handleSearch = (searchData) => {
+  // Update search params with new data
+  borrowSearchParams.value = {
+    ...searchData,
+    startDate: searchData.dateRange?.[0] || '',
+    endDate: searchData.dateRange?.[1] || ''
+  }
+  // Refresh ProTable
+  proTableRef.value?.refresh()
 }
 
 const handleReset = () => {
-  Object.assign(searchForm, {
-    keyword: '',
-    status: '',
-    userId: '',
-    bookId: '',
-    isOverdue: '',
-    startDate: '',
-    endDate: '',
-    dateRange: null,
-    sortBy: 'borrow_date',
-    sortOrder: 'desc'
+  // Clear search form data
+  Object.keys(searchForm).forEach(key => {
+    if (key === 'dateRange') {
+      searchForm[key] = []
+    } else if (key === 'sortBy') {
+      searchForm[key] = 'borrow_date'
+    } else if (key === 'sortOrder') {
+      searchForm[key] = 'desc'
+    } else {
+      searchForm[key] = ''
+    }
   })
-  pagination.page = 1
-  loadBorrows()
+  // Clear search params
+  borrowSearchParams.value = {}
+  // Refresh ProTable
+  proTableRef.value?.refresh()
 }
 
-const handleSelectionChange = selection => {
-  selectedBorrows.value = selection
+const handleSelectionChange = (selectedRowKeys, selectedRows) => {
+  selectedBorrows.value = selectedRows
 }
 
-const handleSortChange = ({ prop, order }) => {
-  searchForm.sortBy = prop
-  searchForm.sortOrder = order === 'ascending' ? 'asc' : 'desc'
-  loadBorrows()
-}
-
-const handlePageChange = page => {
-  pagination.page = page
-  loadBorrows()
-}
-
-const handleSizeChange = size => {
-  pagination.pageSize = size
-  pagination.page = 1
-  loadBorrows()
-}
 
 const clearSelection = () => {
   selectedBorrows.value = []
+  proTableRef.value?.clearSelection()
+}
+
+// 行操作方法
+const handleQuickReturn = (record) => {
+  selectedRecord.value = record
+  showQuickReturnDialog.value = true
+}
+
+const handleRenew = async (record) => {
+  try {
+    await ElMessageBox.confirm(`确定要为用户续借图书"${record.book.title}"吗？`, '续借确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    await renewBook(record.id)
+    ElMessage.success('续借成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('续借失败:', error)
+      ElMessage.error('续借失败')
+    }
+  }
+}
+
+const handleSendReminder = async (record) => {
+  try {
+    // 这里应该调用发送催还通知的API
+    ElMessage.success(`已向用户 ${record.user.realName || record.user.username} 发送催还通知`)
+  } catch (error) {
+    console.error('发送催还通知失败:', error)
+    ElMessage.error('发送催还通知失败')
+  }
+}
+
+const handleMoreActions = (command, record) => {
+  switch (command) {
+    case 'detail':
+      viewBorrowDetail(record)
+      break
+    case 'history':
+      router.push(`/borrows/history/${record.userId}`)
+      break
+    case 'markLost':
+      markBorrowAsLost(record)
+      break
+  }
 }
 
 const viewBorrowDetail = borrow => {
-  this.$router.push({
+  router.push({
     name: 'BorrowDetail',
     params: { id: borrow.id }
   })
@@ -590,7 +568,7 @@ const returnBorrow = async borrow => {
       message: `图书"${borrow.book.title}"已成功归还`
     })
 
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('归还图书失败:', error)
@@ -613,7 +591,7 @@ const renewBorrow = async borrow => {
       message: `图书"${borrow.book.title}"已成功续借`
     })
 
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('续借图书失败:', error)
@@ -651,7 +629,7 @@ const markBorrowAsLost = async borrow => {
       message: `图书"${borrow.book.title}"已标记为丢失`
     })
 
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('标记丢失失败:', error)
@@ -665,7 +643,7 @@ const sendReminder = borrow => {
 }
 
 const viewUserHistory = borrow => {
-  this.$router.push({
+  router.push({
     name: 'UserDetail',
     params: { id: borrow.userId },
     query: { tab: 'borrows' }
@@ -701,11 +679,132 @@ const batchReturn = async () => {
     })
 
     clearSelection()
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量归还失败:', error)
       ElMessage.error('批量归还失败')
+    }
+  }
+}
+
+// ProTable批量操作处理函数
+const handleBatchReturnFromTable = async (selectedRows) => {
+  const borrowIds = selectedRows
+    .filter(borrow => ['borrowed', 'overdue'].includes(borrow.status))
+    .map(borrow => borrow.id)
+
+  if (borrowIds.length === 0) {
+    ElMessage.warning('没有可以归还的借阅记录')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要批量归还 ${borrowIds.length} 本图书吗？`, '批量归还确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await batchProcessBorrows({
+      borrowIds,
+      action: 'return',
+      params: { condition: 'good' }
+    })
+
+    ElNotification.success({
+      title: '批量归还完成',
+      message: `成功归还 ${response.data.batchResult.success} 本图书`
+    })
+
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量归还失败:', error)
+      ElMessage.error('批量归还失败')
+    }
+  }
+}
+
+const handleBatchRenewFromTable = async (selectedRows) => {
+  const borrowIds = selectedRows
+    .filter(borrow => borrow.status === 'borrowed' && borrow.canRenew)
+    .map(borrow => borrow.id)
+
+  if (borrowIds.length === 0) {
+    ElMessage.warning('没有可以续借的借阅记录')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要批量续借 ${borrowIds.length} 本图书吗？`, '批量续借确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const response = await batchProcessBorrows({
+      borrowIds,
+      action: 'renew'
+    })
+
+    ElNotification.success({
+      title: '批量续借完成',
+      message: `成功续借 ${response.data.batchResult.success} 本图书`
+    })
+
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量续借失败:', error)
+      ElMessage.error('批量续借失败')
+    }
+  }
+}
+
+const handleBatchReminderFromTable = (selectedRows) => {
+  ElMessage.success(`已向 ${selectedRows.length} 位用户发送催还通知`)
+  // 实际应该调用API发送提醒
+}
+
+const handleBatchMarkLostFromTable = async (selectedRows) => {
+  const borrowIds = selectedRows
+    .filter(borrow => ['borrowed', 'overdue'].includes(borrow.status))
+    .map(borrow => borrow.id)
+
+  if (borrowIds.length === 0) {
+    ElMessage.warning('没有可以标记为丢失的借阅记录')
+    return
+  }
+
+  try {
+    const { value: notes } = await ElMessageBox.prompt(
+      `确定要将 ${borrowIds.length} 本图书标记为丢失吗？`,
+      '批量标记丢失',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputPlaceholder: '请输入备注信息',
+        inputType: 'textarea'
+      }
+    )
+
+    const response = await batchProcessBorrows({
+      borrowIds,
+      action: 'markLost',
+      params: { notes }
+    })
+
+    ElNotification.success({
+      title: '批量标记完成',
+      message: `成功标记 ${response.data.batchResult.success} 本图书为丢失`
+    })
+
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量标记丢失失败:', error)
+      ElMessage.error('批量标记丢失失败')
     }
   }
 }
@@ -738,7 +837,7 @@ const batchRenew = async () => {
     })
 
     clearSelection()
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量续借失败:', error)
@@ -785,7 +884,7 @@ const batchMarkLost = async () => {
     })
 
     clearSelection()
-    loadBorrows()
+    proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量标记丢失失败:', error)
@@ -796,12 +895,12 @@ const batchMarkLost = async () => {
 
 const handleBorrowSuccess = () => {
   showBorrowDialog.value = false
-  loadBorrows()
+  proTableRef.value?.refresh()
   ElMessage.success('借阅记录创建成功')
 }
 
 const handleQuickReturnSuccess = () => {
-  loadBorrows()
+  proTableRef.value?.refresh()
   ElMessage.success('快速归还成功')
 }
 
@@ -844,7 +943,7 @@ const getRenewalTagType = (renewalCount, maxRenewals) => {
 
 // 生命周期
 onMounted(() => {
-  loadBorrows()
+  // ProTable 会自动加载数据，无需手动调用
 })
 </script>
 
@@ -949,14 +1048,18 @@ onMounted(() => {
       font-weight: 500;
       color: var(--el-text-color-primary);
       margin-bottom: 4px;
-      @include text-ellipsis(2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .book-meta {
       font-size: 12px;
       color: var(--el-text-color-regular);
       margin-bottom: 2px;
-      @include text-ellipsis();
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 }

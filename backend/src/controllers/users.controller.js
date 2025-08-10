@@ -11,11 +11,44 @@ class UsersController {
    * @private
    */
   _cleanQueryParams(query) {
+    // 字段名映射：前端驼峰命名法 -> 数据库蛇形命名法
+    const fieldNameMapping = {
+      sortBy: 'orderBy',
+      sortOrder: 'order',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      lastLoginAt: 'last_login_at',
+      realName: 'real_name',
+      studentId: 'student_id',
+    };
+    
     const mappedQuery = {
       ...query,
       search: query.keyword || query.search,
       limit: query.size || query.limit
     };
+    
+    // 应用字段名映射
+    Object.keys(mappedQuery).forEach(key => {
+      if (fieldNameMapping[key]) {
+        mappedQuery[fieldNameMapping[key]] = mappedQuery[key];
+        delete mappedQuery[key];
+      }
+    });
+    
+    // 特殊处理 orderBy 字段：将驼峰命名转换为蛇形命名
+    if (mappedQuery.orderBy) {
+      const orderByMapping = {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+        lastLoginAt: 'last_login_at',
+        realName: 'real_name',
+        studentId: 'student_id',
+      };
+      if (orderByMapping[mappedQuery.orderBy]) {
+        mappedQuery.orderBy = orderByMapping[mappedQuery.orderBy];
+      }
+    }
     
     // 移除重复和无用参数
     delete mappedQuery.keyword;
@@ -43,7 +76,11 @@ class UsersController {
    * 获取用户列表
    */
   getUserList = asyncHandler(async (req, res) => {
+    console.log('=== DEBUG: 用户列表API调用 ===');
+    console.log('原始查询参数:', req.query);
     const mappedQuery = this._cleanQueryParams(req.query);
+    console.log('映射后查询参数:', mappedQuery);
+    console.log('=== DEBUG END ===');
     const result = await usersService.getUserList(mappedQuery);
     successWithPagination(res, result.users, result.pagination, '获取用户列表成功');
   });
