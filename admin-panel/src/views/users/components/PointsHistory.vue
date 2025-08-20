@@ -80,9 +80,9 @@
       <ProTable
         ref="proTableRef"
         :request="requestPointsHistory"
-        :columns="pointsTableColumns"
+        :columns="filteredPointsTableColumns"
         :search="false"
-        :toolBar="false"
+        :toolBar="pointsToolBarConfig"
         :pagination="{
           current: pagination.page,
           pageSize: pagination.size,
@@ -94,11 +94,19 @@
           onShowSizeChange: handleSizeChange
         }"
         row-key="id"
-        height="400"
+        :max-height="finalTableHeight"
         empty-text="暂无积分记录"
         stripe
         border
       >
+        <!-- 工具栏插槽 -->
+        <template #toolBarRender>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <el-tooltip content="列设置" placement="top">
+              <el-button :icon="Setting" @click="openColumnSettings" />
+            </el-tooltip>
+          </div>
+        </template>
         <!-- 时间插槽 -->
         <template #timeInfo="{ record }">
           <div class="time-info">
@@ -157,15 +165,28 @@
         </template>
       </ProTable>
     </div>
+
+    <!-- 列设置对话框 -->
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ProTable } from '@/components/common'
+import { Setting } from '@element-plus/icons-vue'
+import { ProTable, ColumnSettings } from '@/components/common'
 import { pointsApi } from '@/api/points'
 import { formatDate, formatTime } from '@/utils/date'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 // 属性定义
 const props = defineProps({
@@ -195,8 +216,45 @@ const pagination = reactive({
   total: 0
 })
 
-// ProTable配置
-const pointsTableColumns = [
+// 默认列设置配置
+const defaultVisibleColumns = [
+  'createdAt',
+  'type',
+  'source',
+  'amount',
+  'balance',
+  'description',
+  'related'
+]
+
+const defaultColumnOptions = [
+  { label: '时间', value: 'createdAt', required: true },
+  { label: '类型', value: 'type' },
+  { label: '来源', value: 'source' },
+  { label: '积分变化', value: 'amount', required: true },
+  { label: '余额', value: 'balance' },
+  { label: '描述', value: 'description' },
+  { label: '关联', value: 'related' }
+]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('pointsHistory', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable (组件内使用较小的高度)
+const tableHeightConfig = getTableHeightPreset('compact', {
+  headerOffset: 100, // 组件头部较小
+  footerOffset: 60   // 组件底部较小
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
+
+// 所有可用的表格列配置
+const allPointsTableColumns = [
   {
     key: 'createdAt',
     title: '时间',
@@ -245,6 +303,30 @@ const pointsTableColumns = [
     align: 'center'
   }
 ]
+
+// 动态过滤的表格列配置（计算属性）
+const filteredPointsTableColumns = computed(() => {
+  // 根据columnOptions的顺序和visibleColumns的选择来生成列
+  const columnsMap = {}
+  allPointsTableColumns.forEach(col => {
+    columnsMap[col.key] = col
+  })
+
+  // 按照columnOptions的顺序返回可见的列
+  return columnOptions.value
+    .filter(opt => visibleColumns.value.includes(opt.value))
+    .map(opt => columnsMap[opt.value])
+    .filter(Boolean)
+})
+
+// 工具栏配置
+const pointsToolBarConfig = {
+  refresh: false,
+  setting: false,
+  density: false,
+  columnSetting: false,
+  fullScreen: false
+}
 
 // ProTable数据请求函数
 const requestPointsHistory = async (params) => {
@@ -344,6 +426,15 @@ const handleSizeChange = size => {
 
 const handlePageChange = page => {
   pagination.page = page
+}
+
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
 }
 
 const viewBook = book => {

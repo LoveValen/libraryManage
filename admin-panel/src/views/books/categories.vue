@@ -12,23 +12,6 @@
 
     <!-- 分类管理卡片 -->
     <el-card shadow="never" class="categories-card">
-      <!-- 页面标题区域 -->
-      <div class="page-header">
-        <div class="header-left">
-          <el-button type="primary" :icon="Plus" @click="handleAddCategory">
-            新增分类
-          </el-button>
-        </div>
-        <div class="header-actions">
-          <el-tooltip content="刷新数据" placement="top">
-            <el-button icon="Refresh" @click="loadCategories" :loading="loading" />
-          </el-tooltip>
-          <el-tooltip content="列设置" placement="top">
-            <el-button icon="Setting" @click="showColumnSettings = true" />
-          </el-tooltip>
-        </div>
-      </div>
-
       <!-- 分类内容区域 -->
       <div class="categories-content" v-loading="loading">
 
@@ -44,10 +27,12 @@
             :request="requestCategories"
             :columns="categoryTableColumns"
             :actions="categoryRowActions"
+            :row-selection="{ type: 'checkbox' }"
             :search="false"
             :toolBar="categoryToolBarConfig"
             :pagination="false"
             :action-column="{ width: 280, fixed: 'right', align: 'center' }"
+            :max-height="finalTableHeight"
             row-key="id"
             :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
             default-expand-all
@@ -108,13 +93,46 @@
             </template>
 
             <!-- 工具栏插槽 -->
-            <template #toolBarRender>
-              <el-button type="info" :icon="TrendCharts" @click="showStatistics">
-                统计分析
-              </el-button>
-              <el-button type="success" :icon="Download" @click="exportCategories">
-                导出分类
-              </el-button>
+            <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+              <div style="display: flex; justify-content: space-between; width: 100%;">
+                <!-- 左侧操作按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <!-- 新增分类按钮 -->
+                  <el-button type="primary" @click="handleAddCategory">
+                    新增分类
+                  </el-button>
+                  
+                  <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                  <el-button 
+                    type="danger" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchDelete(selectedRows)"
+                  >
+                    批量删除
+                  </el-button>
+                  
+                  <!-- 常规工具栏按钮 -->
+                  <el-button type="info" :icon="TrendCharts" @click="showStatistics">
+                    统计分析
+                  </el-button>
+                  <el-button type="success" :icon="Download" @click="exportCategories">
+                    导出分类
+                  </el-button>
+                  <el-button type="success" :icon="Upload" @click="handleImport">
+                    导入分类
+                  </el-button>
+                </div>
+                
+                <!-- 右侧工具按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <el-tooltip content="刷新数据" placement="top">
+                    <el-button :icon="Refresh" @click="loadCategories" :loading="loading" />
+                  </el-tooltip>
+                  <el-tooltip content="列设置" placement="top">
+                    <el-button :icon="Setting" @click="openColumnSettings" />
+                  </el-tooltip>
+                </div>
+              </div>
             </template>
           </ProTable>
         </div>
@@ -128,6 +146,16 @@
       :loading="saving"
       @confirm="handleSaveCategory"
       @cancel="handleCancelEdit"
+    />
+    
+    <!-- 列设置对话框 -->
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
     />
   </div>
 </template>
@@ -145,16 +173,20 @@ import {
   Edit,
   Delete,
   Download,
+  Upload,
   Plus,
   QuestionFilled,
   TrendCharts,
-  Reading
+  Reading,
+  Setting
 } from '@element-plus/icons-vue'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import CategoryEditDialog from './components/CategoryEditDialog.vue'
-import { ProTable } from '@/components/common'
+import { ProTable, ColumnSettings } from '@/components/common'
 import { getBookCategories, getBookStatistics, getBooks, createBookCategory, updateBookCategory, deleteBookCategory } from '@/api/books'
 import { formatDate } from '@/utils/date'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 // 响应式数据
 const loading = ref(false)
@@ -163,6 +195,37 @@ const categories = ref([])
 const editDialogVisible = ref(false)
 const editCategoryData = ref(null)
 const proTableRef = ref()
+
+// 默认列设置配置
+const defaultVisibleColumns = [
+  'categoryName',
+  'bookStats',
+  'categoryLevel',
+  'updateTime'
+]
+
+const defaultColumnOptions = [
+  { label: '分类名称', value: 'categoryName', required: true },
+  { label: '图书统计', value: 'bookStats' },
+  { label: '分类等级', value: 'categoryLevel' },
+  { label: '更新时间', value: 'updateTime' }
+]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('category', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('compact', {
+  headerOffset: 160, // 搜索区域 + 页面头部
+  footerOffset: 60   // 较少的底部空间
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
 
 // 搜索表单
 const searchForm = reactive({
@@ -220,8 +283,8 @@ const searchFields = [
 ]
 
 // ProTable配置
-// 表格列配置
-const categoryTableColumns = [
+// 所有可用的表格列配置
+const allCategoryTableColumns = [
   {
     key: 'categoryName',
     title: '分类名称',
@@ -243,7 +306,7 @@ const categoryTableColumns = [
     align: 'center'
   },
   {
-    key: 'lastUpdated',
+    key: 'updateTime',
     title: '更新时间',
     slot: 'updateTime',
     minWidth: 150,
@@ -251,6 +314,21 @@ const categoryTableColumns = [
     sorter: true
   }
 ]
+
+// 动态过滤的表格列配置（计算属性）
+const categoryTableColumns = computed(() => {
+  // 根据columnOptions的顺序和visibleColumns的选择来生成列
+  const columnsMap = {}
+  allCategoryTableColumns.forEach(col => {
+    columnsMap[col.key] = col
+  })
+
+  // 按照columnOptions的顺序返回可见的列
+  return columnOptions.value
+    .filter(opt => visibleColumns.value.includes(opt.value))
+    .map(opt => columnsMap[opt.value])
+    .filter(Boolean)
+})
 
 // 行操作配置
 const categoryRowActions = [
@@ -700,12 +778,54 @@ const getCategoryDescription = categoryName => {
 }
 
 // ProTable工具栏处理函数
+const handleImport = () => {
+  ElMessage.info('批量导入功能开发中...')
+}
+
+const handleBatchDelete = async (selectedRows) => {
+  if (!selectedRows || selectedRows.length === 0) {
+    ElMessage.warning('请选择要删除的分类')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.length} 个分类吗？注意：这不会删除该分类下的图书，只会将它们标记为未分类。`,
+      '批量删除',
+      { type: 'warning' }
+    )
+
+    const categoryIds = selectedRows.map(cat => cat.id)
+    // 批量删除逻辑
+    for (const id of categoryIds) {
+      await deleteBookCategory(id)
+    }
+
+    ElMessage.success('批量删除成功')
+    proTableRef.value?.refresh()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
 const showStatistics = () => {
   ElMessage.info('统计分析功能开发中...')
 }
 
 const exportCategories = () => {
   ElMessage.info('导出分类功能开发中...')
+}
+
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
 }
 
 const getCategoryTagType = bookCount => {
@@ -731,11 +851,17 @@ onMounted(() => {
 <style lang="scss" scoped>
 .categories-container {
   background-color: var(--content-bg-color);
-  min-height: 100vh;
+  padding: 20px;
+  // Remove max-width constraint to use full viewport width
+  // max-width: 1400px;
+  // margin: 0 auto;
 }
 
 .categories-card {
-  margin-bottom: 20px;
+  margin-top: 16px;
+  margin-bottom: 0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 
   :deep(.el-card__body) {
     padding: 0;
@@ -746,7 +872,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--el-border-color-extra-light);
   background: white;
   margin-bottom: 0;
@@ -757,25 +883,25 @@ onMounted(() => {
     gap: 16px;
 
     .title-icon {
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-      border-radius: 12px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 24px;
-      box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
     }
 
     .title-info {
       .page-title {
-        font-size: 24px;
-        font-weight: 700;
+        font-size: 20px;
+        font-weight: 600;
         color: var(--el-text-color-primary);
-        margin: 0 0 4px 0;
-        line-height: 1.3;
+        margin: 0 0 2px 0;
+        line-height: 1.2;
       }
 
       .page-subtitle {
@@ -795,7 +921,7 @@ onMounted(() => {
 }
 
 .categories-content {
-  padding: 24px;
+  padding: 20px;
 }
 
 // 统计概览样式
@@ -915,13 +1041,13 @@ onMounted(() => {
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
-  padding: 24px 0;
+  margin-top: 20px;
+  padding: 16px 0;
   border-top: 1px solid var(--el-border-color-extra-light);
   background: var(--el-fill-color-extra-light);
-  border-radius: 0 0 12px 12px;
-  margin-left: -24px;
-  margin-right: -24px;
+  border-radius: 0 0 8px 8px;
+  margin-left: -20px;
+  margin-right: -20px;
 }
 
 
@@ -929,19 +1055,22 @@ onMounted(() => {
 // 响应式设计
 @media (max-width: 768px) {
   .categories-container {
-    padding: 16px;
+    padding: 12px;
   }
 
   .categories-card {
-    margin: 0 -16px 20px -16px;
+    margin: 0 -12px 0 -12px;
     border-radius: 0;
+    box-shadow: none;
+    border-left: none;
+    border-right: none;
   }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    padding: 12px 16px;
 
     .header-left {
       .title-icon {
@@ -965,7 +1094,7 @@ onMounted(() => {
   }
 
   .categories-content {
-    padding: 16px 20px 20px;
+    padding: 12px 16px 16px;
   }
 
   .categories-table {
@@ -1000,6 +1129,12 @@ onMounted(() => {
   margin-left: 8px;
 }
 
+.column-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 @media (max-width: 480px) {
   .stats-overview {
     .grid {
@@ -1008,7 +1143,7 @@ onMounted(() => {
     }
 
     .stats-card {
-      padding: 16px;
+      padding: 12px;
 
       .stats-content {
         .stats-icon {

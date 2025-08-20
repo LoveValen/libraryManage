@@ -26,6 +26,11 @@ export const useAppStore = defineStore(
     const pageAnimation = ref(true)
     const grayMode = ref(false)
     const colorWeakMode = ref(false)
+    
+    // Animation settings
+    const enableTransitions = ref(true)
+    const transitionSpeed = ref('normal') // fast, normal, slow
+    const transitionType = ref('fade-slide') // fade-slide, fade, slide-up, zoom
 
     // Getters
     const isMobile = computed(() => device.value === 'mobile')
@@ -507,6 +512,11 @@ export const useAppStore = defineStore(
       pageAnimation,
       grayMode,
       colorWeakMode,
+      
+      // Animation settings
+      enableTransitions,
+      transitionSpeed,
+      transitionType,
 
       // Getters
       isMobile,

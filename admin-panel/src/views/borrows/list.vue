@@ -14,53 +14,6 @@
     <!-- 借阅记录表格 -->
     <div class="table-section">
       <el-card shadow="never" class="table-card">
-        <!-- 表格工具栏 -->
-        <div class="table-toolbar">
-          <div class="toolbar-left">
-            <div v-if="selectedBorrows.length > 0" class="selection-info">
-              <el-icon><Check /></el-icon>
-              <span>已选择 <strong>{{ selectedBorrows.length }}</strong> 项</span>
-            </div>
-            <div class="batch-actions" :class="{ 'show': selectedBorrows.length > 0 }">
-              <el-button type="success" :disabled="selectedBorrows.length === 0" @click="batchReturn">
-                <el-icon><Check /></el-icon>
-                批量归还
-                <el-badge v-if="canBatchReturnCount > 0" :value="canBatchReturnCount" class="action-badge" />
-              </el-button>
-              <el-button type="warning" :disabled="selectedBorrows.length === 0" @click="batchRenew">
-                <el-icon><RefreshLeft /></el-icon>
-                批量续借
-                <el-badge v-if="canBatchRenewCount > 0" :value="canBatchRenewCount" class="action-badge" />
-              </el-button>
-              <el-button type="info" :disabled="selectedBorrows.length === 0" @click="batchSendReminder">
-                <el-icon><Bell /></el-icon>
-                批量提醒
-              </el-button>
-              <el-button type="danger" :disabled="selectedBorrows.length === 0" @click="batchMarkLost">
-                <el-icon><Warning /></el-icon>
-                标记丢失
-              </el-button>
-              <el-button @click="clearSelection" v-if="selectedBorrows.length > 0">
-                取消选择
-              </el-button>
-            </div>
-          </div>
-          <div class="toolbar-right">
-            <el-tooltip content="刷新数据">
-              <el-button icon="Refresh" @click="loadData" :loading="loading" />
-            </el-tooltip>
-            <el-tooltip content="导出数据">
-              <el-button icon="Download" @click="exportBorrows" />
-            </el-tooltip>
-            <el-tooltip content="数据分析">
-              <el-button icon="TrendCharts" @click="showTrendsDialog = true" />
-            </el-tooltip>
-            <el-tooltip content="列设置">
-              <el-button icon="Setting" @click="showColumnSettings = true" />
-            </el-tooltip>
-          </div>
-        </div>
-
         <!-- 数据表格 -->
         <ProTable
           ref="proTableRef"
@@ -68,12 +21,64 @@
           :columns="borrowTableColumns"
           :row-selection="{ type: 'checkbox' }"
           :search="false"
-          :toolBar="false"
+          :toolBar="borrowToolBarConfig"
           :action-column="{ width: 200, fixed: 'right', align: 'center' }"
           :params="borrowSearchParams"
+          :max-height="finalTableHeight"
           row-key="id"
+          stripe
+          border
           @selection-change="handleSelectionChange"
         >
+          <!-- 工具栏插槽 -->
+          <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <!-- 左侧操作按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <!-- 新增借阅按钮 -->
+                <el-button type="primary" @click="showBorrowDialog = true">
+                  新增借阅
+                </el-button>
+                
+                <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                <el-button 
+                  type="success" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchReturnFromTable(selectedRows)"
+                >
+                  批量归还
+                </el-button>
+                <el-button 
+                  type="warning" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchRenewFromTable(selectedRows)"
+                >
+                  批量续借
+                </el-button>
+                
+                <!-- 常规工具栏按钮 -->
+                <el-button type="info" :icon="TrendCharts" @click="showTrendsDialog = true">
+                  借阅趋势
+                </el-button>
+                <el-button type="warning" :icon="Warning" @click="showOverdueDialog = true">
+                  逾期管理
+                </el-button>
+                <el-button type="success" :icon="Download" @click="exportBorrows">
+                  导出数据
+                </el-button>
+              </div>
+              
+              <!-- 右侧工具按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <el-tooltip content="刷新数据" placement="top">
+                  <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                </el-tooltip>
+                <el-tooltip content="列设置" placement="top">
+                  <el-button :icon="Setting" @click="openColumnSettings" />
+                </el-tooltip>
+              </div>
+            </div>
+          </template>
           <!-- 用户信息插槽 -->
           <template #user="{ record }">
             <div class="user-info">
@@ -217,6 +222,16 @@
 
     <!-- 借阅趋势对话框 -->
     <TrendsDialog v-model="showTrendsDialog" />
+    
+    <!-- 列设置对话框 -->
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
   </div>
 </template>
 
@@ -243,9 +258,11 @@ import {
   Timer,
   Reading,
   Setting,
-  ArrowDown
+  ArrowDown,
+  ArrowUp,
+  Rank
 } from '@element-plus/icons-vue'
-import { StatusTag, ProTable } from '@/components/common'
+import { StatusTag, ProTable, ColumnSettings } from '@/components/common'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import BorrowForm from './components/BorrowForm.vue'
 import QuickReturnDialog from './components/QuickReturnDialog.vue'
@@ -260,6 +277,8 @@ import {
   batchProcessBorrows
 } from '@/api/borrows'
 import { formatDate, formatRelativeTime } from '@/utils/date'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 // 响应式数据
 const router = useRouter()
@@ -270,7 +289,6 @@ const showBorrowDialog = ref(false)
 const showQuickReturnDialog = ref(false)
 const showOverdueDialog = ref(false)
 const showTrendsDialog = ref(false)
-const showColumnSettings = ref(false)
 const proTableRef = ref()
 
 // 搜索表单
@@ -287,8 +305,8 @@ const searchForm = reactive({
 })
 
 
-// 表格列配置
-const borrowTableColumns = [
+// 所有可用的列配置
+const allBorrowTableColumns = [
   {
     key: 'user',
     title: '借阅用户',
@@ -353,6 +371,50 @@ const borrowTableColumns = [
 
 // 搜索参数
 const borrowSearchParams = ref({})
+
+// 默认列设置配置
+const defaultVisibleColumns = [
+  'user',
+  'book',
+  'status',
+  'borrowDate',
+  'dueDate',
+  'returnDate'
+]
+
+const defaultColumnOptions = [
+  { label: '借阅用户', value: 'user', required: true },
+  { label: '图书信息', value: 'book', required: true },
+  { label: '状态', value: 'status' },
+  { label: '借阅时间', value: 'borrowDate' },
+  { label: '应还时间', value: 'dueDate' },
+  { label: '归还时间', value: 'returnDate' },
+  { label: '续借次数', value: 'renewalCount' },
+  { label: '操作', value: 'actions', required: true }
+]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('borrow', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('standard', {
+  headerOffset: 180, // 搜索区域 + 工具栏
+  footerOffset: 80   // 分页区域
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
+
+// 动态过滤的表格列配置（计算属性）
+const borrowTableColumns = computed(() => {
+  return allBorrowTableColumns.filter(column =>
+    visibleColumns.value.includes(column.key)
+  )
+})
 
 
 
@@ -914,6 +976,19 @@ const exportBorrows = () => {
   ElMessage.info('导出功能待实现')
 }
 
+const handleRefresh = () => {
+  proTableRef.value?.refresh()
+}
+
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
+}
+
 // 工具函数
 const getDueDateClass = borrow => {
   if (borrow.status !== 'borrowed') return ''
@@ -1213,6 +1288,86 @@ onMounted(() => {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
+
+// 列设置对话框样式
+.column-settings-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.column-settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #ebeef5;
+  transition: all 0.2s;
+  cursor: move;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: #f5f7fa;
+  }
+  
+  &.is-disabled {
+    cursor: default;
+    background: #fafafa;
+  }
+  
+  &[draggable="true"]:active {
+    background: #ecf5ff;
+    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+    z-index: 10;
+    position: relative;
+  }
+}
+
+.drag-handle {
+  margin-right: 12px;
+  color: #c0c4cc;
+  cursor: move;
+  font-size: 14px;
+  
+  &:hover {
+    color: #909399;
+  }
+}
+
+.drag-handle-placeholder {
+  width: 26px;
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  
+  .el-button {
+    padding: 4px;
+    background: transparent;
+    border-color: #dcdfe6;
+    
+    &:hover:not(:disabled) {
+      background: #f5f7fa;
+      border-color: #c0c4cc;
+      color: #409eff;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
 }
 
 @media (max-width: 768px) {

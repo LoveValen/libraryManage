@@ -682,7 +682,7 @@ export default defineComponent({
       <div class="pro-table">
         {renderSearchForm()}
         {renderToolBar()}
-        
+
         <div class="pro-table-content">
           <ElTable
             ref={tableRef}
@@ -695,6 +695,7 @@ export default defineComponent({
             height={props.height}
             maxHeight={props.maxHeight}
             tableLayout="fixed"
+            scrollbarAlwaysOn={true}
             onSelectionChange={handleSelectionChange}
             onSortChange={handleSortChange}
             onRowClick={onRowClick}

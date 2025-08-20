@@ -466,8 +466,9 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .system-settings-container {
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  // Allow full width utilization - settings cards will control their own layout
+  // max-width: 1200px;
+  // margin: 0 auto;
 }
 
 .page-header {

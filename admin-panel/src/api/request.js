@@ -4,6 +4,9 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 import NProgress from 'nprogress'
 
+// 配置是否在API请求时显示进度条 (设置为 false 禁用API请求进度条)
+const ENABLE_API_PROGRESS = false
+
 // 创建axios实例
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
@@ -16,8 +19,10 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   config => {
-    // 开始进度条
-    NProgress.start()
+    // 开始进度条（可选）
+    if (ENABLE_API_PROGRESS) {
+      NProgress.start()
+    }
 
     const authStore = useAuthStore()
 
@@ -48,7 +53,9 @@ service.interceptors.request.use(
     return config
   },
   error => {
-    NProgress.done()
+    if (ENABLE_API_PROGRESS) {
+      NProgress.done()
+    }
     console.error('请求配置错误:', error)
     return Promise.reject(error)
   }
@@ -57,8 +64,10 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    // 结束进度条
-    NProgress.done()
+    // 结束进度条（可选）
+    if (ENABLE_API_PROGRESS) {
+      NProgress.done()
+    }
 
     const { data, config } = response
 
@@ -84,8 +93,10 @@ service.interceptors.response.use(
     return data
   },
   async error => {
-    // 结束进度条
-    NProgress.done()
+    // 结束进度条（可选）
+    if (ENABLE_API_PROGRESS) {
+      NProgress.done()
+    }
 
     const { response, config } = error
 

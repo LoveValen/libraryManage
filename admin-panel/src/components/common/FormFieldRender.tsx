@@ -162,12 +162,17 @@ export default defineComponent({
                    props.field.valueType === 'dateRange' ? 'daterange' :
                    props.field.valueType === 'dateTimeRange' ? 'datetimerange' : 'date'
 
+      // 处理placeholder - 如果是数组，转换为字符串
+      const placeholder = Array.isArray(props.field.placeholder) 
+        ? props.field.placeholder.join(' - ') 
+        : props.field.placeholder || '选择日期'
+
       return (
         <ElDatePicker
           modelValue={props.value}
           onUpdate:modelValue={handleChange}
           type={type}
-          placeholder={props.field.placeholder}
+          placeholder={placeholder}
           disabled={props.field.disabled}
           clearable={props.field.clearable !== false}
           format={props.field.format}

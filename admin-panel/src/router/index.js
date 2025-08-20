@@ -57,7 +57,8 @@ export const asyncRoutes = [
         meta: {
           title: '仪表板',
           icon: 'DataBoard',
-          affix: true
+          affix: true,
+          transition: 'fade-slide' // 默认动画
         }
       }
     ]
@@ -78,7 +79,8 @@ export const asyncRoutes = [
         component: () => import('@/views/users/list.vue'),
         meta: {
           title: '用户列表',
-          icon: 'UserFilled'
+          icon: 'UserFilled',
+          transition: 'fade-slide'
         }
       },
       {
@@ -385,10 +387,18 @@ const router = createRouter({
   }
 })
 
+// 配置是否启用路由进度条 (设置为 false 完全禁用进度条)
+// 选项：
+// - true: 显示微妙的顶部进度条
+// - false: 完全禁用进度条，实现瞬间页面切换
+const ENABLE_ROUTE_PROGRESS = true
+
 // 路由守卫
 router.beforeEach(async (to, from, next) => {
-  // 开始进度条
-  NProgress.start()
+  // 开始进度条（可选）
+  if (ENABLE_ROUTE_PROGRESS) {
+    NProgress.start()
+  }
 
   const authStore = useAuthStore()
   const appStore = useAppStore()
@@ -465,8 +475,10 @@ router.beforeEach(async (to, from, next) => {
 })
 
 router.afterEach(() => {
-  // 结束进度条
-  NProgress.done()
+  // 结束进度条（可选）
+  if (ENABLE_ROUTE_PROGRESS) {
+    NProgress.done()
+  }
 })
 
 // 生成可访问的路由

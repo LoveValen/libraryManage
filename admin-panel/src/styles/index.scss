@@ -2,6 +2,42 @@
 @use './variables.scss' as *;
 @use './mixins.scss' as *;
 
+// 导入滚动表格样式
+@import './scrollable-table.scss';
+
+// NProgress 样式覆盖 - 更微妙的进度条
+#nprogress {
+  pointer-events: none;
+  
+  .bar {
+    background: var(--el-color-primary) !important;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px !important; // 更细的进度条
+    box-shadow: 0 0 2px var(--el-color-primary);
+  }
+  
+  // 移除peg（进度条末端的发光效果）
+  .peg {
+    display: none !important;
+  }
+  
+  // 确保没有背景遮罩
+  .spinner {
+    display: none !important;
+  }
+}
+
+// 移除任何可能的背景遮罩
+#nprogress-background,
+.nprogress-custom-parent {
+  overflow: visible !important;
+  position: relative !important;
+}
+
 // TailwindCSS
 @tailwind base;
 @tailwind components;
@@ -28,7 +64,8 @@ body {
   height: 100%;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   color: var(--el-text-color-primary);
-  background-color: var(--el-bg-color-page);
+  background-color: var(--el-bg-color-page, #f2f3f5); // 提供默认值防止闪烁
+  transition: background-color 0.3s ease; // 平滑过渡
 }
 
 #app {

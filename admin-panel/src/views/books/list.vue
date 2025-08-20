@@ -30,44 +30,6 @@
             </el-radio-button>
           </el-radio-group>
         </div>
-
-        <div class="view-controls-right">
-          <div class="control-group">
-            <span class="control-label">显示选项:</span>
-            <el-checkbox v-model="showCover" size="small">封面</el-checkbox>
-            <el-checkbox v-model="showStock" size="small">库存</el-checkbox>
-          </div>
-          
-          <el-divider direction="vertical" />
-          
-          <div class="sort-controls">
-            <span class="control-label">排序:</span>
-            <el-select 
-              v-model="sortBy" 
-              placeholder="选择排序字段" 
-              size="small"
-              style="width: 140px"
-            >
-              <el-option label="添加时间" value="createdAt" />
-              <el-option label="更新时间" value="updatedAt" />
-              <el-option label="书名" value="title" />
-              <el-option label="作者" value="author" />
-              <el-option label="借阅次数" value="borrowCount" />
-              <el-option label="评分" value="rating" />
-            </el-select>
-            <el-tooltip :content="sortOrder === 'desc' ? '降序排列' : '升序排列'">
-              <el-button 
-                @click="toggleSortOrder" 
-                size="small"
-                :type="sortOrder === 'desc' ? 'primary' : 'default'"
-              >
-                <el-icon>
-                  <component :is="sortOrder === 'desc' ? 'SortDown' : 'SortUp'" />
-                </el-icon>
-              </el-button>
-            </el-tooltip>
-          </div>
-        </div>
       </div>
 
       <!-- 图书列表内容 -->
@@ -135,7 +97,10 @@
             :toolBar="toolBarConfig"
             :params="searchParams"
             :action-column="{ width: 200, fixed: 'right', align: 'center' }"
+            :max-height="finalTableHeight"
             row-key="id"
+            stripe
+            border
             @create="handleAdd"
             @selection-change="handleProTableSelectionChange"
           >
@@ -170,7 +135,7 @@
             </template>
 
             <!-- 库存信息插槽 -->
-            <template #stock="{ record }" v-if="showStock">
+            <template #stock="{ record }">
               <div class="stock-info">
                 <div class="stock-item">
                   <span class="stock-label">库存:</span>
@@ -183,6 +148,22 @@
               </div>
             </template>
 
+            <!-- 出版信息插槽 -->
+            <template #publishInfo="{ record }">
+              <div class="publish-info">
+                <div class="publisher">{{ record.publisher || '-' }}</div>
+                <div class="publish-date">{{ record.publishDate ? formatDate(record.publishDate) : '-' }}</div>
+              </div>
+            </template>
+
+            <!-- 借阅次数插槽 -->
+            <template #borrowCount="{ record }">
+              <div class="borrow-count-info">
+                <el-icon><Reading /></el-icon>
+                <span>{{ record.borrowCount || 0 }}</span>
+              </div>
+            </template>
+
             <!-- 评分插槽 -->
             <template #rating="{ record }">
               <div class="rating-info">
@@ -192,7 +173,7 @@
             </template>
 
             <!-- 时间插槽 -->
-            <template #time="{ record }">
+            <template #createTime="{ record }">
               <div class="time-info">
                 <div>{{ formatDate(record.createdAt) }}</div>
                 <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
@@ -200,10 +181,57 @@
             </template>
 
             <!-- 工具栏插槽 -->
-            <template #toolBarRender>
-              <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
-                导出数据
-              </el-button>
+            <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+              <div style="display: flex; justify-content: space-between; width: 100%;">
+                <!-- 左侧操作按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <!-- 新增图书按钮 -->
+                  <el-button type="primary" @click="handleAdd">
+                    新增图书
+                  </el-button>
+                  
+                  <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                  <el-button 
+                    type="danger" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchDeleteFromTable(selectedRows)"
+                  >
+                    批量删除
+                  </el-button>
+                  <el-button 
+                    type="warning" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchUpdateStatusFromTable(selectedRows)"
+                  >
+                    批量状态更新
+                  </el-button>
+                  <el-button 
+                    type="info" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchMoveFromTable(selectedRows)"
+                  >
+                    批量移动
+                  </el-button>
+                  
+                  <!-- 常规工具栏按钮 -->
+                  <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
+                    导出数据
+                  </el-button>
+                  <el-button type="success" :icon="Upload" @click="handleImport">
+                    导入图书
+                  </el-button>
+                </div>
+                
+                <!-- 右侧工具按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <el-tooltip content="刷新数据" placement="top">
+                    <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                  </el-tooltip>
+                  <el-tooltip content="列设置" placement="top">
+                    <el-button :icon="Setting" @click="openColumnSettings" />
+                  </el-tooltip>
+                </div>
+              </div>
             </template>
           </ProTable>
         </div>
@@ -216,24 +244,14 @@
     </el-dialog>
 
     <!-- 列设置对话框 -->
-    <el-dialog v-model="showColumnSettings" title="列设置" width="400px">
-      <el-checkbox-group v-model="visibleColumns">
-        <div class="column-settings">
-          <el-checkbox
-            v-for="column in columnOptions"
-            :key="column.value"
-            :label="column.value"
-            :disabled="column.required"
-          >
-            {{ column.label }}
-          </el-checkbox>
-        </div>
-      </el-checkbox-group>
-      <template #footer>
-        <el-button @click="showColumnSettings = false">取消</el-button>
-        <el-button type="primary" @click="applyColumnSettings">确定</el-button>
-      </template>
-    </el-dialog>
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
 
     <!-- 借阅对话框 -->
     <el-dialog v-model="showBorrowDialog" title="借阅图书" width="500px" destroy-on-close>
@@ -248,39 +266,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
-import { 
-  Grid, 
-  List, 
-  SortDown, 
-  SortUp,
-  Check,
-  Delete,
-  Switch,
-  ArrowDown,
-  Plus,
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Grid,
+  List,
   Download,
-  FolderOpened,
-  Collection,
+  Upload,
   Refresh,
   Setting,
   View,
   Edit,
-  CopyDocument,
   Reading,
-  ChatDotRound,
   Position,
   Box
 } from '@element-plus/icons-vue'
 import { bookApi } from '@/api/book'
 import { formatDate, formatTimeAgo } from '@/utils/date'
-import { StatusTag, PRESETS, ProTable } from '@/components/common'
+import { StatusTag, ProTable, ColumnSettings } from '@/components/common'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import CategoryManager from './components/CategoryManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 const router = useRouter()
 
@@ -291,19 +301,15 @@ const bookList = ref([])
 const categories = ref([])
 const locations = ref(['A区', 'B区', 'C区', 'D区', '阅览室', '特藏室'])
 const selectedBooks = ref([])
-const selectAll = ref(false)
-const isIndeterminate = ref(false)
 const viewMode = ref('table')
-const showCover = ref(true)
-const showStock = ref(true)
+const showCover = ref(false)
+const showStock = ref(false)
 const sortBy = ref('createdAt')
 const sortOrder = ref('desc')
 const showCategoryManager = ref(false)
-const showColumnSettings = ref(false)
 const showBorrowDialog = ref(false)
 const showQRCodeDialog = ref(false)
 const selectedBook = ref(null)
-const tableRef = ref()
 const proTableRef = ref()
 
 // 搜索表单
@@ -383,8 +389,8 @@ const searchParams = computed(() => ({
   sortOrder: sortOrder.value
 }))
 
-// 表格列配置
-const bookTableColumns = [
+// 所有可用的列配置
+const allTableColumns = [
   {
     key: 'bookInfo',
     title: '图书信息',
@@ -398,6 +404,13 @@ const bookTableColumns = [
     slot: 'category',
     minWidth: 100,
     sorter: true,
+    align: 'center'
+  },
+  {
+    key: 'publishInfo',
+    title: '出版信息',
+    slot: 'publishInfo',
+    minWidth: 150,
     align: 'center'
   },
   {
@@ -415,13 +428,13 @@ const bookTableColumns = [
     minWidth: 130,
     align: 'center'
   },
-  ...(showStock.value ? [{
+  {
     key: 'stock',
-    title: '库存信息',
+    title: '库存/借阅',
     slot: 'stock',
     minWidth: 100,
     align: 'center'
-  }] : []),
+  },
   {
     key: 'rating',
     title: '评分',
@@ -431,14 +444,37 @@ const bookTableColumns = [
     align: 'center'
   },
   {
-    key: 'createdAt',
+    key: 'borrowCount',
+    title: '借阅次数',
+    slot: 'borrowCount',
+    minWidth: 100,
+    sorter: true,
+    align: 'center'
+  },
+  {
+    key: 'createTime',
     title: '添加时间',
-    slot: 'time',
+    slot: 'createTime',
     minWidth: 140,
     sorter: true,
     align: 'center'
   }
 ]
+
+// 动态过滤的表格列配置（计算属性）
+const bookTableColumns = computed(() => {
+  // 根据columnOptions的顺序和visibleColumns的选择来生成列
+  const columnsMap = {}
+  allTableColumns.forEach(col => {
+    columnsMap[col.key] = col
+  })
+  
+  // 按照columnOptions的顺序返回可见的列
+  return columnOptions.value
+    .filter(opt => visibleColumns.value.includes(opt.value))
+    .map(opt => columnsMap[opt.value])
+    .filter(Boolean)
+})
 
 // 批量操作配置
 const batchActions = [
@@ -500,19 +536,18 @@ const toolBarConfig = {
   fullScreen: true
 }
 
-// 列设置
-const visibleColumns = ref([
+// 默认列设置配置
+const defaultVisibleColumns = [
   'bookInfo',
   'category',
-  'publishInfo',
   'status',
   'location',
   'stock',
   'rating',
-  'borrowCount',
   'createTime'
-])
-const columnOptions = [
+]
+
+const defaultColumnOptions = [
   { label: '图书信息', value: 'bookInfo', required: true },
   { label: '分类', value: 'category' },
   { label: '出版信息', value: 'publishInfo' },
@@ -524,50 +559,27 @@ const columnOptions = [
   { label: '添加时间', value: 'createTime' }
 ]
 
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('book', defaultVisibleColumns, defaultColumnOptions)
 
-// 计算属性
-const isIndeterminateChecked = computed(() => {
-  const selectedCount = selectedBooks.value.length
-  const totalCount = bookList.value.length
-  return selectedCount > 0 && selectedCount < totalCount
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('standard', {
+  headerOffset: 220, // 搜索区域 + 工具栏
+  footerOffset: 80   // 分页区域
 })
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
+
 
 // 方法
-const formatNumber = num => {
-  if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w'
-  }
-  return num.toLocaleString()
-}
-
-const getStatusText = status => {
-  const statusMap = {
-    available: '可借',
-    borrowed: '已借出',
-    maintenance: '维修中',
-    offline: '已下架'
-  }
-  return statusMap[status] || status
-}
-
-const getStatusTagType = status => {
-  const typeMap = {
-    available: 'success',
-    borrowed: 'warning',
-    maintenance: 'info',
-    offline: 'danger'
-  }
-  return typeMap[status] || 'info'
-}
-
 const getCategoryName = categoryId => {
   const category = categories.value.find(c => c.id === categoryId)
   return category ? category.name : '未分类'
-}
-
-const getCategoryTagType = categoryId => {
-  const types = ['primary', 'success', 'warning', 'danger', 'info']
-  return types[categoryId % types.length]
 }
 
 const fetchBooks = async () => {
@@ -674,102 +686,14 @@ const handleViewModeChange = mode => {
   fetchBooks()
 }
 
-const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'desc' ? 'asc' : 'desc'
-  fetchBooks()
-}
 
-const handleSizeChange = size => {
-  pagination.size = size
-  pagination.page = 1
-  fetchBooks()
-}
-
-const handlePageChange = page => {
-  pagination.page = page
-  fetchBooks()
-}
-
-const handleSortChange = ({ prop, order }) => {
-  sortBy.value = prop || 'createdAt'
-  sortOrder.value = order === 'ascending' ? 'asc' : order === 'descending' ? 'desc' : 'desc'
-  fetchBooks()
-}
-
-const handleSelectionChange = selection => {
-  selectedBooks.value = selection
-  const selectedCount = selection.length
-  const totalCount = bookList.value.length
-
-  selectAll.value = selectedCount === totalCount && totalCount > 0
-  isIndeterminate.value = selectedCount > 0 && selectedCount < totalCount
-}
 
 // ProTable选择变化处理
 const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
   selectedBooks.value = selectedRows
 }
 
-const handleSelectAll = checked => {
-  if (checked) {
-    tableRef.value.toggleAllSelection()
-  } else {
-    tableRef.value.clearSelection()
-  }
-}
 
-const clearSelection = () => {
-  tableRef.value?.clearSelection()
-  selectedBooks.value = []
-}
-
-
-// 批量操作处理
-const handleBatchAction = async (actionKey, selectedRows) => {
-  selectedBooks.value = selectedRows
-
-  switch (actionKey) {
-    case 'delete':
-      await handleBatchDelete()
-      break
-    case 'updateStatus':
-      await handleBatchUpdateStatus()
-      break
-    case 'move':
-      await handleBatchMove()
-      break
-  }
-}
-
-// 工具栏操作处理
-const handleToolbarAction = actionKey => {
-  switch (actionKey) {
-    case 'refresh':
-      fetchBooks()
-      break
-    case 'columnSettings':
-      showColumnSettings.value = true
-      break
-  }
-}
-
-// 行操作处理
-const handleRowAction = (actionKey, row) => {
-  switch (actionKey) {
-    case 'view':
-      handleView(row)
-      break
-    case 'edit':
-      handleEdit(row)
-      break
-    case 'borrow':
-      handleBorrow(row)
-      break
-    case 'delete':
-      handleDelete(row)
-      break
-  }
-}
 
 const handleAdd = () => {
   router.push('/books/create')
@@ -788,68 +712,9 @@ const handleBorrow = book => {
   showBorrowDialog.value = true
 }
 
-const handleAction = async (command, book) => {
-  selectedBook.value = book
 
-  switch (command) {
-    case 'borrow':
-      handleBorrow(book)
-      break
-    case 'reserve':
-      await handleReserve(book)
-      break
-    case 'move':
-      await handleMove(book)
-      break
-    case 'duplicate':
-      await handleDuplicate(book)
-      break
-    case 'qrcode':
-      showQRCodeDialog.value = true
-      break
-    case 'delete':
-      await handleDelete(book)
-      break
-  }
-}
 
-const handleReserve = async book => {
-  ElMessage.info('预约功能开发中...')
-}
 
-const handleMove = async book => {
-  try {
-    const { value: newLocation } = await ElMessageBox.prompt('请输入新的位置：', '移动图书位置', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputValue: book.location
-    })
-
-    await bookApi.updateBook(book.id, { location: newLocation })
-    ElMessage.success('位置更新成功')
-    fetchBooks()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('移动位置失败:', error)
-      ElMessage.error('移动位置失败')
-    }
-  }
-}
-
-const handleDuplicate = async book => {
-  try {
-    await ElMessageBox.confirm(`确定要复制图书《${book.title}》吗？`, '复制图书', { type: 'info' })
-
-    await bookApi.duplicateBook(book.id)
-    ElMessage.success('图书复制成功')
-    fetchBooks()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('复制图书失败:', error)
-      ElMessage.error('复制图书失败')
-    }
-  }
-}
 
 const handleDelete = async book => {
   try {
@@ -866,27 +731,7 @@ const handleDelete = async book => {
   }
 }
 
-const handleBatchDelete = async () => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedBooks.value.length} 本图书吗？此操作不可撤销！`,
-      '批量删除',
-      { type: 'warning' }
-    )
 
-    const bookIds = selectedBooks.value.map(book => book.id)
-    await bookApi.batchDeleteBooks(bookIds)
-
-    ElMessage.success('批量删除成功')
-    fetchBooks()
-    tableRef.value.clearSelection()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
-    }
-  }
-}
 
 // ProTable批量操作处理函数
 const handleBatchDeleteFromTable = async (selectedRows) => {
@@ -956,56 +801,14 @@ const handleBatchMoveFromTable = async (selectedRows) => {
   }
 }
 
-const handleBatchUpdateStatus = async () => {
-  try {
-    const { value: newStatus } = await ElMessageBox.prompt(`选择要设置的状态：`, '批量更新状态', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputType: 'select',
-      inputOptions: [
-        { value: 'available', label: '可借' },
-        { value: 'maintenance', label: '维修中' },
-        { value: 'offline', label: '已下架' }
-      ]
-    })
 
-    const bookIds = selectedBooks.value.map(book => book.id)
-    await bookApi.batchUpdateStatus(bookIds, newStatus)
-
-    ElMessage.success('批量更新成功')
-    fetchBooks()
-    tableRef.value.clearSelection()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量更新失败:', error)
-      ElMessage.error('批量更新失败')
-    }
-  }
-}
-
-const handleBatchMove = async () => {
-  try {
-    const { value: newLocation } = await ElMessageBox.prompt('请输入新的位置：', '批量移动位置', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消'
-    })
-
-    const bookIds = selectedBooks.value.map(book => book.id)
-    await bookApi.batchUpdateLocation(bookIds, newLocation)
-
-    ElMessage.success('批量移动成功')
-    fetchBooks()
-    tableRef.value.clearSelection()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('批量移动失败:', error)
-      ElMessage.error('批量移动失败')
-    }
-  }
-}
 
 const handleImport = () => {
-  router.push('/books/import')
+  ElMessage.info('批量导入功能开发中...')
+}
+
+const handleRefresh = () => {
+  proTableRef.value?.refresh()
 }
 
 const handleExport = async () => {
@@ -1043,9 +846,13 @@ const handleBorrowSuccess = () => {
   ElMessage.success('借阅成功')
 }
 
-const applyColumnSettings = () => {
-  showColumnSettings.value = false
-  ElMessage.success('列设置已保存')
+// 列设置应用回调 - 包装handleApplyFromComponent以添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
 }
 
 // 生命周期
@@ -1363,10 +1170,84 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.column-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+// 列设置对话框样式
+.column-settings-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.column-settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #ebeef5;
+  transition: all 0.2s;
+  cursor: move;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: #f5f7fa;
+  }
+  
+  &.is-disabled {
+    cursor: default;
+    background: #fafafa;
+  }
+  
+  &[draggable="true"]:active {
+    background: #ecf5ff;
+    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+    z-index: 10;
+    position: relative;
+  }
+}
+
+.drag-handle {
+  margin-right: 12px;
+  color: #c0c4cc;
+  cursor: move;
+  font-size: 14px;
+  
+  &:hover {
+    color: #909399;
+  }
+}
+
+.drag-handle-placeholder {
+  width: 26px;
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  
+  .el-button {
+    padding: 4px;
+    background: transparent;
+    border-color: #dcdfe6;
+    
+    &:hover:not(:disabled) {
+      background: #f5f7fa;
+      border-color: #c0c4cc;
+      color: #409eff;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
 }
 
 // 响应式设计

@@ -19,6 +19,9 @@ export { default as ConfirmDialog } from './ConfirmDialog.vue'
 // 主题管理
 export { default as ThemeManager } from './ThemeManager.vue'
 
+// 列设置组件
+export { default as ColumnSettings } from './ColumnSettings.vue'
+
 // 批量注册函数
 export function registerCommonComponents(app) {
   // 数据展示组件 (TSX版本)
@@ -39,6 +42,9 @@ export function registerCommonComponents(app) {
 
   // 主题管理
   app.component('ThemeManager', () => import('./ThemeManager.vue'))
+
+  // 列设置组件
+  app.component('ColumnSettings', () => import('./ColumnSettings.vue'))
 }
 
 // 组件配置常量
@@ -506,6 +512,7 @@ import FileUpload from './FileUpload.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import ThemeManager from './ThemeManager.vue'
 import SvgIcon from './SvgIcon.vue'
+import ColumnSettings from './ColumnSettings.vue'
 
 export default {
   ProTable,
@@ -519,6 +526,7 @@ export default {
   ConfirmDialog,
   ThemeManager,
   SvgIcon,
+  ColumnSettings,
   registerCommonComponents,
   COMPONENT_CONFIGS,
   COMPONENT_UTILS,

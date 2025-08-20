@@ -42,7 +42,10 @@
             :toolBar="reviewToolBarConfig"
             :params="reviewSearchParams"
             :action-column="{ width: 220, fixed: 'right', align: 'center' }"
+            :max-height="finalTableHeight"
             row-key="id"
+            stripe
+            border
             @create="handleAdd"
             @selection-change="handleProTableSelectionChange"
           >
@@ -114,18 +117,65 @@
             </template>
 
             <!-- 工具栏插槽 -->
-            <template #toolBarRender>
-              <el-button type="info" :icon="TrendCharts" @click="showAnalytics">
-                数据分析
-              </el-button>
-              <el-button type="success" :icon="Download" @click="exportReviews">
-                导出数据
-              </el-button>
+            <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+              <div style="display: flex; justify-content: space-between; width: 100%;">
+                <!-- 左侧操作按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <!-- 新增评论按钮 -->
+                  <el-button type="primary" @click="handleAdd">
+                    新增评论
+                  </el-button>
+                  
+                  <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                  <el-button 
+                    type="success" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchApproveFromTable(selectedRows)"
+                  >
+                    批量审核
+                  </el-button>
+                  <el-button 
+                    type="danger" 
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchDeleteFromTable(selectedRows)"
+                  >
+                    批量删除
+                  </el-button>
+                  
+                  <!-- 常规工具栏按钮 -->
+                  <el-button type="info" :icon="TrendCharts" @click="showAnalytics">
+                    数据分析
+                  </el-button>
+                  <el-button type="success" :icon="Download" @click="exportReviews">
+                    导出数据
+                  </el-button>
+                </div>
+                
+                <!-- 右侧工具按钮 -->
+                <div style="display: flex; gap: 8px;">
+                  <el-tooltip content="刷新数据" placement="top">
+                    <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                  </el-tooltip>
+                  <el-tooltip content="列设置" placement="top">
+                    <el-button :icon="Setting" @click="openColumnSettings" />
+                  </el-tooltip>
+                </div>
+              </div>
             </template>
           </ProTable>
         </el-card>
       </div>
     </div>
+    
+    <!-- 列设置对话框 -->
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
   </div>
 </template>
 
@@ -148,8 +198,10 @@ import {
 } from '@element-plus/icons-vue'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { ProTable } from '@/components/common'
+import { ProTable, ColumnSettings } from '@/components/common'
 import { formatDate, formatTimeAgo } from '@/utils/date'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 // 响应式数据
 const loading = ref(false)
@@ -157,7 +209,6 @@ const reviewList = ref([])
 const selectedReviews = ref([])
 const tableRef = ref()
 const proTableRef = ref()
-const showColumnSettings = ref(false)
 
 // 搜索表单
 const searchForm = reactive({
@@ -214,6 +265,43 @@ const pagination = reactive({
   size: 20,
   total: 0
 })
+
+// 默认列设置配置
+const defaultVisibleColumns = [
+  'userInfo',
+  'bookInfo',
+  'rating',
+  'reviewContent',
+  'status',
+  'likeCount',
+  'createdTime'
+]
+
+const defaultColumnOptions = [
+  { label: '用户信息', value: 'userInfo', required: true },
+  { label: '图书信息', value: 'bookInfo', required: true },
+  { label: '评分', value: 'rating' },
+  { label: '评价内容', value: 'reviewContent', required: true },
+  { label: '状态', value: 'status' },
+  { label: '点赞数', value: 'likeCount' },
+  { label: '评价时间', value: 'createdTime' }
+]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('review', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('standard', {
+  headerOffset: 200, // 页面头部 + 搜索区域
+  footerOffset: 80   // 分页区域
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
 
 // ProTable配置
 const reviewSearchParams = computed(() => ({
@@ -563,6 +651,19 @@ const clearSelection = () => {
   }
 }
 
+const handleRefresh = () => {
+  proTableRef.value?.refresh()
+}
+
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
+}
+
 // 生命周期
 onMounted(() => {
   fetchReviews()
@@ -773,5 +874,11 @@ onMounted(() => {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.column-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 </style>

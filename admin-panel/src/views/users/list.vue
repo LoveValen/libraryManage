@@ -27,7 +27,10 @@
           :toolBar="userToolBarConfig"
           :params="userSearchParams"
           :action-column="{ width: 280, fixed: 'right', align: 'center' }"
+          :max-height="finalTableHeight"
           row-key="id"
+          stripe
+          border
           @create="handleAdd"
           @selection-change="handleProTableSelectionChange"
         >
@@ -110,77 +113,86 @@
 
           <!-- 工具栏插槽 -->
           <template #toolBarRender="{ selectedRowKeys, selectedRows }">
-            <!-- 新增用户按钮 -->
-            <el-button type="primary" @click="handleAdd">
-              新增用户
-            </el-button>
-            
-            <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
-            <el-button 
-              type="danger" 
-              :disabled="selectedRowKeys.length === 0"
-              @click="handleBatchDeleteFromTable(selectedRows)"
-            >
-              批量删除
-            </el-button>
-            <el-button 
-              type="warning" 
-              :disabled="selectedRowKeys.length === 0"
-              @click="handleBatchToggleStatusFromTable(selectedRows)"
-            >
-              批量状态切换
-            </el-button>
-            
-            <!-- 常规工具栏按钮 -->
-            <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
-              导出数据
-            </el-button>
-            <el-button type="success" :icon="Upload" @click="handleImport">
-              导入用户
-            </el-button>
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <!-- 左侧操作按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <!-- 新增用户按钮 -->
+                <el-button type="primary" @click="handleAdd">
+                  新增用户
+                </el-button>
+                
+                <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                <el-button 
+                  type="danger" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchDeleteFromTable(selectedRows)"
+                >
+                  批量删除
+                </el-button>
+                <el-button 
+                  type="warning" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchToggleStatusFromTable(selectedRows)"
+                >
+                  批量状态切换
+                </el-button>
+                
+                <!-- 常规工具栏按钮 -->
+                <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
+                  导出数据
+                </el-button>
+                <el-button type="success" :icon="Upload" @click="handleImport">
+                  导入用户
+                </el-button>
+              </div>
+              
+              <!-- 右侧工具按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <el-tooltip content="刷新数据" placement="top">
+                  <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                </el-tooltip>
+                <el-tooltip content="列设置" placement="top">
+                  <el-button :icon="Setting" @click="openColumnSettings" />
+                </el-tooltip>
+              </div>
+            </div>
           </template>
         </ProTable>
       </el-card>
     </div>
 
     <!-- 列设置对话框 -->
-    <el-dialog v-model="showColumnSettings" title="列设置" width="400px">
-      <el-checkbox-group v-model="visibleColumns">
-        <div class="column-settings">
-          <el-checkbox
-            v-for="column in columnOptions"
-            :key="column.value"
-            :label="column.value"
-            :disabled="column.required"
-          >
-            {{ column.label }}
-          </el-checkbox>
-        </div>
-      </el-checkbox-group>
-      <template #footer>
-        <el-button @click="showColumnSettings = false">取消</el-button>
-        <el-button type="primary" @click="applyColumnSettings">确定</el-button>
-      </template>
-    </el-dialog>
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User,
   Message,
   Phone,
   Download,
-  Upload
+  Upload,
+  Refresh,
+  Setting
 } from '@element-plus/icons-vue'
 import { userApi } from '@/api/user'
 import { formatDate, formatTimeAgo } from '@/utils/date'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import StatusTag from '@/components/common/StatusTag.vue'
-import { ProTable } from '@/components/common'
+import { ProTable, ColumnSettings } from '@/components/common'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 const router = useRouter()
 
@@ -191,7 +203,6 @@ const userList = ref([])
 const selectedUsers = ref([])
 const selectAll = ref(false)
 const isIndeterminate = ref(false)
-const showColumnSettings = ref(false)
 const tableRef = ref()
 const proTableRef = ref()
 
@@ -221,8 +232,8 @@ const userSearchParams = computed(() => ({
   ...searchForm
 }))
 
-// 表格列配置
-const userTableColumns = [
+// 所有可用的列配置
+const allUserTableColumns = [
   {
     key: 'userInfo',
     title: '用户信息',
@@ -269,7 +280,7 @@ const userTableColumns = [
     align: 'center'
   },
   {
-    key: 'lastLoginAt',
+    key: 'lastLogin',
     title: '最后登录',
     slot: 'lastLogin',
     minWidth: 140,
@@ -277,7 +288,7 @@ const userTableColumns = [
     align: 'center'
   },
   {
-    key: 'created_at',
+    key: 'registerTime',
     title: '注册时间',
     slot: 'createdTime',
     minWidth: 140,
@@ -285,6 +296,21 @@ const userTableColumns = [
     align: 'center'
   }
 ]
+
+// 动态过滤的表格列配置（计算属性）
+const userTableColumns = computed(() => {
+  // 根据columnOptions的顺序和visibleColumns的选择来生成列
+  const columnsMap = {}
+  allUserTableColumns.forEach(col => {
+    columnsMap[col.key] = col
+  })
+  
+  // 按照columnOptions的顺序返回可见的列
+  return columnOptions.value
+    .filter(opt => visibleColumns.value.includes(opt.value))
+    .map(opt => columnsMap[opt.value])
+    .filter(Boolean)
+})
 
 // 批量操作配置
 const userBatchActions = [
@@ -385,8 +411,8 @@ const searchFields = [
   }
 ]
 
-// 列设置
-const visibleColumns = ref([
+// 默认列设置配置
+const defaultVisibleColumns = [
   'userInfo',
   'contact',
   'role',
@@ -395,8 +421,9 @@ const visibleColumns = ref([
   'points',
   'lastLogin',
   'registerTime'
-])
-const columnOptions = [
+]
+
+const defaultColumnOptions = [
   { label: '用户信息', value: 'userInfo', required: true },
   { label: '联系方式', value: 'contact' },
   { label: '角色', value: 'role' },
@@ -406,6 +433,22 @@ const columnOptions = [
   { label: '最后登录', value: 'lastLogin' },
   { label: '注册时间', value: 'registerTime' }
 ]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('user', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('standard', {
+  headerOffset: 200, // 搜索区域 + 工具栏
+  footerOffset: 80   // 分页区域
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
 
 // 选项配置
 const roleOptions = [
@@ -746,6 +789,10 @@ const handleImport = () => {
   ElMessage.info('批量导入功能开发中...')
 }
 
+const handleRefresh = () => {
+  proTableRef.value?.refresh()
+}
+
 const handleExport = async () => {
   try {
     exportLoading.value = true
@@ -775,9 +822,13 @@ const handleExport = async () => {
   }
 }
 
-const applyColumnSettings = () => {
-  showColumnSettings.value = false
-  ElMessage.success('列设置已保存')
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
 }
 
 // 生命周期
@@ -958,10 +1009,84 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.column-settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+// 列设置对话框样式
+.column-settings-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.column-settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #ebeef5;
+  transition: all 0.2s;
+  cursor: move;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background: #f5f7fa;
+  }
+  
+  &.is-disabled {
+    cursor: default;
+    background: #fafafa;
+  }
+  
+  &[draggable="true"]:active {
+    background: #ecf5ff;
+    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+    z-index: 10;
+    position: relative;
+  }
+}
+
+.drag-handle {
+  margin-right: 12px;
+  color: #c0c4cc;
+  cursor: move;
+  font-size: 14px;
+  
+  &:hover {
+    color: #909399;
+  }
+}
+
+.drag-handle-placeholder {
+  width: 26px;
+}
+
+.sort-buttons {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  
+  .el-button {
+    padding: 4px;
+    background: transparent;
+    border-color: #dcdfe6;
+    
+    &:hover:not(:disabled) {
+      background: #f5f7fa;
+      border-color: #c0c4cc;
+      color: #409eff;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+    }
+  }
 }
 
 // 响应式设计 - 使用标准媒体查询避免mixin问题

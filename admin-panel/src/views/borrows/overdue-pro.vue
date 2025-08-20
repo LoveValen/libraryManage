@@ -16,45 +16,6 @@
     <!-- 逾期记录表格 -->
     <div class="table-section">
       <el-card shadow="never" class="table-card">
-        <!-- 表格工具栏 -->
-        <div class="table-toolbar">
-          <div class="toolbar-left">
-            <div v-if="selectedOverdueRecords.length > 0" class="selection-info">
-              <el-icon><Check /></el-icon>
-              <span>已选择 <strong>{{ selectedOverdueRecords.length }}</strong> 项</span>
-            </div>
-            <div class="batch-actions" :class="{ 'show': selectedOverdueRecords.length > 0 }">
-              <el-button type="warning" :icon="Bell" :disabled="selectedOverdueRecords.length === 0" @click="handleBatchReminder(selectedOverdueRecords)">
-                批量催还
-                <el-badge v-if="selectedOverdueRecords.length > 0" :value="selectedOverdueRecords.length" class="action-badge" />
-              </el-button>
-              <el-button type="success" :icon="Money" :disabled="selectedOverdueRecords.length === 0" @click="handleBatchCalculate(selectedOverdueRecords)">
-                计算罚金
-              </el-button>
-              <el-button type="danger" :icon="Warning" :disabled="selectedOverdueRecords.length === 0" @click="handleBatchMarkLost(selectedOverdueRecords)">
-                标记丢失
-              </el-button>
-              <el-button @click="clearSelection" v-if="selectedOverdueRecords.length > 0">
-                取消选择
-              </el-button>
-            </div>
-          </div>
-          <div class="toolbar-right">
-            <el-tooltip content="刷新数据">
-              <el-button icon="Refresh" @click="loadData" :loading="loading" />
-            </el-tooltip>
-            <el-tooltip content="导出报告">
-              <el-button icon="Download" @click="handleExport" />
-            </el-tooltip>
-            <el-tooltip content="通知中心">
-              <el-button icon="Message" @click="showNotificationCenter = true" />
-            </el-tooltip>
-            <el-tooltip content="列设置">
-              <el-button icon="Setting" @click="showColumnSettings = true" />
-            </el-tooltip>
-          </div>
-        </div>
-
         <!-- 数据表格 -->
         <ProTable
           ref="proTableRef"
@@ -62,12 +23,57 @@
           :columns="overdueTableColumns"
           :row-selection="{ type: 'checkbox' }"
           :search="false"
-          :toolBar="false"
-          :action-column="{ width: 200, fixed: 'right' }"
+          :toolBar="overdueToolBarConfig"
+          :action-column="{ width: 200, fixed: 'right', align: 'center' }"
           :params="overdueSearchParams"
+          :max-height="finalTableHeight"
           row-key="id"
+          stripe
+          border
           @selection-change="handleSelectionChange"
         >
+          <!-- 工具栏插槽 -->
+          <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <!-- 左侧批量操作按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <el-button 
+                  type="warning" 
+                  :icon="Bell" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchReminder(selectedRows)"
+                >
+                  批量催还
+                </el-button>
+                <el-button 
+                  type="success" 
+                  :icon="Money" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchCalculate(selectedRows)"
+                >
+                  计算罚金
+                </el-button>
+                <el-button 
+                  type="danger" 
+                  :icon="Warning" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchMarkLost(selectedRows)"
+                >
+                  标记丢失
+                </el-button>
+              </div>
+              
+              <!-- 右侧工具按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <el-tooltip content="刷新数据" placement="top">
+                  <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                </el-tooltip>
+                <el-tooltip content="列设置" placement="top">
+                  <el-button :icon="Setting" @click="openColumnSettings" />
+                </el-tooltip>
+              </div>
+            </div>
+          </template>
       <!-- 用户信息插槽 -->
       <template #user="{ record }">
         <div class="user-info">
@@ -147,11 +153,6 @@
       </el-card>
     </div>
 
-    <!-- 通知中心对话框 -->
-    <el-dialog v-model="showNotificationCenter" title="通知中心" width="800px" :close-on-click-modal="false">
-      <NotificationCenter v-if="showNotificationCenter" @close="showNotificationCenter = false" />
-    </el-dialog>
-
     <!-- 罚金管理对话框 -->
     <el-dialog v-model="showFineDialog" title="罚金管理" width="600px" :close-on-click-modal="false">
       <FineManagement
@@ -166,6 +167,16 @@
     <el-dialog v-model="showContactDialog" title="联系用户" width="500px" :close-on-click-modal="false">
       <ContactUser v-if="showContactDialog" :user="selectedUser" @close="showContactDialog = false" />
     </el-dialog>
+    
+    <!-- 列设置对话框 -->
+    <ColumnSettings
+      v-model="showColumnSettings"
+      :column-options="columnOptions"
+      :visible-columns="visibleColumns"
+      :default-column-options="defaultColumnOptions"
+      :default-visible-columns="defaultVisibleColumns"
+      @apply="handleColumnSettingsApply"
+    />
   </div>
 </template>
 
@@ -176,8 +187,6 @@ import {
   Bell,
   Money,
   Warning,
-  Download,
-  Message,
   Reading,
   Check,
   Phone,
@@ -185,14 +194,16 @@ import {
   Close,
   View,
   Setting,
-  Refresh
+  Refresh,
+  ArrowDown
 } from '@element-plus/icons-vue'
-import { ProTable, SearchFilterSimple } from '@/components/common'
-import NotificationCenter from './components/NotificationCenter.vue'
+import { ProTable, SearchFilterSimple, ColumnSettings } from '@/components/common'
 import FineManagement from './components/FineManagement.vue'
 import ContactUser from './components/ContactUser.vue'
 import { getOverdueRecords, returnBook, markBookAsLost, batchProcessBorrows } from '@/api/borrows'
 import { formatDate, formatRelativeTime } from '@/utils/date'
+import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 // 每日罚金费率（元）
 const DAILY_FINE_RATE = 0.5
@@ -200,10 +211,8 @@ const DAILY_FINE_RATE = 0.5
 // 响应式数据
 const proTableRef = ref()
 const loading = ref(false)
-const showNotificationCenter = ref(false)
 const showFineDialog = ref(false)
 const showContactDialog = ref(false)
-const showColumnSettings = ref(false)
 const selectedRecord = ref(null)
 const selectedUser = ref(null)
 const selectedOverdueRecords = ref([])
@@ -220,6 +229,49 @@ const searchForm = reactive({
 // 搜索参数
 const overdueSearchParams = ref({})
 
+// 工具栏配置
+const overdueToolBarConfig = {
+  reload: false,
+  density: false,
+  columnSetting: false,
+  fullScreen: false
+}
+
+// 默认列设置配置
+const defaultVisibleColumns = [
+  'user',
+  'book',
+  'overdueInfo',
+  'borrowDate',
+  'dueDate',
+  'actions'
+]
+
+const defaultColumnOptions = [
+  { label: '用户信息', value: 'user', required: true },
+  { label: '图书信息', value: 'book', required: true },
+  { label: '逾期信息', value: 'overdueInfo', required: true },
+  { label: '借阅时间', value: 'borrowDate' },
+  { label: '应还时间', value: 'dueDate' },
+  { label: '操作', value: 'actions', required: true }
+]
+
+// 使用统一的列设置 composable
+const {
+  visibleColumns,
+  columnOptions,
+  showColumnSettings,
+  handleApplyFromComponent,
+  openColumnSettings
+} = useColumnSettings('overdue', defaultVisibleColumns, defaultColumnOptions)
+
+// 使用表格高度管理 composable
+const tableHeightConfig = getTableHeightPreset('standard', {
+  headerOffset: 180, // 搜索区域 + 工具栏
+  footerOffset: 80   // 分页区域
+})
+const { finalTableHeight } = useTableHeight(tableHeightConfig)
+
 // 搜索字段配置
 const searchFields = [
   {
@@ -232,13 +284,29 @@ const searchFields = [
     name: 'minOverdueDays',
     label: '最小逾期天数',
     valueType: 'number',
-    placeholder: '最小天数'
+    placeholder: '最小天数',
+    fieldProps: {
+      controlsPosition: 'right',
+      class: 'custom-number-input',
+      min: 0,
+      max: 999,
+      step: 1,
+      precision: 0
+    }
   },
   {
     name: 'maxOverdueDays',
     label: '最大逾期天数',
     valueType: 'number',
-    placeholder: '最大天数'
+    placeholder: '最大天数',
+    fieldProps: {
+      controlsPosition: 'right',
+      class: 'custom-number-input',
+      min: 0,
+      max: 999,
+      step: 1,
+      precision: 0
+    }
   },
   {
     name: 'overdueLevel',
@@ -564,8 +632,17 @@ const markSingleBookAsLost = async (record) => {
   }
 }
 
-const handleExport = () => {
-  ElMessage.info('导出逾期报告功能待实现')
+const handleRefresh = () => {
+  proTableRef.value?.refresh()
+}
+
+// 列设置应用回调 - 添加ProTable刷新
+const handleColumnSettingsApply = (data) => {
+  handleApplyFromComponent(data)
+  // 强制刷新ProTable
+  if (proTableRef.value) {
+    proTableRef.value.refresh()
+  }
 }
 
 const handleFineSuccess = () => {
@@ -616,54 +693,6 @@ const getLastNotificationTime = (record) => {
   }
 }
 
-.table-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-
-  .toolbar-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-
-    .selection-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--el-color-primary);
-      font-size: 14px;
-
-      strong {
-        font-weight: 600;
-      }
-    }
-
-    .batch-actions {
-      display: flex;
-      gap: 8px;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-
-      &.show {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .action-badge {
-        :deep(.el-badge__content) {
-          background-color: var(--el-color-success);
-        }
-      }
-    }
-  }
-
-  .toolbar-right {
-    display: flex;
-    gap: 8px;
-  }
-}
 
 .row-actions {
   display: flex;
@@ -769,6 +798,129 @@ const getLastNotificationTime = (record) => {
     -webkit-line-clamp: $lines;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+}
+
+.column-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+// 自定义数字输入框样式
+:deep(.custom-number-input) {
+  width: 100%;
+  
+  .el-input__wrapper {
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+    border: 1px solid #e4e7ed;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    
+    &:hover {
+      border-color: #b3d8ff;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+    }
+    
+    &.is-focus {
+      border-color: var(--el-color-primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+    }
+  }
+  
+  .el-input__inner {
+    font-weight: 500;
+    color: #2c3e50;
+    font-size: 14px;
+    
+    &::placeholder {
+      color: #a8abb2;
+      font-weight: 400;
+    }
+  }
+  
+  // 数字控制按钮样式
+  .el-input-number__increase,
+  .el-input-number__decrease {
+    background: transparent;
+    border-left: 1px solid #e4e7ed;
+    transition: all 0.2s;
+    
+    &:hover:not(.is-disabled) {
+      background: linear-gradient(180deg, #f0f7ff 0%, #e6f2ff 100%);
+      color: var(--el-color-primary);
+      
+      i {
+        color: var(--el-color-primary) !important;
+      }
+    }
+    
+    &.is-disabled {
+      background: #f5f7fa;
+      cursor: not-allowed;
+      
+      i {
+        color: #c0c4cc !important;
+      }
+    }
+  }
+  
+  .el-input-number__increase {
+    border-radius: 0 8px 0 0;
+    
+    &:active:not(.is-disabled) {
+      background: #e6f2ff;
+      transform: scale(0.95);
+    }
+  }
+  
+  .el-input-number__decrease {
+    border-radius: 0 0 8px 0;
+    border-top: 1px solid #e4e7ed;
+    
+    &:active:not(.is-disabled) {
+      background: #e6f2ff;
+      transform: scale(0.95);
+    }
+  }
+  
+  // 增加图标间距和大小
+  .el-icon {
+    font-size: 13px;
+    transition: transform 0.2s;
+  }
+  
+  // 禁用状态
+  &.is-disabled {
+    .el-input__wrapper {
+      background: #f5f7fa;
+      cursor: not-allowed;
+      
+      &:hover {
+        border-color: #e4e7ed;
+        box-shadow: none;
+      }
+    }
+  }
+}
+
+// 响应式调整
+@media (max-width: 768px) {
+  :deep(.custom-number-input) {
+    .el-input__wrapper {
+      border-radius: 6px;
+    }
+    
+    .el-input-number__increase {
+      border-radius: 0 6px 0 0;
+    }
+    
+    .el-input-number__decrease {
+      border-radius: 0 0 6px 0;
+    }
   }
 }
 </style>

@@ -40,13 +40,14 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 // 注册全局组件
 app.component('svg-icon', SvgIcon)
 
-// 配置 NProgress
+// 配置 NProgress - 更快速、更微妙的加载指示器
 NProgress.configure({
-  showSpinner: false,
-  trickleRate: 0.02,
-  trickleSpeed: 800,
+  showSpinner: false,     // 不显示旋转图标
+  trickleRate: 0.02,      
+  trickleSpeed: 200,      // 加快涓流速度
   easing: 'ease',
-  speed: 500
+  speed: 200,             // 加快动画速度
+  minimum: 0.08           // 最小百分比
 })
 
 // 注册插件
@@ -67,6 +68,17 @@ console.log('当前主题:', currentTheme.value)
 
 // 挂载应用
 app.mount('#app')
+
+// 隐藏初始加载动画
+const loader = document.getElementById('app-loader')
+if (loader) {
+  // 添加淡出效果
+  loader.classList.add('fade-out')
+  // 延迟移除DOM元素，确保动画完成
+  setTimeout(() => {
+    loader.remove()
+  }, 300)
+}
 
 // 开发环境调试信息
 if (import.meta.env.DEV) {

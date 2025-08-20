@@ -1,0 +1,279 @@
+/* 滚动表格样式优化 */
+
+/* ProTable 滚动优化 */
+.pro-table {
+  .pro-table-content {
+    position: relative;
+    
+    .el-table {
+      /* 确保表格边框始终可见 */
+      border: 1px solid var(--el-border-color-lighter) !important;
+      border-radius: 4px;
+      overflow: hidden;
+      
+      /* 确保表格单元格边框可见 */
+      th, td {
+        border-right: 1px solid var(--el-border-color-lighter) !important;
+        
+        &:last-child {
+          border-right: none !important;
+        }
+      }
+      
+      /* 表格行边框 */
+      .el-table__row {
+        td {
+          border-bottom: 1px solid var(--el-border-color-lighter) !important;
+        }
+      }
+      /* 确保表格头部固定 */
+      .el-table__header-wrapper {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--el-bg-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      
+      /* 优化滚动条样式 */
+      .el-table__body-wrapper {
+        /* 自定义滚动条 */
+        &::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        &::-webkit-scrollbar-track {
+          background: var(--el-fill-color-lighter);
+          border-radius: 4px;
+        }
+        
+        &::-webkit-scrollbar-thumb {
+          background: var(--el-border-color-dark);
+          border-radius: 4px;
+          transition: background 0.3s ease;
+          
+          &:hover {
+            background: var(--el-border-color-darker);
+          }
+        }
+        
+        &::-webkit-scrollbar-corner {
+          background: var(--el-fill-color-lighter);
+        }
+        
+        /* 滚动时的平滑效果 */
+        scroll-behavior: smooth;
+      }
+      
+      /* 表格行悬停效果优化 */
+      .el-table__row {
+        transition: background-color 0.2s ease;
+        
+        &:hover {
+          background-color: var(--el-fill-color-light) !important;
+        }
+      }
+      
+      /* 固定列阴影优化 */
+      .el-table__fixed,
+      .el-table__fixed-right {
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
+      }
+      
+      .el-table__fixed-right-patch {
+        background-color: var(--el-bg-color);
+      }
+    }
+  }
+  
+  /* 分页区域优化 */
+  .pro-table-pagination {
+    background: var(--el-bg-color);
+    border-top: 1px solid var(--el-border-color-lighter);
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+  }
+}
+
+/* 响应式滚动优化 */
+@media (max-width: 768px) {
+  .pro-table {
+    .pro-table-content {
+      .el-table {
+        /* 移动端滚动条更细 */
+        .el-table__body-wrapper {
+          &::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+          }
+        }
+        
+        /* 移动端表格行间距优化 */
+        .el-table__row {
+          td {
+            padding: 8px 4px;
+          }
+        }
+      }
+    }
+    
+    /* 移动端分页样式 */
+    .pro-table-pagination {
+      padding: 12px 8px;
+      
+      .el-pagination {
+        justify-content: center;
+        
+        .el-pagination__sizes,
+        .el-pagination__jump {
+          display: none;
+        }
+      }
+    }
+  }
+}
+
+/* 表格加载状态优化 */
+.pro-table {
+  .el-loading-mask {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* 空状态优化 */
+.pro-table {
+  .el-table__empty-block {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* 表格密度调整 */
+.pro-table {
+  &.table-size-large {
+    .el-table .el-table__row td {
+      padding: 16px 8px;
+    }
+  }
+  
+  &.table-size-small {
+    .el-table .el-table__row td {
+      padding: 4px 8px;
+    }
+  }
+}
+
+/* 表格选择列优化 */
+.pro-table {
+  .el-table {
+    .el-table-column--selection {
+      .el-checkbox {
+        display: flex;
+        justify-content: center;
+        
+        .el-checkbox__input {
+          line-height: 1;
+        }
+      }
+    }
+  }
+}
+
+/* 操作列按钮优化 */
+.pro-table {
+  .table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    
+    .el-button {
+      margin: 0;
+      
+      &.el-button--text {
+        padding: 4px 8px;
+        min-height: auto;
+      }
+    }
+    
+    .el-divider--vertical {
+      margin: 0 4px;
+      height: 12px;
+    }
+  }
+}
+
+/* 表格工具栏优化 */
+.pro-table {
+  .pro-table-toolbar {
+    background: var(--el-bg-color);
+    border-radius: 6px 6px 0 0;
+    
+    .toolbar-content {
+      min-height: 32px;
+    }
+  }
+}
+
+/* 搜索表单优化 */
+.pro-table {
+  .pro-table-search {
+    margin-bottom: 16px;
+    
+    .search-card {
+      border-radius: 6px;
+      
+      .el-card__body {
+        padding: 16px;
+      }
+    }
+    
+    .search-form {
+      .el-form-item {
+        margin-bottom: 16px;
+        margin-right: 16px;
+        
+        &.search-actions {
+          margin-bottom: 0;
+        }
+      }
+    }
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .pro-table {
+    .el-table {
+      .el-table__header-wrapper {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      
+      .el-table__row {
+        &:hover {
+          background-color: var(--el-color-primary-light-9) !important;
+        }
+      }
+    }
+  }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+  .pro-table {
+    .el-table__row,
+    .el-table__body-wrapper {
+      transition: none;
+    }
+    
+    .el-table__body-wrapper {
+      scroll-behavior: auto;
+    }
+  }
+}

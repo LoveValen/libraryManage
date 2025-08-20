@@ -41,6 +41,20 @@ onMounted(async () => {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  // 防止页面刷新时的背景闪烁
+  will-change: auto;
+  transition: background-color 0.3s ease;
+  // 确保初始状态与加载动画背景一致
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 // Element Plus 全局样式覆盖
@@ -81,17 +95,6 @@ onMounted(async () => {
 
 ::-webkit-scrollbar-track {
   background-color: transparent;
-}
-
-// 页面切换动画
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 // 卡片阴影增强
