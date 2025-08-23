@@ -20,7 +20,7 @@ export const bookApi = {
    */
   getBooks(params = {}) {
     return request({
-      url: '/admin/books',
+      url: '/books',
       method: 'get',
       params
     })
@@ -32,7 +32,7 @@ export const bookApi = {
    */
   getBookDetail(id) {
     return request({
-      url: `/admin/books/${id}`,
+      url: `/books/${id}`,
       method: 'get'
     })
   },
@@ -60,7 +60,7 @@ export const bookApi = {
    */
   createBook(bookData) {
     return request({
-      url: '/admin/books',
+      url: '/books',
       method: 'post',
       data: bookData
     })
@@ -73,7 +73,7 @@ export const bookApi = {
    */
   updateBook(id, bookData) {
     return request({
-      url: `/admin/books/${id}`,
+      url: `/books/${id}`,
       method: 'put',
       data: bookData
     })
@@ -85,7 +85,7 @@ export const bookApi = {
    */
   deleteBook(id) {
     return request({
-      url: `/admin/books/${id}`,
+      url: `/books/${id}`,
       method: 'delete'
     })
   },
@@ -96,7 +96,7 @@ export const bookApi = {
    */
   batchDeleteBooks(bookIds) {
     return request({
-      url: '/admin/books/batch-delete',
+      url: '/books/batch-delete',
       method: 'post',
       data: { bookIds }
     })
@@ -109,7 +109,7 @@ export const bookApi = {
    */
   batchUpdateStatus(bookIds, status) {
     return request({
-      url: '/admin/books/batch-status',
+      url: '/books/batch-status',
       method: 'post',
       data: { bookIds, status }
     })
@@ -122,7 +122,7 @@ export const bookApi = {
    */
   batchUpdateLocation(bookIds, location) {
     return request({
-      url: '/admin/books/batch-location',
+      url: '/books/batch-location',
       method: 'post',
       data: { bookIds, location }
     })
@@ -137,7 +137,7 @@ export const bookApi = {
    */
   duplicateBook(id, options = {}) {
     return request({
-      url: `/admin/books/${id}/duplicate`,
+      url: `/books/${id}/duplicate`,
       method: 'post',
       data: options
     })
@@ -149,7 +149,7 @@ export const bookApi = {
    */
   exportBooks(params = {}) {
     return request({
-      url: '/admin/books/export',
+      url: '/books/export',
       method: 'get',
       params,
       responseType: 'blob'
@@ -166,7 +166,7 @@ export const bookApi = {
    */
   getBookStats(params = {}) {
     return request({
-      url: '/admin/books/stats',
+      url: '/books/stats',
       method: 'get',
       params
     })
@@ -177,7 +177,7 @@ export const bookApi = {
    */
   getCategories() {
     return request({
-      url: '/admin/categories',
+      url: '/books/categories',
       method: 'get'
     })
   },
@@ -193,7 +193,7 @@ export const bookApi = {
    */
   createCategory(categoryData) {
     return request({
-      url: '/admin/categories',
+      url: '/categories',
       method: 'post',
       data: categoryData
     })
@@ -206,7 +206,7 @@ export const bookApi = {
    */
   updateCategory(id, categoryData) {
     return request({
-      url: `/admin/categories/${id}`,
+      url: `/categories/${id}`,
       method: 'put',
       data: categoryData
     })
@@ -218,7 +218,7 @@ export const bookApi = {
    */
   deleteCategory(id) {
     return request({
-      url: `/admin/categories/${id}`,
+      url: `/categories/${id}`,
       method: 'delete'
     })
   },
@@ -228,7 +228,7 @@ export const bookApi = {
    */
   getCategoryTree() {
     return request({
-      url: '/admin/categories/tree',
+      url: '/categories/tree',
       method: 'get'
     })
   },
@@ -240,7 +240,7 @@ export const bookApi = {
    */
   checkISBN(isbn, excludeId = null) {
     return request({
-      url: '/admin/books/check-isbn',
+      url: '/books/check-isbn',
       method: 'post',
       data: { isbn, excludeId }
     })
@@ -252,7 +252,7 @@ export const bookApi = {
    */
   getBookByISBN(isbn) {
     return request({
-      url: `/admin/books/isbn/${isbn}`,
+      url: `/books/isbn/${isbn}`,
       method: 'get'
     })
   },
@@ -264,7 +264,7 @@ export const bookApi = {
    */
   searchBooks(query, limit = 10) {
     return request({
-      url: '/admin/books/search',
+      url: '/books/search',
       method: 'get',
       params: { query, limit }
     })
@@ -275,7 +275,7 @@ export const bookApi = {
    */
   getBookTags() {
     return request({
-      url: '/admin/books/tags',
+      url: '/books/tags',
       method: 'get'
     })
   },
@@ -287,7 +287,7 @@ export const bookApi = {
    */
   addBookTags(id, tags) {
     return request({
-      url: `/admin/books/${id}/tags`,
+      url: `/books/${id}/tags`,
       method: 'post',
       data: { tags }
     })
@@ -300,7 +300,7 @@ export const bookApi = {
    */
   removeBookTags(id, tags) {
     return request({
-      url: `/admin/books/${id}/tags`,
+      url: `/books/${id}/tags`,
       method: 'delete',
       data: { tags }
     })
@@ -315,7 +315,7 @@ export const bookApi = {
    */
   getBookReviews(id, params = {}) {
     return request({
-      url: `/admin/books/${id}/reviews`,
+      url: `/books/${id}/reviews`,
       method: 'get',
       params
     })
@@ -328,7 +328,7 @@ export const bookApi = {
    */
   deleteBookReview(bookId, reviewId) {
     return request({
-      url: `/admin/books/${bookId}/reviews/${reviewId}`,
+      url: `/books/${bookId}/reviews/${reviewId}`,
       method: 'delete'
     })
   },
@@ -340,7 +340,7 @@ export const bookApi = {
    */
   getBookBorrowHistory(id, params = {}) {
     return request({
-      url: `/admin/books/${id}/borrows`,
+      url: `/books/${id}/borrows`,
       method: 'get',
       params
     })
@@ -355,7 +355,7 @@ export const bookApi = {
    */
   getPopularBooks(params = {}) {
     return request({
-      url: '/admin/books/popular',
+      url: '/books/popular',
       method: 'get',
       params
     })
@@ -370,7 +370,7 @@ export const bookApi = {
    */
   getRecommendedBooks(params = {}) {
     return request({
-      url: '/admin/books/recommended',
+      url: '/books/recommended',
       method: 'get',
       params
     })
@@ -381,7 +381,7 @@ export const bookApi = {
    */
   getBookLocations() {
     return request({
-      url: '/admin/books/locations',
+      url: '/books/locations',
       method: 'get'
     })
   },
@@ -393,7 +393,7 @@ export const bookApi = {
    */
   updateBookCover(id, formData) {
     return request({
-      url: `/admin/books/${id}/cover`,
+      url: `/books/${id}/cover`,
       method: 'put',
       data: formData,
       headers: {
@@ -411,7 +411,7 @@ export const bookApi = {
    */
   generateBookQRCode(id, options = {}) {
     return request({
-      url: `/admin/books/${id}/qrcode`,
+      url: `/books/${id}/qrcode`,
       method: 'get',
       params: options,
       responseType: 'blob'
@@ -424,7 +424,7 @@ export const bookApi = {
    */
   batchImportCovers(formData) {
     return request({
-      url: '/admin/books/batch-covers',
+      url: '/books/batch-covers',
       method: 'post',
       data: formData,
       headers: {
@@ -440,7 +440,7 @@ export const bookApi = {
    */
   getBookStockHistory(id, params = {}) {
     return request({
-      url: `/admin/books/${id}/stock-history`,
+      url: `/books/${id}/stock-history`,
       method: 'get',
       params
     })
@@ -456,7 +456,7 @@ export const bookApi = {
    */
   adjustBookStock(id, data) {
     return request({
-      url: `/admin/books/${id}/stock/adjust`,
+      url: `/books/${id}/stock/adjust`,
       method: 'post',
       data
     })
@@ -470,7 +470,7 @@ export const bookApi = {
    */
   batchAdjustStock(data) {
     return request({
-      url: '/admin/books/batch-stock-adjust',
+      url: '/books/batch-stock-adjust',
       method: 'post',
       data
     })
@@ -484,7 +484,7 @@ export const bookApi = {
    */
   getBookTrends(params = {}) {
     return request({
-      url: '/admin/books/trends',
+      url: '/books/trends',
       method: 'get',
       params
     })
@@ -496,7 +496,7 @@ export const bookApi = {
    */
   getCategoryStats(params = {}) {
     return request({
-      url: '/admin/categories/stats',
+      url: '/categories/stats',
       method: 'get',
       params
     })
@@ -507,7 +507,7 @@ export const bookApi = {
    */
   reindexBooks() {
     return request({
-      url: '/admin/books/reindex',
+      url: '/books/reindex',
       method: 'post'
     })
   },
@@ -519,7 +519,7 @@ export const bookApi = {
    */
   getBookLogs(id, params = {}) {
     return request({
-      url: `/admin/books/${id}/logs`,
+      url: `/books/${id}/logs`,
       method: 'get',
       params
     })
