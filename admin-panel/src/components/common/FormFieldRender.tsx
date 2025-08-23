@@ -19,6 +19,7 @@ import {
 } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import type { ProFormTypes } from './ProForm.types'
+import OverdueDaysRangeSelector from './OverdueDaysRangeSelector.vue'
 
 export default defineComponent({
   name: 'FormFieldRender',
@@ -292,11 +293,22 @@ export default defineComponent({
       )
     }
 
+    const renderOverdueDaysRange = () => {
+      return (
+        <OverdueDaysRangeSelector
+          modelValue={props.value}
+          onUpdate:modelValue={handleChange}
+          onChange={handleChange}
+          {...props.field.fieldProps}
+        />
+      )
+    }
+
     const renderCustom = () => {
       if (props.field.renderFormItem) {
         return props.field.renderFormItem(props.field, props.formData)
       }
-      
+
       if (props.field.render) {
         return props.field.render(props.value, props.formData)
       }
@@ -336,6 +348,8 @@ export default defineComponent({
         case 'upload':
         case 'uploadImage':
           return renderUpload()
+        case 'overdueDaysRange':
+          return renderOverdueDaysRange()
         default:
           return renderCustom()
       }

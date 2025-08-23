@@ -220,8 +220,7 @@ const selectedOverdueRecords = ref([])
 // 搜索表单数据
 const searchForm = reactive({
   keyword: '',
-  minOverdueDays: '',
-  maxOverdueDays: '',
+  overdueDaysRange: {},
   overdueLevel: '',
   dateRange: []
 })
@@ -281,32 +280,10 @@ const searchFields = [
     placeholder: '搜索用户姓名、图书标题、ISBN'
   },
   {
-    name: 'minOverdueDays',
-    label: '最小逾期天数',
-    valueType: 'number',
-    placeholder: '最小天数',
-    fieldProps: {
-      controlsPosition: 'right',
-      class: 'custom-number-input',
-      min: 0,
-      max: 999,
-      step: 1,
-      precision: 0
-    }
-  },
-  {
-    name: 'maxOverdueDays',
-    label: '最大逾期天数',
-    valueType: 'number',
-    placeholder: '最大天数',
-    fieldProps: {
-      controlsPosition: 'right',
-      class: 'custom-number-input',
-      min: 0,
-      max: 999,
-      step: 1,
-      precision: 0
-    }
+    name: 'overdueDaysRange',
+    label: '逾期天数范围',
+    valueType: 'overdueDaysRange',
+    span: 12 // 占用更多空间
   },
   {
     name: 'overdueLevel',
@@ -386,11 +363,20 @@ const overdueTableColumns = [
 
 // 搜索处理
 const handleSearch = (searchData) => {
+  // 处理逾期天数范围
+  const rangeData = searchData.overdueDaysRange || {}
+
   overdueSearchParams.value = {
     ...searchData,
+    minOverdueDays: rangeData.minOverdueDays,
+    maxOverdueDays: rangeData.maxOverdueDays,
     startDate: searchData.dateRange?.[0] || '',
     endDate: searchData.dateRange?.[1] || ''
   }
+
+  // 移除原始的范围对象，避免传递给后端
+  delete overdueSearchParams.value.overdueDaysRange
+
   proTableRef.value?.refresh()
 }
 
@@ -398,6 +384,8 @@ const handleReset = () => {
   Object.keys(searchForm).forEach(key => {
     if (key === 'dateRange') {
       searchForm[key] = []
+    } else if (key === 'overdueDaysRange') {
+      searchForm[key] = {}
     } else {
       searchForm[key] = ''
     }
