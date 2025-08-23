@@ -795,119 +795,12 @@ const getLastNotificationTime = (record) => {
   gap: 8px;
 }
 
-// 自定义数字输入框样式
-:deep(.custom-number-input) {
-  width: 100%;
-  
-  .el-input__wrapper {
-    border-radius: 8px;
-    background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
-    border: 1px solid #e4e7ed;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    
-    &:hover {
-      border-color: #b3d8ff;
-      background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
-      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
-    }
-    
-    &.is-focus {
-      border-color: var(--el-color-primary);
-      background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
-    }
-  }
-  
-  .el-input__inner {
-    font-weight: 500;
-    color: #2c3e50;
-    font-size: 14px;
-    
-    &::placeholder {
-      color: #a8abb2;
-      font-weight: 400;
-    }
-  }
-  
-  // 数字控制按钮样式
-  .el-input-number__increase,
-  .el-input-number__decrease {
-    background: transparent;
-    border-left: 1px solid #e4e7ed;
-    transition: all 0.2s;
-    
-    &:hover:not(.is-disabled) {
-      background: linear-gradient(180deg, #f0f7ff 0%, #e6f2ff 100%);
-      color: var(--el-color-primary);
-      
-      i {
-        color: var(--el-color-primary) !important;
-      }
-    }
-    
-    &.is-disabled {
-      background: #f5f7fa;
-      cursor: not-allowed;
-      
-      i {
-        color: #c0c4cc !important;
-      }
-    }
-  }
-  
-  .el-input-number__increase {
-    border-radius: 0 8px 0 0;
-    
-    &:active:not(.is-disabled) {
-      background: #e6f2ff;
-      transform: scale(0.95);
-    }
-  }
-  
-  .el-input-number__decrease {
-    border-radius: 0 0 8px 0;
-    border-top: 1px solid #e4e7ed;
-    
-    &:active:not(.is-disabled) {
-      background: #e6f2ff;
-      transform: scale(0.95);
-    }
-  }
-  
-  // 增加图标间距和大小
-  .el-icon {
-    font-size: 13px;
-    transition: transform 0.2s;
-  }
-  
-  // 禁用状态
-  &.is-disabled {
-    .el-input__wrapper {
-      background: #f5f7fa;
-      cursor: not-allowed;
-      
-      &:hover {
-        border-color: #e4e7ed;
-        box-shadow: none;
-      }
-    }
-  }
-}
-
-// 响应式调整
-@media (max-width: 768px) {
-  :deep(.custom-number-input) {
-    .el-input__wrapper {
-      border-radius: 6px;
-    }
-    
-    .el-input-number__increase {
-      border-radius: 0 6px 0 0;
-    }
-    
-    .el-input-number__decrease {
-      border-radius: 0 0 6px 0;
+// 优化后的搜索表单样式
+.search-form-optimized {
+  .overdue-range-field {
+    .el-form-item__label {
+      font-weight: 500;
+      color: var(--el-text-color-primary);
     }
   }
 }
