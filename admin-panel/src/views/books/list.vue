@@ -193,9 +193,21 @@
                 <!-- 左侧操作按钮 -->
                 <div style="display: flex; gap: 8px;">
                   <!-- 新增图书按钮 -->
-                  <el-button type="primary" @click="handleAdd">
+                  <el-dropdown split-button type="primary" @click="handleAdd">
                     新增图书
-                  </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item @click="handleAdd">
+                          <el-icon><Document /></el-icon>
+                          手动添加
+                        </el-dropdown-item>
+                        <el-dropdown-item @click="handleAddFromAPI">
+                          <el-icon><Download /></el-icon>
+                          从网络添加
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                   
                   <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
                   <el-button 
@@ -704,6 +716,10 @@ const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
 
 const handleAdd = () => {
   router.push('/books/create')
+}
+
+const handleAddFromAPI = () => {
+  router.push('/books/add-with-api')
 }
 
 const handleView = book => {

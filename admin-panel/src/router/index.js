@@ -154,6 +154,15 @@ export const asyncRoutes = [
         }
       },
       {
+        path: 'add-with-api',
+        name: 'BookAddWithAPI',
+        component: () => import('@/views/books/BookAddWithAPI.vue'),
+        meta: {
+          title: '从网络添加图书',
+          icon: 'Download'
+        }
+      },
+      {
         path: 'detail/:id',
         name: 'BookDetail',
         component: () => import('@/views/books/detail.vue'),
