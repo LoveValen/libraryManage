@@ -40,7 +40,14 @@
             <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
               <div class="book-card" @click="handleView(book)">
                 <div class="book-cover-container">
-                  <img :src="book.cover" :alt="book.title" class="book-cover" />
+                  <BookCover 
+                    :src="book.cover || book.coverUrl || book.cover_image" 
+                    :title="book.title"
+                    :alt="book.title"
+                    width="100%"
+                    height="240"
+                    :show-title="!book.cover && !book.coverUrl && !book.cover_image"
+                  />
                   <div class="book-overlay">
                     <div class="book-actions">
                       <el-button type="primary" circle @click.stop="handleView(book)">

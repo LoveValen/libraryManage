@@ -59,7 +59,15 @@
           <el-col :xl="6" :lg="8" :md="10" :sm="24">
             <div class="book-cover-section">
               <div class="cover-container">
-                <img :src="bookDetail.cover" :alt="bookDetail.title" class="book-cover" />
+                <BookCover 
+                  :src="bookDetail.cover || bookDetail.coverUrl || bookDetail.cover_image"
+                  :title="bookDetail.title"
+                  :alt="bookDetail.title"
+                  width="100%"
+                  height="320"
+                  :show-title="!bookDetail.cover && !bookDetail.coverUrl && !bookDetail.cover_image"
+                  :radius="8"
+                />
                 <div class="cover-actions">
                   <el-upload
                     ref="uploadRef"
@@ -622,6 +630,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { bookApi } from '@/api/book'
 import { borrowApi } from '@/api/borrows'
 import { formatDate, formatDateTime, formatTimeAgo } from '@/utils/date'
+import BookCover from '@/components/common/BookCover.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
 
