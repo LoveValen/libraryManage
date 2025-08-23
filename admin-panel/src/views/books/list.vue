@@ -299,12 +299,14 @@ import {
   Edit,
   Reading,
   Position,
-  Box
+  Box,
+  Document
 } from '@element-plus/icons-vue'
 import { bookApi } from '@/api/book'
 import { formatDate, formatTimeAgo } from '@/utils/date'
 import { StatusTag, ProTable, ColumnSettings } from '@/components/common'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
+import BookCover from '@/components/common/BookCover.vue'
 import CategoryManager from './components/CategoryManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
