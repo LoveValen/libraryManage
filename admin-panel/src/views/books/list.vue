@@ -620,9 +620,9 @@ const fetchBooks = async () => {
       params.endDate = searchForm.dateRange[1]
     }
 
-    const { data } = await bookApi.getBooks(params)
-    bookList.value = data.books
-    pagination.total = data.total
+    const response = await bookApi.getBooks(params)
+    bookList.value = response.data || []
+    pagination.total = response.pagination?.total || 0
 
   } catch (error) {
     console.error('获取图书列表失败:', error)
@@ -651,12 +651,12 @@ const requestBooks = async (params) => {
       requestParams.endDate = searchForm.dateRange[1]
     }
 
-    const { data } = await bookApi.getBooks(requestParams)
+    const response = await bookApi.getBooks(requestParams)
     
     return {
       success: true,
-      data: data.books || [],
-      total: data.total || 0
+      data: response.data || [],
+      total: response.pagination?.total || 0
     }
   } catch (error) {
     console.error('获取图书列表失败:', error)
