@@ -26,25 +26,33 @@ class BooksService {
       throw new ConflictError('Book with this ISBN already exists');
     }
 
-    // Set default values
+    // Prepare clean data for creation - remove any duplicate fields
     const bookToCreate = {
-      ...bookData,
-      availableStock: bookData.totalStock || bookData.availableStock || 0,
-      totalStock: bookData.totalStock || bookData.totalStock || 0,
-      status: BOOK_STATUS.AVAILABLE,
-      categoryId: bookData.categoryId || bookData.category || null,
+      title: bookData.title,
+      isbn: bookData.isbn,
       authors: Array.isArray(bookData.authors) ? bookData.authors : [bookData.authors || bookData.author],
+      publisher: bookData.publisher,
+      publicationYear: bookData.publicationYear || bookData.publication_year,
+      language: bookData.language,
+      // Only set categoryId if it's a number, otherwise leave as null
+      categoryId: typeof bookData.categoryId === 'number' ? bookData.categoryId : 
+                  typeof bookData.category_id === 'number' ? bookData.category_id : null,
+      category: bookData.category,
       tags: bookData.tags || [],
-      publicationYear: bookData.publicationYear,
-      coverUrl: bookData.coverUrl,
-      hasEbook: bookData.hasEbook || false,
-      ebookUrl: bookData.ebookUrl,
-      ebookFormat: bookData.ebookFormat,
-      averageRating: 0,
-      borrowCount: 0,
-      reviewCount: 0,
-      viewCount: 0,
-      downloadCount: 0
+      summary: bookData.summary,
+      description: bookData.description,
+      coverUrl: bookData.coverUrl || bookData.cover_image || bookData.cover,
+      totalStock: bookData.totalStock || bookData.total_stock || 1,
+      availableStock: bookData.availableStock || bookData.available_stock || bookData.totalStock || bookData.total_stock || 1,
+      reservedStock: bookData.reservedStock || bookData.reserved_stock || 0,
+      status: bookData.status || BOOK_STATUS.AVAILABLE,
+      location: bookData.location,
+      price: bookData.price,
+      pages: bookData.pages,
+      format: bookData.format,
+      hasEbook: bookData.hasEbook || bookData.has_ebook || false,
+      condition: bookData.condition,
+      notes: bookData.notes
     };
 
     const book = await BookService.create(bookToCreate);
@@ -146,26 +154,42 @@ class BooksService {
       }
     }
 
-    // Format update data
-    const formattedData = {
-      ...updateData,
-      authors: updateData.authors ? (Array.isArray(updateData.authors) ? updateData.authors : [updateData.authors]) : undefined,
-      categoryId: updateData.categoryId || updateData.category,
-      publicationYear: updateData.publicationYear,
-      coverUrl: updateData.coverUrl,
-      hasEbook: updateData.hasEbook,
-      ebookUrl: updateData.ebookUrl,
-      ebookFormat: updateData.ebookFormat,
-      totalStock: updateData.totalStock,
-      availableStock: updateData.availableStock
-    };
-
-    // Remove undefined values
-    Object.keys(formattedData).forEach(key => {
-      if (formattedData[key] === undefined) {
-        delete formattedData[key];
-      }
-    });
+    // Format update data - only include fields that are being updated
+    const formattedData = {};
+    
+    if (updateData.title !== undefined) formattedData.title = updateData.title;
+    if (updateData.isbn !== undefined) formattedData.isbn = updateData.isbn;
+    if (updateData.authors !== undefined) {
+      formattedData.authors = Array.isArray(updateData.authors) ? updateData.authors : [updateData.authors];
+    }
+    if (updateData.publisher !== undefined) formattedData.publisher = updateData.publisher;
+    if (updateData.publicationYear !== undefined) formattedData.publicationYear = updateData.publicationYear;
+    if (updateData.publication_year !== undefined) formattedData.publicationYear = updateData.publication_year;
+    if (updateData.language !== undefined) formattedData.language = updateData.language;
+    if (updateData.categoryId !== undefined) formattedData.categoryId = updateData.categoryId;
+    if (updateData.category_id !== undefined) formattedData.categoryId = updateData.category_id;
+    if (updateData.category !== undefined && !formattedData.categoryId) formattedData.category = updateData.category;
+    if (updateData.tags !== undefined) formattedData.tags = updateData.tags;
+    if (updateData.summary !== undefined) formattedData.summary = updateData.summary;
+    if (updateData.description !== undefined) formattedData.description = updateData.description;
+    if (updateData.coverUrl !== undefined) formattedData.coverUrl = updateData.coverUrl;
+    if (updateData.cover_image !== undefined) formattedData.coverUrl = updateData.cover_image;
+    if (updateData.cover !== undefined) formattedData.coverUrl = updateData.cover;
+    if (updateData.totalStock !== undefined) formattedData.totalStock = updateData.totalStock;
+    if (updateData.total_stock !== undefined) formattedData.totalStock = updateData.total_stock;
+    if (updateData.availableStock !== undefined) formattedData.availableStock = updateData.availableStock;
+    if (updateData.available_stock !== undefined) formattedData.availableStock = updateData.available_stock;
+    if (updateData.reservedStock !== undefined) formattedData.reservedStock = updateData.reservedStock;
+    if (updateData.reserved_stock !== undefined) formattedData.reservedStock = updateData.reserved_stock;
+    if (updateData.status !== undefined) formattedData.status = updateData.status;
+    if (updateData.location !== undefined) formattedData.location = updateData.location;
+    if (updateData.price !== undefined) formattedData.price = updateData.price;
+    if (updateData.pages !== undefined) formattedData.pages = updateData.pages;
+    if (updateData.format !== undefined) formattedData.format = updateData.format;
+    if (updateData.hasEbook !== undefined) formattedData.hasEbook = updateData.hasEbook;
+    if (updateData.has_ebook !== undefined) formattedData.hasEbook = updateData.has_ebook;
+    if (updateData.condition !== undefined) formattedData.condition = updateData.condition;
+    if (updateData.notes !== undefined) formattedData.notes = updateData.notes;
 
     const updatedBook = await BookService.update(book.id, formattedData);
 
@@ -298,6 +322,7 @@ class BooksService {
       throw new BadRequestError('Available stock cannot exceed total stock');
     }
 
+    // Use camelCase field names - they will be converted in BookService.update
     const updatedBook = await BookService.update(book.id, {
       totalStock: totalStock,
       availableStock: availableStock,
@@ -330,34 +355,42 @@ class BooksService {
       title: book.title,
       authors: book.authors,
       isbn: book.isbn,
-      category: book.categoryId,
-      categoryName: book.bookCategory?.name,
+      category: book.category_id || book.categoryId,
+      categoryName: book.bookCategory?.name || book.category,
       publisher: book.publisher,
-      publicationYear: book.publicationYear,
+      publicationYear: book.publication_year || book.publicationYear,
       publishDate: book.publish_date,
       price: book.price,
-      totalStock: book.totalStock,
-      availableStock: book.availableStock,
+      totalStock: book.total_stock || book.totalStock,
+      availableStock: book.available_stock || book.availableStock,
+      stock: book.total_stock || book.totalStock, // For frontend compatibility
       status: book.status,
       language: book.language,
       pages: book.pages,
       summary: book.summary,
-      coverUrl: book.coverUrl,
+      description: book.description,
+      // Fix cover field mapping - support multiple field names
+      cover: book.cover_image || book.coverUrl || book.cover || null,
+      coverUrl: book.cover_image || book.coverUrl || book.cover || null,
+      cover_image: book.cover_image || book.coverUrl || book.cover || null,
       location: book.location,
       tags: book.tags || [],
-      hasEbook: book.hasEbook,
-      ebookUrl: book.ebookUrl,
-      ebookFormat: book.ebookFormat,
-      ebookFileSize: book.ebookFileSize,
-      borrowCount: book.borrowCount,
-      viewCount: book.viewCount,
-      downloadCount: book.downloadCount,
-      averageRating: book.averageRating,
-      reviewCount: book.reviewCount,
+      hasEbook: book.has_ebook || book.hasEbook || false,
+      ebookUrl: book.ebook_url || book.ebookUrl,
+      ebookFormat: book.ebook_format || book.ebookFormat,
+      ebookFileSize: book.ebook_file_size || book.ebookFileSize,
+      borrowCount: book.borrow_count || book.borrowCount || 0,
+      viewCount: book.view_count || book.viewCount || 0,
+      downloadCount: book.download_count || book.downloadCount || 0,
+      averageRating: book.average_rating || book.averageRating,
+      reviewCount: book.review_count || book.reviewCount || 0,
+      condition: book.condition,
+      notes: book.notes,
+      format: book.format,
       is_deleted: book.is_deleted,
-      createdAt: book.createdAt,
-      updatedAt: book.updated_at,
-      deletedAt: book.deleted_at,
+      createdAt: book.created_at || book.createdAt,
+      updatedAt: book.updated_at || book.updatedAt,
+      deletedAt: book.deleted_at || book.deletedAt,
       // Add safe JSON conversion
       toSafeJSON: () => this.formatBookResponse(book)
     };

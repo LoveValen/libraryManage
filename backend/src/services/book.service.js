@@ -139,10 +139,9 @@ class BookService {
         bookCategory: true,
         reviews: {
           where: { 
-            status: 'published',
-            is_deleted: false
+            status: 'published'
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
           take: 10,
           include: {
             reviewer: {
@@ -221,14 +220,51 @@ class BookService {
         throw new Error('该 ISBN 已存在');
       }
 
+      // Map camelCase to snake_case for Prisma schema
+      const prismaData = {
+        title: bookData.title,
+        isbn: bookData.isbn,
+        authors: bookData.authors,
+        publisher: bookData.publisher,
+        publication_year: bookData.publicationYear || bookData.publication_year,
+        language: bookData.language || 'zh-CN',
+        // Only set category_id if it's a number, otherwise use null
+        category_id: typeof bookData.categoryId === 'number' ? bookData.categoryId : 
+                     typeof bookData.category_id === 'number' ? bookData.category_id : null,
+        category: bookData.category,
+        tags: bookData.tags,
+        summary: bookData.summary,
+        description: bookData.description,
+        cover_image: bookData.coverUrl || bookData.cover_image || bookData.cover,
+        total_stock: bookData.totalStock || bookData.total_stock || 1,
+        available_stock: bookData.availableStock || bookData.available_stock || bookData.totalStock || bookData.total_stock || 1,
+        reserved_stock: bookData.reservedStock || bookData.reserved_stock || 0,
+        status: bookData.status || BOOK_STATUS.AVAILABLE,
+        location: bookData.location,
+        price: bookData.price,
+        pages: bookData.pages,
+        format: bookData.format || 'BOOK',
+        has_ebook: bookData.hasEbook || bookData.has_ebook || false,
+        borrow_count: bookData.borrowCount || bookData.borrow_count || 0,
+        view_count: bookData.viewCount || bookData.view_count || 0,
+        average_rating: bookData.averageRating || bookData.average_rating || null,
+        review_count: bookData.reviewCount || bookData.review_count || 0,
+        condition: bookData.condition || 'new',
+        notes: bookData.notes,
+        is_deleted: false,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      // Remove undefined values
+      Object.keys(prismaData).forEach(key => {
+        if (prismaData[key] === undefined) {
+          delete prismaData[key];
+        }
+      });
+
       return await prisma.books.create({
-        data: {
-          ...bookData,
-          status: bookData.status || BOOK_STATUS.AVAILABLE,
-          availableStock: bookData.totalStock || 1,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
+        data: prismaData,
         include: {
           bookCategory: true
         }
@@ -264,12 +300,47 @@ class BookService {
         }
       }
 
+      // Map camelCase to snake_case for Prisma schema
+      const prismaData = {};
+      
+      // Only include fields that are being updated
+      if (updateData.title !== undefined) prismaData.title = updateData.title;
+      if (updateData.isbn !== undefined) prismaData.isbn = updateData.isbn;
+      if (updateData.authors !== undefined) prismaData.authors = updateData.authors;
+      if (updateData.publisher !== undefined) prismaData.publisher = updateData.publisher;
+      if (updateData.publicationYear !== undefined) prismaData.publication_year = updateData.publicationYear;
+      if (updateData.publication_year !== undefined) prismaData.publication_year = updateData.publication_year;
+      if (updateData.language !== undefined) prismaData.language = updateData.language;
+      if (updateData.categoryId !== undefined) prismaData.category_id = updateData.categoryId;
+      if (updateData.category_id !== undefined) prismaData.category_id = updateData.category_id;
+      if (updateData.category !== undefined) prismaData.category = updateData.category;
+      if (updateData.tags !== undefined) prismaData.tags = updateData.tags;
+      if (updateData.summary !== undefined) prismaData.summary = updateData.summary;
+      if (updateData.description !== undefined) prismaData.description = updateData.description;
+      if (updateData.coverUrl !== undefined) prismaData.cover_image = updateData.coverUrl;
+      if (updateData.cover_image !== undefined) prismaData.cover_image = updateData.cover_image;
+      if (updateData.cover !== undefined) prismaData.cover_image = updateData.cover;
+      if (updateData.totalStock !== undefined) prismaData.total_stock = updateData.totalStock;
+      if (updateData.total_stock !== undefined) prismaData.total_stock = updateData.total_stock;
+      if (updateData.availableStock !== undefined) prismaData.available_stock = updateData.availableStock;
+      if (updateData.available_stock !== undefined) prismaData.available_stock = updateData.available_stock;
+      if (updateData.reservedStock !== undefined) prismaData.reserved_stock = updateData.reservedStock;
+      if (updateData.reserved_stock !== undefined) prismaData.reserved_stock = updateData.reserved_stock;
+      if (updateData.status !== undefined) prismaData.status = updateData.status;
+      if (updateData.location !== undefined) prismaData.location = updateData.location;
+      if (updateData.price !== undefined) prismaData.price = updateData.price;
+      if (updateData.pages !== undefined) prismaData.pages = updateData.pages;
+      if (updateData.format !== undefined) prismaData.format = updateData.format;
+      if (updateData.hasEbook !== undefined) prismaData.has_ebook = updateData.hasEbook;
+      if (updateData.has_ebook !== undefined) prismaData.has_ebook = updateData.has_ebook;
+      if (updateData.condition !== undefined) prismaData.condition = updateData.condition;
+      if (updateData.notes !== undefined) prismaData.notes = updateData.notes;
+      
+      prismaData.updated_at = new Date();
+
       return await prisma.books.update({
         where: { id: Number(id) },
-        data: {
-          ...updateData,
-          updatedAt: new Date()
-        },
+        data: prismaData,
         include: {
           bookCategory: true
         }
@@ -296,7 +367,7 @@ class BookService {
     return prisma.books.update({
       where: { id },
       data: {
-        viewCount: { increment: 1 }
+        view_count: { increment: 1 }
       }
     });
   }
@@ -308,7 +379,7 @@ class BookService {
     return prisma.books.update({
       where: { id },
       data: {
-        downloadCount: { increment: 1 }
+        download_count: { increment: 1 }
       }
     });
   }

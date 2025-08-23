@@ -232,41 +232,7 @@ class BooksController {
     });
   });
 
-  /**
-   * 根据ISBN查找图书
-   * GET /api/v1/books/isbn/:isbn
-   */
-  getBookByISBN = asyncHandler(async (req, res) => {
-    const { isbn } = req.params;
-    
-    // 使用服务方法查找图书
-    const BookService = require('../services/book.service');
-    const book = await BookService.findByISBN(isbn);
-    
-    if (!book) {
-      return res.status(404).json({
-        success: false,
-        status: 'error',
-        statusCode: 404,
-        message: 'Book not found',
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // 增加访问次数
-    await BookService.incrementViewCount(book.id);
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Book retrieved successfully',
-      data: {
-        book: booksService.formatBookResponse(book),
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
+  // ISBN查询功能已移除
 
   /**
    * 下载电子书
@@ -303,6 +269,78 @@ class BooksController {
           title: book.title,
           authors: book.authors,
         },
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  /**
+   * 从外部API搜索图书
+   * GET /api/v1/books/external/search
+   */
+  searchExternalBooks = asyncHandler(async (req, res) => {
+    const { query, maxResults = 10, language = 'zh' } = req.query;
+    
+    const bookApiService = require('../../services/bookApiService');
+    const books = await bookApiService.searchBooks(query, {
+      maxResults,
+      language
+    });
+    
+    res.json({
+      success: true,
+      status: 'success',
+      statusCode: 200,
+      message: `Found ${books.length} books from external sources`,
+      data: {
+        books,
+        count: books.length
+      },
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // ISBN外部查询功能已移除
+
+  /**
+   * 从外部API导入图书到系统
+   * POST /api/v1/books/import
+   */
+  importBook = asyncHandler(async (req, res) => {
+    const { bookData } = req.body;
+    const bookApiService = require('../../services/bookApiService');
+    
+    // 直接使用用户提供的数据，不再通过ISBN自动获取
+    // 验证和清理数据
+    const validatedData = bookApiService.validateBookData(bookData);
+    
+    // 检查ISBN是否已存在
+    const BookService = require('../services/book.service');
+    const existingBook = await BookService.findByISBN(validatedData.isbn);
+    
+    if (existingBook) {
+      return res.status(409).json({
+        success: false,
+        status: 'error',
+        statusCode: 409,
+        message: 'Book with this ISBN already exists',
+        data: {
+          existingBook: booksService.formatBookResponse(existingBook)
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+    
+    // 创建图书
+    const newBook = await booksService.createBook(validatedData, req.user);
+    
+    res.status(201).json({
+      success: true,
+      status: 'success',
+      statusCode: 201,
+      message: 'Book imported successfully',
+      data: {
+        book: newBook
       },
       timestamp: new Date().toISOString(),
     });

@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const prisma = require('../utils/prisma');
 require('dotenv').config();
 
 const config = {
@@ -8,18 +8,13 @@ const config = {
     database: process.env.DB_NAME || 'library_management',
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3307,
-    dialect: process.env.DB_DIALECT || 'mysql',
+    dialect: 'mysql',
     logging: console.log,
     pool: {
       max: parseInt(process.env.DB_POOL_MAX) || 20,
       min: parseInt(process.env.DB_POOL_MIN) || 5,
       acquire: parseInt(process.env.DB_POOL_ACQUIRE) || 60000,
       idle: parseInt(process.env.DB_POOL_IDLE) || 10000,
-    },
-    define: {
-      timestamps: true,
-      underscored: true,
-      paranoid: false,
     },
   },
   test: {
@@ -28,18 +23,13 @@ const config = {
     database: `${process.env.DB_NAME}_test` || 'library_management_test',
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 3306,
-    dialect: process.env.DB_DIALECT || 'mysql',
+    dialect: 'mysql',
     logging: false,
     pool: {
       max: 5,
       min: 1,
       acquire: 30000,
       idle: 10000,
-    },
-    define: {
-      timestamps: true,
-      underscored: true,
-      paranoid: false,
     },
   },
   production: {
@@ -48,7 +38,7 @@ const config = {
     database: process.env.DB_NAME,
     host: process.env.DB_HOST,
     port: process.env.DB_PORT || 3306,
-    dialect: process.env.DB_DIALECT || 'mysql',
+    dialect: 'mysql',
     logging: false,
     pool: {
       max: parseInt(process.env.DB_POOL_MAX) || 20,
@@ -56,44 +46,18 @@ const config = {
       acquire: parseInt(process.env.DB_POOL_ACQUIRE) || 60000,
       idle: parseInt(process.env.DB_POOL_IDLE) || 10000,
     },
-    define: {
-      timestamps: true,
-      underscored: true,
-      paranoid: false,
-    },
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
   },
 };
 
-// 创建Sequelize实例
+// 获取当前环境配置
 const environment = process.env.NODE_ENV || 'development';
 const dbConfig = config[environment];
-
-const sequelize = new Sequelize(
-  dbConfig.database,
-  dbConfig.username,
-  dbConfig.password,
-  {
-    host: dbConfig.host,
-    port: dbConfig.port,
-    dialect: dbConfig.dialect,
-    logging: dbConfig.logging,
-    pool: dbConfig.pool,
-    define: dbConfig.define,
-    dialectOptions: dbConfig.dialectOptions || {},
-  }
-);
 
 // 测试数据库连接
 const testConnection = async () => {
   try {
-    await sequelize.authenticate();
-    console.log('✅ 数据库连接成功');
+    await prisma.$connect();
+    console.log('✅ 数据库连接成功 (Prisma)');
   } catch (error) {
     console.error('❌ 数据库连接失败:', error);
     process.exit(1);
@@ -101,7 +65,8 @@ const testConnection = async () => {
 };
 
 module.exports = {
-  sequelize,
+  prisma,
   testConnection,
   config,
+  dbConfig,
 };
