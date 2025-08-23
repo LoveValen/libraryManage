@@ -79,7 +79,9 @@
       "mcp__serena__get_symbols_overview",
       "Bash(\"taskkill\" \"/PID\" \"17764\" \"/F\")",
       "Bash(\"taskkill\" \"/PID\" \"6868\" \"/F\")",
-      "Bash(\"taskkill\" \"/PID\" \"31800\" \"/F\")"
+      "Bash(\"taskkill\" \"/PID\" \"31800\" \"/F\")",
+      "Bash(del test-google-books.js test-open-library.js test-book-search.js)",
+      "Bash(\"taskkill\" \"/PID\" \"33620\" \"/F\")"
     ],
     "deny": []
   }
