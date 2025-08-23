@@ -5,6 +5,7 @@ export { default as ProTable } from './ProTable.tsx'
 export { default as StatusTag } from './StatusTag.vue'
 export { default as DetailTabs } from './DetailTabs.vue'
 export { default as SvgIcon } from './SvgIcon.vue'
+export { default as BookCover } from './BookCover.vue'
 
 // 表单组件 (TSX版本)
 export { default as ProForm } from './ProForm.tsx'
@@ -29,6 +30,7 @@ export function registerCommonComponents(app) {
   app.component('StatusTag', () => import('./StatusTag.vue'))
   app.component('DetailTabs', () => import('./DetailTabs.vue'))
   app.component('SvgIcon', () => import('./SvgIcon.vue'))
+  app.component('BookCover', () => import('./BookCover.vue'))
 
   // 表单组件 (TSX版本)
   app.component('ProForm', () => import('./ProForm.tsx'))
@@ -513,6 +515,7 @@ import ConfirmDialog from './ConfirmDialog.vue'
 import ThemeManager from './ThemeManager.vue'
 import SvgIcon from './SvgIcon.vue'
 import ColumnSettings from './ColumnSettings.vue'
+import BookCover from './BookCover.vue'
 
 export default {
   ProTable,
@@ -527,6 +530,7 @@ export default {
   ThemeManager,
   SvgIcon,
   ColumnSettings,
+  BookCover,
   registerCommonComponents,
   COMPONENT_CONFIGS,
   COMPONENT_UTILS,
