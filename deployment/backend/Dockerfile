@@ -48,12 +48,13 @@ COPY --from=deps --chown=library:nodejs /app/node_modules ./node_modules
 # 复制应用代码
 COPY --chown=library:nodejs . .
 
-# 创建必要的目录
-RUN mkdir -p public/uploads public/ebooks public/pdf-viewer logs \
-    && chown -R library:nodejs public logs
+# 复制启动脚本
+COPY --chown=library:nodejs ../deployment/backend/start.sh ./start.sh
 
-# 生成Prisma客户端 (在切换用户之前，以root权限执行)
-RUN npx prisma generate
+# 创建必要的目录并设置脚本权限
+RUN mkdir -p public/uploads public/ebooks public/pdf-viewer logs \
+    && chown -R library:nodejs public logs \
+    && chmod +x start.sh
 
 # 切换到非root用户
 USER library
@@ -69,4 +70,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # 启动应用
-CMD ["node", "src/server.js"]
+CMD ["./start.sh"]
