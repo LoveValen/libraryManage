@@ -18,7 +18,7 @@ services:
       - ./deployment/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - library_network
-    command: --default-authentication-plugin=mysql_native_password
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s
