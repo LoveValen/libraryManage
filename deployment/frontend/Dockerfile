@@ -4,14 +4,14 @@ FROM node:18-alpine AS builder
 # 设置工作目录
 WORKDIR /app
 
-# 复制package文件
-COPY package*.json ./
+# 复制前端package文件
+COPY admin-panel/package*.json ./
 
 # 安装依赖
 RUN npm ci --only=production=false
 
-# 复制源代码
-COPY . .
+# 复制前端源代码
+COPY admin-panel/ .
 
 # 构建生产版本
 RUN npm run build
@@ -26,7 +26,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 复制Nginx配置
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY deployment/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # 暴露端口
 EXPOSE 80

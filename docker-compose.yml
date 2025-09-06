@@ -78,8 +78,8 @@ services:
   # 前端应用
   frontend:
     build:
-      context: ./admin-panel
-      dockerfile: ../deployment/frontend/Dockerfile
+      context: .
+      dockerfile: deployment/frontend/Dockerfile
     container_name: library_frontend_prod
     restart: unless-stopped
     ports:
