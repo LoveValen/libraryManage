@@ -26,7 +26,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # 复制Nginx配置
-COPY ../deployment/frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # 暴露端口
 EXPOSE 80
