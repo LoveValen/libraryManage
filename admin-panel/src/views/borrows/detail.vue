@@ -22,7 +22,7 @@
           <template #header>
             <div class="card-header">
               <div class="header-title">
-                <el-icon><Info /></el-icon>
+                <el-icon><InfoFilled /></el-icon>
                 基本信息
               </div>
               <div class="header-status">
@@ -391,7 +391,7 @@ import {
   DocumentCopy,
   ArrowLeft,
   Printer,
-  Info,
+  InfoFilled,
   User,
   Phone,
   Reading,
