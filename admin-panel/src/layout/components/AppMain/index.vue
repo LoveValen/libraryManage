@@ -1,7 +1,7 @@
 <template>
   <section class="app-main">
     <router-view v-slot="{ Component, route }">
-      <transition :name="transitionName" mode="out-in" @before-enter="beforeEnter" @enter="onEnter">
+      <transition :name="transitionName" mode="out-in">
         <keep-alive :include="cachedViews">
           <component :is="Component" :key="key" />
         </keep-alive>
@@ -53,18 +53,6 @@ watch(() => route.path, (newPath, oldPath) => {
   previousPath = oldPath
 })
 
-// 动画钩子函数
-const beforeEnter = (el) => {
-  // 在进入动画开始前的操作
-  el.style.opacity = '0'
-}
-
-const onEnter = (el, done) => {
-  // 强制重绘，确保动画生效
-  el.offsetHeight
-  el.style.opacity = ''
-  done()
-}
 </script>
 
 <style lang="scss" scoped>
@@ -74,7 +62,7 @@ const onEnter = (el, done) => {
   position: relative;
   overflow: auto;
   padding: 16px;
-  background-color: var(--content-bg-color, #f5f7fa);
+  background-color: var(--el-bg-color-page, #f2f3f5);
   min-height: 0;
   box-sizing: border-box;
 }
@@ -99,17 +87,17 @@ const onEnter = (el, done) => {
 // Fade-slide 动画（默认）
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fade-slide-enter-from {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateX(15px);
 }
 
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-30px);
+  transform: translateX(-15px);
 }
 
 // Fade 动画（纯淡入淡出）
@@ -164,17 +152,17 @@ const onEnter = (el, done) => {
 // Fade-slide-reverse 动画（反向滑动，用于返回）
 .fade-slide-reverse-enter-active,
 .fade-slide-reverse-leave-active {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .fade-slide-reverse-enter-from {
   opacity: 0;
-  transform: translateX(-30px);
+  transform: translateX(-15px);
 }
 
 .fade-slide-reverse-leave-to {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateX(15px);
 }
 
 // Slide-down 动画（从上往下滑出，用于返回）

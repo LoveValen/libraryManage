@@ -70,7 +70,6 @@ const startServer = async () => {
     console.log('─'.repeat(60));
     console.log(`🌐 服务器地址: http://${config.app.host}:${config.app.port}`);
     console.log(`📚 API基础URL: http://${config.app.host}:${config.app.port}/api/v1`);
-    console.log(`🏥 健康检查: http://${config.app.host}:${config.app.port}/health`);
     
     if (config.app.environment === 'development') {
       console.log(`📖 API文档: http://${config.app.host}:${config.app.port}/api/docs`);
@@ -255,8 +254,6 @@ const main = async () => {
     console.log('🎯 所有检查通过，启动服务器...\n');
     const server = await startServer();
     
-    // 5. 启动后的健康检查
-    await performHealthCheck();
     
     return server;
     
@@ -301,37 +298,6 @@ const checkSystemResources = () => {
   console.log('✅ 系统资源检查完成');
 };
 
-/**
- * 启动后健康检查
- */
-const performHealthCheck = async () => {
-  try {
-    console.log('🔍 执行启动后健康检查...');
-    
-    const http = require('http');
-    const url = `http://${config.app.host}:${config.app.port}/health`;
-    
-    await new Promise((resolve, reject) => {
-      const req = http.get(url, (res) => {
-        if (res.statusCode === 200) {
-          console.log('✅ 健康检查通过');
-          resolve();
-        } else {
-          reject(new Error(`健康检查失败: HTTP ${res.statusCode}`));
-        }
-      });
-      
-      req.on('error', reject);
-      req.setTimeout(5000, () => {
-        req.destroy();
-        reject(new Error('健康检查超时'));
-      });
-    });
-    
-  } catch (error) {
-    console.warn('⚠️  启动后健康检查失败:', error.message);
-  }
-};
 
 // 如果直接运行此文件，则启动服务器
 if (require.main === module) {
@@ -350,7 +316,6 @@ module.exports = {
   checkEnvironment,
   checkNodeVersion,
   checkSystemResources,
-  performHealthCheck,
 }; 
  
 

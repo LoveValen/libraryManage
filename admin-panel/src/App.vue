@@ -44,18 +44,8 @@ onMounted(async () => {
   // 防止页面刷新时的背景闪烁
   will-change: auto;
   transition: background-color 0.3s ease;
-  // 确保初始状态与加载动画背景一致
-  animation: fadeIn 0.3s ease-in;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
 
 // Element Plus 全局样式覆盖
 .el-message {

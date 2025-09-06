@@ -3,15 +3,15 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button @click="goBack" :icon="ArrowLeft" plain>返回</el-button>
+        <ElButton @click="goBack" :icon="ArrowLeft" plain>返回</ElButton>
         <span class="page-title">{{ isEdit ? '编辑用户' : '新增用户' }}</span>
       </div>
       <div class="header-right">
-        <el-button @click="handleReset">重置</el-button>
-        <el-button type="primary" @click="handleSave" :loading="saving" :icon="Check">
+        <ElButton @click="handleReset">重置</ElButton>
+        <ElButton type="primary" @click="handleSave" :loading="saving" :icon="Check">
           {{ saving ? '保存中...' : '保存' }}
-        </el-button>
-        <el-button v-if="!isEdit" type="success" @click="handleSaveAndContinue" :loading="saving" :icon="Plus">保存并继续</el-button>
+        </ElButton>
+        <ElButton v-if="!isEdit" type="success" @click="handleSaveAndContinue" :loading="saving" :icon="Plus">保存并继续</ElButton>
       </div>
     </div>
 

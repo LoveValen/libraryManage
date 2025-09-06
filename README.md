@@ -384,10 +384,10 @@ docker-compose logs -f
 
 ```bash
 # 使用生产配置
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose up -d
 
 # 扩展后端服务
-docker-compose -f docker-compose.prod.yml up -d --scale backend=3
+docker-compose up -d --scale backend=3
 ```
 
 ## 🧪 测试

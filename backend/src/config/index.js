@@ -43,19 +43,6 @@ const config = {
     documentTypes: ['pdf', 'doc', 'docx'],
   },
 
-  // 邮件配置
-  email: {
-    smtp: {
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: false, // true for 465, false for other ports
-      auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || '',
-      },
-    },
-    from: process.env.SMTP_FROM || 'Library Management System <noreply@library.com>',
-  },
 
   // 积分系统配置
   points: {

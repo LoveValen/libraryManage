@@ -121,6 +121,17 @@ router.get('/:bookId/reviews/stats',
 );
 
 /**
+ * @route   GET /api/v1/books/:bookId/borrows
+ * @desc    获取图书借阅记录
+ * @access  Public (但需要认证才能看到详细信息)
+ */
+router.get('/:bookId/borrows',
+  validateId('bookId'),
+  optionalAuth,
+  booksController.getBookBorrowHistory
+);
+
+/**
  * 需要认证的路由
  */
 router.use(authenticateToken);
@@ -129,52 +140,7 @@ router.use(authenticateToken);
  * 图书导入相关路由 - 必须在动态路由之前定义
  */
 
-/**
- * @route   GET /api/v1/books/external/search
- * @desc    从外部API搜索图书
- * @access  Private (Admin/Librarian)
- */
-router.get('/external/search',
-  requireRole(['admin', 'librarian']),
-  validate(require('joi').object({
-    query: require('joi').string().required().min(1).max(200),
-    maxResults: require('joi').number().integer().min(1).max(40).default(10),
-    language: require('joi').string().valid('zh', 'en', 'zh-CN').default('zh')
-  }), 'query'),
-  booksController.searchExternalBooks
-);
 
-/**
- * @route   POST /api/v1/books/import
- * @desc    从外部API导入图书到系统
- * @access  Private (Admin/Librarian)
- */
-router.post('/import',
-  requireRole(['admin', 'librarian']),
-  validate(require('joi').object({
-    bookData: require('joi').object({
-      title: require('joi').string().required(),
-      isbn: require('joi').string().required(),
-      authors: require('joi').array().items(require('joi').string()).required(),
-      publisher: require('joi').string().allow(null, ''),
-      publication_year: require('joi').number().integer().min(1000).max(new Date().getFullYear() + 1).allow(null),
-      language: require('joi').string().default('zh-CN'),
-      category: require('joi').string().allow(null, ''),
-      tags: require('joi').array().items(require('joi').string()).allow(null),
-      summary: require('joi').string().allow(null, ''),
-      description: require('joi').string().allow(null, ''),
-      cover_image: require('joi').string().uri().allow(null, ''),
-      pages: require('joi').number().integer().min(0).allow(null),
-      format: require('joi').string().allow(null, ''),
-      price: require('joi').number().min(0).allow(null),
-      total_stock: require('joi').number().integer().min(0).default(1),
-      available_stock: require('joi').number().integer().min(0).default(1),
-      location: require('joi').string().allow(null, ''),
-      condition: require('joi').string().valid('new', 'good', 'fair', 'poor', 'damaged').default('new')
-    }).required()
-  })),
-  booksController.importBook
-);
 
 /**
  * 动态参数路由 - 必须在所有具体路径之后定义
@@ -252,5 +218,17 @@ router.delete('/:id',
   validateId(),
   booksController.deleteBook
 );
+
+/**
+ * Book Files sub-routes
+ * Mount bookFiles routes to handle file operations
+ * This adds routes like:
+ * - GET /api/v1/books/:bookId/files
+ * - POST /api/v1/books/:bookId/files/upload
+ * - GET /api/v1/books/:bookId/files/:fileName
+ * - etc.
+ */
+// Book files routes will be added here when implemented
+// router.use('/', bookFilesRoutes);
 
 module.exports = router;

@@ -15,31 +15,24 @@ class NotificationService {
       title,
       content,
       priority = 'normal',
-      channel = ['in_app'],
       metadata = {},
       relatedId,
       relatedType,
-      action_url,
-      expires_at,
-      scheduled_at
+      action_url
     } = notificationData;
 
     return prisma.notifications.create({
       data: {
-        userId: parseInt(userId),
+        user_id: parseInt(userId),
         type,
         title,
         content,
         priority,
-        status: scheduled_at ? 'pending' : 'sent',
-        channel,
+        status: 'pending',
         metadata,
-        relatedId: relatedId ? parseInt(relatedId) : null,
-        relatedType,
+        related_id: relatedId ? parseInt(relatedId) : null,
+        related_type: relatedType,
         action_url,
-        expires_at,
-        scheduled_at,
-        sentAt: scheduled_at ? null : new Date(),
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -82,13 +75,12 @@ class NotificationService {
   static async sendScheduledNotifications() {
     try {
       const now = new Date();
+      // Since scheduled_at field doesn't exist, we'll process all pending notifications
       const scheduledNotifications = await prisma.notifications.findMany({
         where: {
-          status: 'pending',
-          scheduled_at: {
-            lte: now
-          }
-        }
+          status: 'pending'
+        },
+        take: 10 // Process in batches to avoid overload
       });
 
       for (const notification of scheduledNotifications) {
@@ -96,38 +88,44 @@ class NotificationService {
           where: { id: notification.id },
           data: {
             status: 'sent',
-            sentAt: now,
             updated_at: now
           }
         });
       }
 
-      logger.info(`Sent ${scheduledNotifications.length} scheduled notifications`);
+      if (scheduledNotifications.length > 0) {
+        logger.info(`Sent ${scheduledNotifications.length} scheduled notifications`);
+      }
     } catch (error) {
       logger.error('Failed to send scheduled notifications:', error);
     }
   }
 
   /**
-   * Clean up expired notifications
+   * Clean up old notifications
    */
   static async cleanupExpired() {
     try {
       const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      // Clean up notifications older than 30 days that have been read or sent
       const result = await prisma.notifications.deleteMany({
         where: {
-          expires_at: {
-            lt: now
+          created_at: {
+            lt: thirtyDaysAgo
           },
-          status: {
-            in: ['sent', 'delivered', 'failed']
-          }
+          OR: [
+            { status: 'sent' },
+            { is_read: true }
+          ]
         }
       });
 
-      logger.info(`Cleaned up ${result.count} expired notifications`);
+      if (result.count > 0) {
+        logger.info(`Cleaned up ${result.count} old notifications`);
+      }
     } catch (error) {
-      logger.error('Failed to clean up expired notifications:', error);
+      logger.error('Failed to clean up old notifications:', error);
     }
   }
 }
@@ -138,7 +136,6 @@ class NotificationService {
  */
 class NotificationServiceAdapter {
   constructor() {
-    this.emailService = null;
     this.smsService = null;
     this.pushService = null;
     this.processingQueue = [];
@@ -188,24 +185,20 @@ class NotificationServiceAdapter {
       // Convert channel object to array for Prisma
       const channelArray = [];
       if (mergedChannel.inApp) channelArray.push('in_app');
-      if (mergedChannel.email) channelArray.push('email');
       if (mergedChannel.sms) channelArray.push('sms');
       if (mergedChannel.push) channelArray.push('push');
 
-      // Create notification
+      // Create notification (removed non-existent fields: channel, scheduled_at, expires_at)
       const notification = await NotificationService.create({
         userId: userId,
         type,
         title,
         content,
         priority,
-        channel: channelArray,
         metadata,
         relatedId: relatedId,
         relatedType: relatedType,
-        action_url: actionUrl,
-        scheduled_at: scheduledAt,
-        expires_at: expiresAt
+        action_url: actionUrl
       });
 
       // Add to processing queue
@@ -547,9 +540,6 @@ class NotificationServiceAdapter {
       // Send via other channels if configured
       const channels = notification.channel || [];
       
-      if (channels.includes('email') && this.emailService) {
-        await this.sendEmailNotification(notification);
-      }
       
       if (channels.includes('sms') && this.smsService) {
         await this.sendSmsNotification(notification);
@@ -565,13 +555,6 @@ class NotificationServiceAdapter {
     }
   }
 
-  /**
-   * Send email notification (placeholder)
-   */
-  async sendEmailNotification(notification) {
-    // Implementation would depend on email service
-    logger.info(`Would send email notification ${notification.id}`);
-  }
 
   /**
    * Send SMS notification (placeholder)

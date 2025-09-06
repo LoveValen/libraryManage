@@ -220,7 +220,7 @@ const selectedOverdueRecords = ref([])
 // 搜索表单数据
 const searchForm = reactive({
   keyword: '',
-  overdueDaysRange: {},
+  overdueDaysRange: [null, null],
   overdueLevel: '',
   dateRange: []
 })
@@ -364,17 +364,17 @@ const overdueTableColumns = [
 // 搜索处理
 const handleSearch = (searchData) => {
   // 处理逾期天数范围
-  const rangeData = searchData.overdueDaysRange || {}
+  const rangeData = searchData.overdueDaysRange || [null, null]
 
   overdueSearchParams.value = {
     ...searchData,
-    minOverdueDays: rangeData.minOverdueDays,
-    maxOverdueDays: rangeData.maxOverdueDays,
+    minOverdueDays: rangeData[0],
+    maxOverdueDays: rangeData[1],
     startDate: searchData.dateRange?.[0] || '',
     endDate: searchData.dateRange?.[1] || ''
   }
 
-  // 移除原始的范围对象，避免传递给后端
+  // 移除原始的范围数组，避免传递给后端
   delete overdueSearchParams.value.overdueDaysRange
 
   proTableRef.value?.refresh()
@@ -385,7 +385,7 @@ const handleReset = () => {
     if (key === 'dateRange') {
       searchForm[key] = []
     } else if (key === 'overdueDaysRange') {
-      searchForm[key] = {}
+      searchForm[key] = [null, null]
     } else {
       searchForm[key] = ''
     }

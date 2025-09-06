@@ -1,6 +1,7 @@
 const booksService = require('../services/books.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
 const { success, successWithPagination } = require('../utils/response');
+const prisma = require('../utils/prisma');
 
 /**
  * 图书控制器 - 处理图书的增删改查、搜索等操作
@@ -88,6 +89,69 @@ class BooksController {
   getBookById = asyncHandler(async (req, res) => {
     const book = await booksService.getBookById(req.params.id, req.user);
     success(res, { book }, '获取图书详情成功');
+  });
+  /**
+   * 获取图书借阅记录
+   */
+  getBookBorrowHistory = asyncHandler(async (req, res) => {
+    const { bookId } = req.params;
+    const { page = 1, size = 10, search = '', status = '' } = req.query;
+    
+    // 构建查询条件
+    const where = {
+      book_id: parseInt(bookId)
+    };
+    
+    // 状态筛选
+    if (status) {
+      where.status = status;
+    }
+    
+    // 搜索条件（搜索用户名）
+    if (search) {
+      where.borrower = {
+        OR: [
+          { username: { contains: search } },
+          { email: { contains: search } }
+        ]
+      };
+    }
+    
+    // 获取总数
+    const total = await prisma.borrows.count({ where });
+    
+    // 获取借阅记录
+    const borrows = await prisma.borrows.findMany({
+      where,
+      skip: (page - 1) * size,
+      take: parseInt(size),
+      include: {
+        borrower: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        },
+        book: {
+          select: {
+            id: true,
+            title: true,
+            isbn: true
+          }
+        }
+      },
+      orderBy: {
+        borrow_date: 'desc'
+      }
+    });
+    
+    successWithPagination(
+      res,
+      { borrows },
+      { page: parseInt(page), limit: parseInt(size), total },
+      '获取借阅记录成功'
+    );
   });
 
   /**
@@ -274,77 +338,9 @@ class BooksController {
     });
   });
 
-  /**
-   * 从外部API搜索图书
-   * GET /api/v1/books/external/search
-   */
-  searchExternalBooks = asyncHandler(async (req, res) => {
-    const { query, maxResults = 10, language = 'zh' } = req.query;
-    
-    const bookApiService = require('../../services/bookApiService');
-    const books = await bookApiService.searchBooks(query, {
-      maxResults,
-      language
-    });
-    
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: `Found ${books.length} books from external sources`,
-      data: {
-        books,
-        count: books.length
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
 
   // ISBN外部查询功能已移除
 
-  /**
-   * 从外部API导入图书到系统
-   * POST /api/v1/books/import
-   */
-  importBook = asyncHandler(async (req, res) => {
-    const { bookData } = req.body;
-    const bookApiService = require('../../services/bookApiService');
-    
-    // 直接使用用户提供的数据，不再通过ISBN自动获取
-    // 验证和清理数据
-    const validatedData = bookApiService.validateBookData(bookData);
-    
-    // 检查ISBN是否已存在
-    const BookService = require('../services/book.service');
-    const existingBook = await BookService.findByISBN(validatedData.isbn);
-    
-    if (existingBook) {
-      return res.status(409).json({
-        success: false,
-        status: 'error',
-        statusCode: 409,
-        message: 'Book with this ISBN already exists',
-        data: {
-          existingBook: booksService.formatBookResponse(existingBook)
-        },
-        timestamp: new Date().toISOString(),
-      });
-    }
-    
-    // 创建图书
-    const newBook = await booksService.createBook(validatedData, req.user);
-    
-    res.status(201).json({
-      success: true,
-      status: 'success',
-      statusCode: 201,
-      message: 'Book imported successfully',
-      data: {
-        book: newBook
-      },
-      timestamp: new Date().toISOString(),
-    });
-  });
 
 }
 

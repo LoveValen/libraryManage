@@ -81,7 +81,23 @@
       "Bash(\"taskkill\" \"/PID\" \"6868\" \"/F\")",
       "Bash(\"taskkill\" \"/PID\" \"31800\" \"/F\")",
       "Bash(del test-google-books.js test-open-library.js test-book-search.js)",
-      "Bash(\"taskkill\" \"/PID\" \"33620\" \"/F\")"
+      "Bash(\"taskkill\" \"/PID\" \"33620\" \"/F\")",
+      "mcp__playwright__browser_type",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_symbol",
+      "mcp__serena__insert_after_symbol",
+      "Bash(echo:*)",
+      "Bash(npx prisma:*)",
+      "WebSearch",
+      "Bash(npm ls:*)",
+      "WebFetch(domain:juejin.cn)",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_drag",
+      "mcp__playwright__browser_tab_new",
+      "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\SystemHealth.vue\")",
+      "Bash(openssl rand:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

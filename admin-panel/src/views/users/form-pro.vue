@@ -4,8 +4,8 @@
     <div v-if="hasError" class="error-container">
       <el-result icon="error" title="页面加载失败" :sub-title="errorMessage">
         <template #extra>
-          <el-button type="primary" @click="handleRetry">重新加载</el-button>
-          <el-button @click="goBack">返回</el-button>
+          <ElButton type="primary" @click="handleRetry">重新加载</ElButton>
+          <ElButton @click="goBack">返回</ElButton>
         </template>
       </el-result>
     </div>
@@ -14,20 +14,20 @@
       <!-- 页面头部 -->
       <div class="page-header">
         <div class="header-left">
-          <el-button @click="goBack" :icon="ArrowLeft" plain>返回</el-button>
+          <ElButton @click="goBack" :icon="ArrowLeft" plain>返回</ElButton>
           <span class="page-title">{{ isEdit ? '编辑用户' : '新增用户' }}</span>
         </div>
         <div class="header-right">
-          <el-button @click="handleReset">重置</el-button>
-          <el-button 
+          <ElButton @click="handleReset">重置</ElButton>
+          <ElButton 
             type="primary" 
             @click="handleSave" 
             :loading="saving"
             :icon="Check"
           >
             {{ saving ? '保存中...' : '保存' }}
-          </el-button>
-          <el-button 
+          </ElButton>
+          <ElButton 
             v-if="!isEdit" 
             type="success" 
             @click="handleSaveAndContinue" 
@@ -35,7 +35,7 @@
             :icon="Plus"
           >
             保存并继续
-          </el-button>
+          </ElButton>
         </div>
       </div>
 
@@ -51,6 +51,8 @@
         :gutter="16"
         :actions="false"
         :class-name="'user-pro-form'"
+        :collapsible="true"
+        :default-collapsed="[]"
         @submit="handleFormSubmit"
         @values-change="handleValuesChange"
         @field-change="handleFieldChange"
@@ -625,12 +627,43 @@ const handleSave = async () => {
     return
   }
 
+  // 表单验证
   const isValid = await validateForm()
-  if (!isValid) return
+  if (!isValid) {
+    ElMessage.warning('请完善必填信息后再提交')
+    return
+  }
+
+  // 额外的数据完整性检查
+  if (!isEdit.value) {
+    if (!formData.username?.trim()) {
+      ElMessage.error('请输入用户名')
+      return
+    }
+    if (!formData.realName?.trim()) {
+      ElMessage.error('请输入真实姓名')
+      return
+    }
+    if (!formData.password?.trim()) {
+      ElMessage.error('请输入密码')
+      return
+    }
+  }
 
   try {
     saving.value = true
     const userData = { ...formData }
+    
+    // 清理空字符串字段（除了必填字段）
+    Object.keys(userData).forEach(key => {
+      if (userData[key] === '') {
+        // 保留必填字段的空值验证给后端处理，邮箱是可选的
+        if (!['username', 'realName', 'password'].includes(key)) {
+          userData[key] = null
+        }
+      }
+    })
+
     delete userData.confirmPassword
 
     if (isEdit.value && !userData.password) {
@@ -648,19 +681,48 @@ const handleSave = async () => {
     goBack()
   } catch (error) {
     console.error('保存用户失败:', error)
-    ElMessage.error(error.message || '保存用户失败')
+    const errorMessage = error.response?.data?.message || error.message || '保存用户失败'
+    ElMessage.error(errorMessage)
   } finally {
     saving.value = false
   }
 }
 
 const handleSaveAndContinue = async () => {
+  // 表单验证
   const isValid = await validateForm()
-  if (!isValid) return
+  if (!isValid) {
+    ElMessage.warning('请完善必填信息后再提交')
+    return
+  }
+
+  // 额外的数据完整性检查
+  if (!formData.username?.trim()) {
+    ElMessage.error('请输入用户名')
+    return
+  }
+  if (!formData.realName?.trim()) {
+    ElMessage.error('请输入真实姓名')
+    return
+  }
+  if (!formData.password?.trim()) {
+    ElMessage.error('请输入密码')
+    return
+  }
 
   try {
     saving.value = true
     const userData = { ...formData }
+    
+    // 清理空字符串字段（除了必填字段）
+    Object.keys(userData).forEach(key => {
+      if (userData[key] === '') {
+        if (!['username', 'realName', 'password'].includes(key)) {
+          userData[key] = null
+        }
+      }
+    })
+
     delete userData.confirmPassword
 
     await userApi.createUser(userData)
@@ -668,7 +730,8 @@ const handleSaveAndContinue = async () => {
     handleReset()
   } catch (error) {
     console.error('保存用户失败:', error)
-    ElMessage.error(error.message || '保存用户失败')
+    const errorMessage = error.response?.data?.message || error.message || '保存用户失败'
+    ElMessage.error(errorMessage)
   } finally {
     saving.value = false
   }
@@ -851,6 +914,50 @@ onMounted(() => {
 
       .el-divider__text {
         background: var(--el-fill-color-light);
+      }
+    }
+
+    // 折叠分组样式优化
+    .form-collapse {
+      .el-collapse-item {
+        margin-bottom: 32px; // 增加模块间距
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: box-shadow 0.3s ease;
+        
+        &:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .el-collapse-item__header {
+          background: linear-gradient(135deg, #f8f9fc 0%, #f1f3f7 100%);
+          border-radius: 8px 8px 0 0;
+          
+          &:hover {
+            background: linear-gradient(135deg, #f1f3f7 0%, #e9ecf1 100%);
+          }
+        }
+
+        .el-collapse-item__content {
+          border-radius: 0 0 8px 8px;
+        }
+      }
+    }
+
+    // 分组卡片样式（非折叠模式）
+    .group-card {
+      margin-bottom: 32px; // 增加模块间距
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .el-card__header {
+        background: linear-gradient(135deg, #f8f9fc 0%, #f1f3f7 100%);
       }
     }
   }

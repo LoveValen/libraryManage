@@ -47,6 +47,22 @@ export type SortOrder = 'ascend' | 'descend' | null
 export type TableSize = 'large' | 'default' | 'small'
 
 /**
+ * 虚拟滚动配置
+ */
+export interface VirtualScrollConfig {
+  /** 是否启用虚拟滚动，默认 false */
+  virtualScroll: boolean
+  /** 固定行高（像素），用于固定高度模式 */
+  itemHeight?: number
+  /** 预估行高（像素），用于动态高度模式，默认 50 */
+  estimatedItemHeight?: number
+  /** 预渲染的额外行数，默认 5 */
+  overscan?: number
+  /** 启用虚拟滚动的最小数据量阈值，默认 100 */
+  threshold?: number
+}
+
+/**
  * 选项配置
  */
 export interface ValueEnumItem {
@@ -376,6 +392,8 @@ export interface ProTableProps<T = any> {
   autoRequest?: boolean
   /** 额外参数 */
   params?: Record<string, any>
+  /** 虚拟滚动配置 */
+  virtualScrollConfig?: VirtualScrollConfig
   /** 表格大小 */
   size?: TableSize
   /** 加载状态 */
@@ -384,6 +402,8 @@ export interface ProTableProps<T = any> {
   error?: boolean
   /** 手动模式（不自动请求） */
   manualRequest?: boolean
+  /** 启用列宽拖拽 */
+  enableColumnResize?: boolean
 }
 
 /**
@@ -432,6 +452,18 @@ export interface ProTableInstance<T = any> {
   getSearchParams: () => Record<string, any>
   /** 设置搜索参数 */
   setSearchParams: (params: Record<string, any>) => void
+  /** 快速滚动到指定索引位置（虚拟滚动） */
+  scrollToIndex?: (index: number) => void
+  /** 重置列宽 */
+  resetColumnWidths?: () => void
+  /** 清除列选择 */
+  clearColumnSelection?: () => void
+  /** 切换调试模式 */
+  toggleDebugMode?: () => void
+  /** 获取列宽状态 */
+  getColumnWidths?: () => Record<string, number>
+  /** 设置列宽 */
+  setColumnWidth?: (columnKey: string, width: number) => void
 }
 
 /**

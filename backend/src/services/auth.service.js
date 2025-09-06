@@ -239,8 +239,6 @@ class AuthService {
     // const resetToken = generateResetToken();
     // await UserService.update(user.id, { reset_token: resetToken });
 
-    // Send reset email (placeholder)
-    // await emailService.sendPasswordResetEmail(user.email, resetToken);
 
     logBusinessOperation('USER_PASSWORD_RESET_REQUEST', user.id, { email });
 

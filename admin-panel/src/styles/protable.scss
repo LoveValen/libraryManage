@@ -1,0 +1,160 @@
+// ProTable 组件样式
+.pro-table {
+  .pro-table-content {
+    position: relative;
+    
+    // TableV2 虚拟列表样式
+    .el-table-v2 {
+      // 列头样式
+      .el-table-v2__header {
+        .el-table-v2__header-cell {
+          position: relative;
+          overflow: visible !important; // 确保拖拽手柄不被裁剪
+        }
+      }
+
+      // 可调整列宽的表头
+      .resizable-header {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        user-select: none;
+        
+        // 列选中状态
+        &.column-selected {
+          background-color: var(--el-color-primary-light-9) !important;
+          border-left: 2px solid var(--el-color-primary) !important;
+        }
+      }
+
+      // 列宽调整手柄
+      .column-resize-handle {
+        position: absolute !important;
+        right: -2px !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 6px !important; // 增加宽度以便于拖拽
+        cursor: col-resize !important;
+        z-index: 10000 !important; // 确保手柄在最上层
+        background-color: transparent;
+        transition: background-color 0.2s;
+        
+        // 鼠标悬停时显示
+        &:hover {
+          background-color: var(--el-color-primary);
+          opacity: 0.5;
+        }
+        
+        // 拖拽中状态
+        &.dragging {
+          background-color: var(--el-color-primary);
+          opacity: 0.8;
+        }
+        
+        // 调试模式下可见
+        .debug-mode & {
+          background-color: rgba(255, 0, 0, 0.3);
+          
+          &:hover {
+            background-color: rgba(255, 0, 0, 0.6);
+          }
+        }
+      }
+    }
+  }
+  
+  // 单元格内容对齐
+  .cell-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    
+    &.text-left {
+      justify-content: flex-start;
+      text-align: left;
+    }
+    
+    &.text-center {
+      justify-content: center;
+      text-align: center;
+    }
+    
+    &.text-right {
+      justify-content: flex-end;
+      text-align: right;
+    }
+  }
+  
+  // 省略号单元格
+  .ellipsis-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+  }
+}
+
+// 全局拖拽状态
+body.dragging-column {
+  cursor: col-resize !important;
+  user-select: none !important;
+  
+  * {
+    cursor: col-resize !important;
+    user-select: none !important;
+  }
+  
+  // 保持拖拽手柄可交互
+  .column-resize-handle {
+    pointer-events: auto !important;
+  }
+}
+
+// 调试模式样式
+.debug-mode {
+  .column-resize-handle {
+    background-color: rgba(255, 0, 0, 0.2) !important;
+    border-right: 1px dashed red;
+  }
+  
+  .resizable-header {
+    border: 1px dotted blue;
+  }
+}
+
+// TableV2 特定覆盖
+.el-table-v2 {
+  // 确保表头单元格不会裁剪内容
+  .el-table-v2__header-cell {
+    overflow: visible !important;
+    
+    // 内部包装器也不裁剪
+    .el-table-v2__header-cell-text {
+      overflow: visible !important;
+    }
+  }
+  
+  // 防止默认的 resize 行为干扰
+  .el-table-v2__header-row {
+    .el-table-v2__header-cell {
+      resize: none !important;
+    }
+  }
+}
+
+// 多列选择指示器
+.column-selection-indicator {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--el-color-primary);
+  z-index: 1;
+}
+
+// 自动列宽调整动画
+.column-width-transition {
+  transition: width 0.3s ease;
+}

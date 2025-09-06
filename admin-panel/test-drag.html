@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drag Test</title>
+  <style>
+    body { margin: 0; padding: 20px; }
+    .test-container { 
+      width: 800px; 
+      border: 1px solid #ccc; 
+      position: relative;
+    }
+    .header-cell {
+      display: inline-block;
+      height: 40px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      position: relative;
+      padding: 10px;
+      vertical-align: top;
+    }
+    
+    .drag-line {
+      position: absolute !important;
+      right: 0px !important;
+      top: 0px !important;
+      bottom: 0px !important;
+      width: 8px !important;
+      cursor: ew-resize !important;
+      z-index: 9999 !important;
+      user-select: none !important;
+      background: rgba(0, 123, 255, 0.2);
+      border: 1px solid rgba(64, 158, 255, 0.5);
+    }
+    
+    .drag-line:hover {
+      background: rgba(0, 123, 255, 0.4) !important;
+    }
+    
+    .drag-indicator {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #409eff;
+      z-index: 10000;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>简单拖拽测试</h1>
+  <p>这是一个简单的列宽拖拽测试页面</p>
+  
+  <div class="test-container">
+    <div class="header-cell" style="width: 200px;">
+      书名
+      <div class="drag-line" data-column-key="title"></div>
+    </div>
+    <div class="header-cell" style="width: 150px;">
+      作者
+      <div class="drag-line" data-column-key="author"></div>
+    </div>
+    <div class="header-cell" style="width: 120px;">
+      分类
+      <div class="drag-line" data-column-key="category"></div>
+    </div>
+    <div class="header-cell" style="width: 100px;">
+      价格
+      <div class="drag-line" data-column-key="price"></div>
+    </div>
+  </div>
+  
+  <div id="status"></div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const statusEl = document.getElementById('status');
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragColumnKey = null;
+      let dragStartWidth = 0;
+      let indicator = null;
+      
+      // 为所有拖拽线添加事件监听
+      document.querySelectorAll('.drag-line').forEach(line => {
+        line.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          console.log('[测试拖拽] 鼠标按下事件触发:', this.dataset.columnKey);
+          statusEl.textContent = `开始拖拽列: ${this.dataset.columnKey}`;
+          
+          isDragging = true;
+          dragColumnKey = this.dataset.columnKey;
+          dragStartX = e.clientX;
+          
+          const headerCell = this.parentElement;
+          dragStartWidth = headerCell.offsetWidth;
+          
+          // 创建拖拽指示线
+          indicator = document.createElement('div');
+          indicator.className = 'drag-indicator';
+          indicator.style.left = e.clientX + 'px';
+          document.body.appendChild(indicator);
+          
+          // 添加全局样式
+          document.body.style.cursor = 'ew-resize';
+          document.body.style.userSelect = 'none';
+        });
+      });
+      
+      // 全局鼠标移动处理
+      document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - dragStartX;
+        const newWidth = Math.max(60, dragStartWidth + deltaX);
+        
+        // 更新指示线位置
+        if (indicator) {
+          indicator.style.left = e.clientX + 'px';
+        }
+        
+        statusEl.textContent = `拖拽中: ${dragColumnKey}, 新宽度: ${newWidth}px`;
+      });
+      
+      // 全局鼠标释放处理
+      document.addEventListener('mouseup', function(e) {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - dragStartX;
+        const newWidth = Math.max(60, dragStartWidth + deltaX);
+        
+        console.log('[测试拖拽] 结束拖拽:', dragColumnKey, '最终宽度:', newWidth);
+        statusEl.textContent = `拖拽结束: ${dragColumnKey}, 最终宽度: ${newWidth}px`;
+        
+        // 更新列宽
+        const headerCell = document.querySelector(`[data-column-key="${dragColumnKey}"]`).parentElement;
+        headerCell.style.width = newWidth + 'px';
+        
+        // 清理状态
+        isDragging = false;
+        dragColumnKey = null;
+        
+        // 清理样式和指示线
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        if (indicator) {
+          indicator.remove();
+          indicator = null;
+        }
+      });
+      
+      console.log('拖拽测试页面已加载');
+      statusEl.textContent = '就绪 - 可以开始测试拖拽功能';
+    });
+  </script>
+</body>
+</html>

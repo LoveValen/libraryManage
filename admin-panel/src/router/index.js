@@ -154,15 +154,6 @@ export const asyncRoutes = [
         }
       },
       {
-        path: 'add-with-api',
-        name: 'BookAddWithAPI',
-        component: () => import('@/views/books/BookAddWithAPI.vue'),
-        meta: {
-          title: '从网络添加图书',
-          icon: 'Download'
-        }
-      },
-      {
         path: 'detail/:id',
         name: 'BookDetail',
         component: () => import('@/views/books/detail.vue'),
@@ -345,6 +336,27 @@ export const asyncRoutes = [
       }
     ]
   },
+  {
+    path: '/examples',
+    component: Layout,
+    redirect: '/examples/virtual-table',
+    meta: {
+      title: '示例',
+      icon: 'Monitor'
+    },
+    children: [
+      {
+        path: 'virtual-table',
+        name: 'VirtualTableDemo',
+        component: () => import('@/views/examples/VirtualTableDemo.vue'),
+        meta: {
+          title: '虚拟滚动表格示例',
+          icon: 'Monitor'
+        }
+      }
+    ]
+  },
+
   {
     path: '/system',
     component: Layout,

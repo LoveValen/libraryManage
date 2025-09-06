@@ -931,25 +931,17 @@ class SearchService {
         real_name: true,
         phone: true,
         avatar: true,
-        bio: true,
-        gender: true,
-        birthday: true,
-        student_id: true,
-        department: true,
-        points_balance: true,
-        borrow_permission: true,
-        borrow_limit: true,
         role: true,
         status: true,
-        email_verified: true,
-        phone_verified: true,
         last_login_at: true,
         last_login_ip: true,
-        login_count: true,
-        preferences: true,
         created_at: true,
         updated_at: true
         // Exclude password_hash and other sensitive fields
+        // Note: removed fields that don't exist in current schema:
+        // bio, gender, birthday, student_id, department, points_balance,
+        // borrow_permission, borrow_limit, email_verified, phone_verified,
+        // login_count, preferences
       }
     });
     const operations = [];

@@ -7,46 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model alerts {
-  id                                  Int               @id @default(autoincrement()) @db.UnsignedInt
-  alert_type                          alerts_alert_type
-  severity                            alerts_severity   @default(medium)
-  title                               String            @db.VarChar(200)
-  description                         String?           @db.Text
-  status                              alerts_status     @default(active)
-  source                              Json?
-  metrics                             Json?
-  threshold                           Json?
-  affected_services                   Json?
-  suggested_actions                   Json?
-  acknowledged_by                     Int?              @db.UnsignedInt
-  acknowledged_at                     DateTime?         @db.DateTime(0)
-  acknowledge_note                    String?           @db.Text
-  resolved_by                         Int?              @db.UnsignedInt
-  resolved_at                         DateTime?         @db.DateTime(0)
-  resolution_note                     String?           @db.Text
-  suppressed_until                    DateTime?         @db.DateTime(0)
-  notification_sent                   Boolean           @default(false)
-  escalation_level                    Int               @default(0)
-  next_escalation_at                  DateTime?         @db.DateTime(0)
-  occurrence_count                    Int               @default(1)
-  first_occurred_at                   DateTime          @db.DateTime(0)
-  last_occurred_at                    DateTime          @db.DateTime(0)
-  created_at                          DateTime          @db.DateTime(0)
-  updated_at                          DateTime          @db.DateTime(0)
-  deleted_at                          DateTime?         @db.DateTime(0)
-  acknowledger                        users?            @relation("AlertAcknowledger", fields: [acknowledged_by], references: [id], map: "alerts_ibfk_1")
-  resolver                            users?            @relation("AlertResolver", fields: [resolved_by], references: [id], map: "alerts_ibfk_2")
-
-  @@index([acknowledged_by], map: "alerts_acknowledged_by")
-  @@index([alert_type, status], map: "alerts_alert_type_status")
-  @@index([first_occurred_at], map: "alerts_first_occurred_at")
-  @@index([next_escalation_at], map: "alerts_next_escalation_at")
-  @@index([resolved_by], map: "alerts_resolved_by")
-  @@index([severity, status], map: "alerts_severity_status")
-  @@index([status, created_at], map: "alerts_status_created_at")
-}
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model audit_logs {
@@ -167,14 +127,14 @@ model books {
   format                   String?                    @db.VarChar(20)
   // dimensions removed
   // weight removed
-  // ebook_url removed
-  // ebook_format removed
-  // ebook_file_size removed
+  ebook_url                String?                    @db.VarChar(500)
+  ebook_format             String?                    @db.VarChar(20)
+  ebook_file_size          BigInt?                    @db.UnsignedBigInt
   has_ebook                Boolean?                   @default(false)
   borrow_count             Int?                       @default(0) @db.UnsignedInt
   // reserve_count removed
   view_count               Int?                       @default(0) @db.UnsignedInt
-  // download_count removed
+  download_count           Int?                       @default(0) @db.UnsignedInt
   average_rating           Decimal?                   @db.Decimal(3, 2)
   review_count             Int?                       @default(0) @db.UnsignedInt
   // acquired_date removed
@@ -191,6 +151,7 @@ model books {
   recommendations          recommendations[]
   reviews                  reviews[]
   userBehaviors            user_behaviors[]
+  bookFiles                book_files[]
 
   @@index([average_rating], map: "books_average_rating")
   @@index([borrow_count], map: "books_borrow_count")
@@ -253,39 +214,6 @@ model borrows {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model health_check_templates {
-  id                    Int                                       @id @default(autoincrement()) @db.UnsignedInt
-  name                  String                                    @unique(map: "name") @db.VarChar(100)
-  check_type            health_check_templates_check_type
-  description           String?                                   @db.Text
-  enabled               Boolean                                   @default(true)
-  interval_seconds      Int                                       @default(60)
-  timeout_seconds       Int                                       @default(30)
-  retry_count           Int                                       @default(3)
-  thresholds            Json?
-  config                Json?
-  alert_rules           Json?
-  check_script          String?                                   @db.Text
-  expected_result       Json?
-  failure_threshold     Int                                       @default(3)
-  success_threshold     Int                                       @default(2)
-  dependencies          Json?
-  environment           String                                    @default("production") @db.VarChar(50)
-  service_tags          Json?
-  last_check_at         DateTime?                                 @db.DateTime(0)
-  last_check_status     health_check_templates_last_check_status?
-  consecutive_failures  Int                                       @default(0)
-  consecutive_successes Int                                       @default(0)
-  created_at            DateTime                                  @db.DateTime(0)
-  updated_at            DateTime                                  @db.DateTime(0)
-  deleted_at            DateTime?                                 @db.DateTime(0)
-
-  @@index([check_type], map: "health_check_templates_check_type")
-  @@index([enabled], map: "health_check_templates_enabled")
-  @@index([environment], map: "health_check_templates_environment")
-  @@index([last_check_at], map: "health_check_templates_last_check_at")
-  @@index([last_check_status], map: "health_check_templates_last_check_status")
-}
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 // import_files model removed
@@ -358,8 +286,6 @@ model notification_templates {
   type             notification_templates_type
   title            String                           @db.VarChar(255)
   content          String                           @db.Text
-  email_subject    String?                          @db.VarChar(255)
-  email_content    String?                          @db.Text
   sms_content      String?                          @db.Text
   push_title       String?                          @db.VarChar(255)
   push_content     String?                          @db.Text
@@ -724,24 +650,6 @@ model security_events {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model system_health {
-  id            Int                      @id @default(autoincrement()) @db.UnsignedInt
-  check_type    system_health_check_type
-  check_name    String                   @db.VarChar(100)
-  status        system_health_status     @default(unknown)
-  response_time Int?
-  error_message String?                  @db.Text
-  details       Json?
-  metrics       Json?
-  checked_at    DateTime                 @db.DateTime(0)
-  created_at    DateTime                 @db.DateTime(0)
-  updated_at    DateTime                 @db.DateTime(0)
-
-  @@index([check_type, check_name], map: "system_health_check_type_check_name")
-  @@index([check_type, checked_at], map: "system_health_check_type_checked_at")
-  @@index([checked_at], map: "system_health_checked_at")
-  @@index([status], map: "system_health_status")
-}
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model user_behaviors {
@@ -894,8 +802,6 @@ model users {
   deleted_at                                                    DateTime?                  @db.DateTime(0)
   created_at                                                    DateTime                   @db.DateTime(0)
   updated_at                                                    DateTime                   @db.DateTime(0)
-  acknowledgedAlerts                                            alerts[]                   @relation("AlertAcknowledger")
-  resolvedAlerts                                                alerts[]                   @relation("AlertResolver")
   auditLogs                                                     audit_logs[]
   // triggeredBackupJobs removed
   // createdBackupSchedules removed
@@ -904,7 +810,7 @@ model users {
   // updatedBackupStorages removed
   userBorrows                                                   borrows[]                  @relation("UserBorrows")
   processedBorrows                                              borrows[]                  @relation("BorrowProcessor")
-  // uploadedFiles removed
+  uploadedBookFiles                                             book_files[]
   loginAttempts                                                 login_attempts[]
   pointsTransactions                                            points_transactions[]      @relation("UserPointsTransactions")
   processedPointsTransactions                                   points_transactions[]      @relation("PointsTransactionProcessor")
@@ -931,21 +837,6 @@ model users {
   // wechat_openid index removed
 }
 
-enum alerts_alert_type {
-  health_check_failed
-  performance_degraded
-  resource_usage_high
-  service_unavailable
-  database_connection
-  elasticsearch_error
-  disk_space_low
-  memory_usage_high
-  cpu_usage_high
-  api_response_slow
-  security_incident
-  backup_failed
-  custom
-}
 
 // backup_jobs_backup_type enum removed
 
@@ -973,42 +864,12 @@ enum security_events_event_type {
   other
 }
 
-enum system_health_check_type {
-  database
-  elasticsearch
-  memory
-  cpu
-  disk
-  redis
-  api_response
-  websocket
-  external_api
-  custom
-}
 
-enum alerts_severity {
-  low
-  medium
-  high
-  critical
-}
 
 // backup_jobs_status enum removed
 
 // backup_storages_type enum removed
 
-enum health_check_templates_check_type {
-  database
-  elasticsearch
-  memory
-  cpu
-  disk
-  redis
-  api_response
-  websocket
-  external_api
-  custom
-}
 
 enum notifications_type {
   system
@@ -1085,12 +946,6 @@ enum security_events_status {
   closed
 }
 
-enum system_health_status {
-  healthy
-  warning
-  critical
-  unknown
-}
 
 enum user_behaviors_behavior_type {
   view
@@ -1130,12 +985,6 @@ enum recommendation_feedbacks_feedback_type {
   contextual
 }
 
-enum alerts_status {
-  active
-  acknowledged
-  resolved
-  suppressed
-}
 
 enum login_attempts_failure_reason {
   invalid_credentials
@@ -1384,12 +1233,6 @@ enum users_status {
   banned
 }
 
-enum health_check_templates_last_check_status {
-  healthy
-  warning
-  critical
-  unknown
-}
 
 enum login_attempts_threat_type {
   brute_force
@@ -1461,4 +1304,42 @@ enum books_condition {
   fair
   poor
   damaged
+}
+
+enum book_files_file_type {
+  pdf
+  epub
+  mobi
+  txt
+  doc
+  docx
+  other
+}
+
+/// Book files model for managing ebook files
+model book_files {
+  id              Int                     @id @default(autoincrement()) @db.UnsignedInt
+  book_id         Int                     @db.UnsignedInt
+  file_name       String                  @db.VarChar(255)
+  file_path       String                  @db.VarChar(500)
+  file_url        String?                 @db.VarChar(500)
+  file_type       book_files_file_type    @default(pdf)
+  file_size       BigInt?                 @default(0) @db.UnsignedBigInt
+  mime_type       String?                 @db.VarChar(100)
+  upload_user_id  Int?                    @db.UnsignedInt
+  download_count  Int                     @default(0) @db.UnsignedInt
+  view_count      Int                     @default(0) @db.UnsignedInt
+  is_primary      Boolean                 @default(false)
+  is_active       Boolean                 @default(true)
+  description     String?                 @db.Text
+  created_at      DateTime                @default(now()) @db.DateTime(0)
+  updated_at      DateTime                @default(now()) @updatedAt @db.DateTime(0)
+  
+  book            books                   @relation(fields: [book_id], references: [id], onDelete: Cascade, map: "book_files_ibfk_1")
+  uploadUser      users?                  @relation(fields: [upload_user_id], references: [id], onDelete: SetNull, map: "book_files_ibfk_2")
+  
+  @@index([book_id], map: "book_files_book_id")
+  @@index([file_type], map: "book_files_file_type")
+  @@index([is_active], map: "book_files_is_active")
+  @@index([created_at], map: "book_files_created_at")
 }

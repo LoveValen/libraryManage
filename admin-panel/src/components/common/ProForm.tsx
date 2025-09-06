@@ -6,10 +6,15 @@ import {
   ElCol,
   ElCard,
   ElButton,
-  ElDivider
+  ElDivider,
+  ElCollapse,
+  ElCollapseItem,
+  ElIcon
 } from 'element-plus'
+import { CaretBottom, CaretRight } from '@element-plus/icons-vue'
 import FormFieldRender from './FormFieldRender'
 import type { ProFormTypes } from './ProForm.types'
+import styles from './ProForm.module.scss'
 
 export default defineComponent({
   name: 'ProForm',
@@ -45,12 +50,34 @@ export default defineComponent({
     actions: {
       type: [Object, Boolean] as PropType<ProFormTypes.Actions | boolean>,
       default: () => ({})
+    },
+    collapsible: {
+      type: Boolean,
+      default: false
+    },
+    defaultCollapsed: {
+      type: Array as PropType<string[]>,
+      default: () => []
     }
   },
   emits: ['submit', 'reset', 'values-change'],
   setup(props, { emit, expose }) {
     const formRef = ref()
     const formData = reactive<Record<string, any>>({ ...props.initialValues })
+    
+    // 折叠状态管理
+    const activeNames = ref<string[]>([])
+    
+    // 初始化折叠状态
+    const initCollapsedState = () => {
+      if (!props.collapsible) return
+      
+      const allGroupKeys = props.groups.map(group => group.key)
+      const defaultCollapsed = props.defaultCollapsed || []
+      
+      // 默认展开所有未在defaultCollapsed中的分组
+      activeNames.value = allGroupKeys.filter(key => !defaultCollapsed.includes(key))
+    }
 
     // 计算分组字段
     const groupedFields = computed(() => {
@@ -78,6 +105,11 @@ export default defineComponent({
     watch(formData, (newValues) => {
       emit('values-change', newValues)
     }, { deep: true })
+
+    // 监听折叠配置变化
+    watch([() => props.collapsible, () => props.groups, () => props.defaultCollapsed], () => {
+      initCollapsedState()
+    }, { immediate: true, deep: true })
 
     // 获取字段值
     const getFieldValue = (fieldName: string) => {
@@ -189,14 +221,15 @@ export default defineComponent({
         return content
       }
 
-      if (props.groups.length === 1) {
+      // 如果只有一个分组，使用简单的分组样式
+      if (props.groups.length === 1 && !props.collapsible) {
         return (
-          <div class="form-group">
+          <div class={styles.formGroup}>
             {group.title && (
-              <div class="group-header">
-                <h4 class="group-title">{group.title}</h4>
+              <div class={styles.groupHeader}>
+                <h4 class={styles.groupTitle}>{group.title}</h4>
                 {group.description && (
-                  <p class="group-description">{group.description}</p>
+                  <p class={styles.groupDescription}>{group.description}</p>
                 )}
               </div>
             )}
@@ -205,20 +238,61 @@ export default defineComponent({
         )
       }
 
+      // 使用卡片样式的分组
       return (
-        <ElCard key={group.key} shadow="never" class="group-card">
+        <ElCard key={group.key} shadow="never" class={styles.groupCard}>
           {{
             header: () => (
-              <div class="group-header">
-                <h4 class="group-title">{group.title}</h4>
+              <div class={styles.groupHeader}>
+                <h4 class={styles.groupTitle}>{group.title}</h4>
                 {group.description && (
-                  <p class="group-description">{group.description}</p>
+                  <p class={styles.groupDescription}>{group.description}</p>
                 )}
               </div>
             ),
             default: () => content
           }}
         </ElCard>
+      )
+    }
+
+    // 渲染可折叠分组
+    const renderCollapsibleGroups = () => {
+      if (!props.collapsible || !props.groups.length) {
+        return groupedFields.value.map(group => renderGroup(group))
+      }
+
+      return (
+        <ElCollapse 
+          v-model={activeNames.value} 
+          class={styles.formCollapse}
+        >
+          {groupedFields.value.map(group => (
+            <ElCollapseItem
+              key={group.key}
+              name={group.key}
+              class="collapse-group"
+            >
+              {{
+                title: () => (
+                  <div class={styles.collapseHeader}>
+                    <h4 class={styles.groupTitle}>{group.title}</h4>
+                    {group.description && (
+                      <p class={styles.groupDescription}>{group.description}</p>
+                    )}
+                  </div>
+                ),
+                default: () => (
+                  <div class={styles.collapseContent}>
+                    <ElRow gutter={16}>
+                      {group.fields.map((field: ProFormTypes.Field) => renderField(field))}
+                    </ElRow>
+                  </div>
+                )
+              }}
+            </ElCollapseItem>
+          ))}
+        </ElCollapse>
       )
     }
 
@@ -229,7 +303,7 @@ export default defineComponent({
       const actions = props.actions || {}
 
       return (
-        <div class="form-actions">
+        <div class={styles.formActions}>
           <ElButton
             type="primary"
             loading={actions.submit?.loading || props.loading}
@@ -266,14 +340,14 @@ export default defineComponent({
     })
 
     return () => (
-      <div class="pro-form">
+      <div class={styles.proForm}>
         <ElForm
           ref={formRef}
           model={formData}
           labelWidth={props.labelWidth}
           disabled={props.disabled}
         >
-          {groupedFields.value.map(group => renderGroup(group))}
+          {renderCollapsibleGroups()}
           {props.actions !== false && renderActions()}
         </ElForm>
       </div>

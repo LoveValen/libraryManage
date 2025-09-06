@@ -5,6 +5,12 @@
 // 导入滚动表格样式
 @import './scrollable-table.scss';
 
+// 导入 ProTable 样式
+@import './protable.scss';
+
+// 导入列宽拖拽样式
+@import './column-resize.scss';
+
 // NProgress 样式覆盖 - 更微妙的进度条
 #nprogress {
   pointer-events: none;
@@ -36,6 +42,7 @@
 .nprogress-custom-parent {
   overflow: visible !important;
   position: relative !important;
+  background: transparent !important; // 确保背景完全透明
 }
 
 // TailwindCSS

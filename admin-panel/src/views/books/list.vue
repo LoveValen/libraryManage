@@ -201,10 +201,6 @@
                           <el-icon><Document /></el-icon>
                           手动添加
                         </el-dropdown-item>
-                        <el-dropdown-item @click="handleAddFromAPI">
-                          <el-icon><Download /></el-icon>
-                          从网络添加
-                        </el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
                   </el-dropdown>
@@ -720,9 +716,6 @@ const handleAdd = () => {
   router.push('/books/create')
 }
 
-const handleAddFromAPI = () => {
-  router.push('/books/add-with-api')
-}
 
 const handleView = book => {
   router.push(`/books/detail/${book.id}`)

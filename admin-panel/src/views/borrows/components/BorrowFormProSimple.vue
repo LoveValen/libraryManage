@@ -99,7 +99,7 @@ const loadUserOptions = async (query) => {
     return response.data.users.map(user => ({
       label: `${user.realName || user.username} (${user.email})`,
       value: user.id,
-      user: user
+      user
     }))
   } catch (error) {
     console.error('搜索用户失败:', error)
@@ -126,7 +126,7 @@ const loadBookOptions = async (query) => {
       .map(book => ({
         label: `${book.title} - ${book.authors?.join?.(', ') || book.authors}`,
         value: book.id,
-        book: book
+        book
       }))
   } catch (error) {
     console.error('搜索图书失败:', error)

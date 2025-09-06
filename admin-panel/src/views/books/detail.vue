@@ -561,6 +561,13 @@
               </div>
             </div>
           </el-tab-pane>
+          
+          <!-- 电子书文件 -->
+          <el-tab-pane label="电子书文件" name="files">
+            <div class="tab-content">
+              <BookFileManager :book-id="bookDetail.id" />
+            </div>
+          </el-tab-pane>
         </el-tabs>
       </div>
     </div>
@@ -631,6 +638,7 @@ import { bookApi } from '@/api/book'
 import { borrowApi } from '@/api/borrows'
 import { formatDate, formatDateTime, formatTimeAgo } from '@/utils/date'
 import BookCover from '@/components/common/BookCover.vue'
+import BookFileManager from '@/components/book/BookFileManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
 
@@ -640,7 +648,12 @@ const router = useRouter()
 // 响应式数据
 const loading = ref(false)
 const bookDetail = ref(null)
-const statistics = ref({})
+const statistics = ref({
+  borrowCount: 0,
+  viewCount: 0,
+  favoriteCount: 0,
+  reserveCount: 0
+})
 const categories = ref([])
 const activeTab = ref('borrows')
 
@@ -715,7 +728,12 @@ const fetchBookDetail = async () => {
     loading.value = true
     const { data } = await bookApi.getBookDetail(bookId.value)
     bookDetail.value = data.book
-    statistics.value = data.statistics
+    statistics.value = data.statistics || {
+      borrowCount: 0,
+      viewCount: 0,
+      favoriteCount: 0,
+      reserveCount: 0
+    }
   } catch (error) {
     console.error('获取图书详情失败:', error)
     ElMessage.error('获取图书详情失败')

@@ -498,7 +498,7 @@ const initFileList = () => {
       if (Array.isArray(props.value)) {
         fileList.value = props.value.map((url, index) => ({
           name: `file-${index}`,
-          url: url,
+          url,
           status: 'success'
         }))
       } else if (typeof props.value === 'string') {

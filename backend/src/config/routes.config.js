@@ -13,9 +13,9 @@ const borrowsRoutes = require('../routes/borrows.routes');
 const reviewsRoutes = require('../routes/reviews.routes');
 const pointsRoutes = require('../routes/points.routes');
 const notificationsRoutes = require('../routes/notifications.routes');
-const healthRoutes = require('../routes/health.routes');
 const restoreRoutes = require('../routes/restore.routes');
 const adminRoutes = require('../routes/admin.routes');
+// const proxyRoutes = require('../routes/proxy.routes'); // Temporarily disabled
 
 /**
  * API信息端点
@@ -38,10 +38,8 @@ const setupApiInfo = (app) => {
         reviews: '/api/v1/reviews',
         points: '/api/v1/points',
         notifications: '/api/v1/notifications',
-        health: '/api/v1/health',
         restore: '/api/v1/restore',
         admin: '/api/v1/admin',
-        systemHealth: '/health',
         docs: config.app.environment === 'development' ? '/api/docs' : null,
       }
     });
@@ -114,9 +112,9 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/reviews', reviewsRoutes);
   app.use('/api/v1/points', pointsRoutes);
   app.use('/api/v1/notifications', notificationsRoutes);
-  app.use('/api/v1/health', healthRoutes);
   app.use('/api/v1/restore', restoreRoutes);
   app.use('/api/v1/admin', adminRoutes);
+  // app.use('/api/v1/proxy', proxyRoutes); // Temporarily disabled
 };
 
 /**

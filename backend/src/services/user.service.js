@@ -23,24 +23,28 @@ class UserService {
       if (!userData?.username?.trim()) {
         throw new Error('用户名不能为空');
       }
-      if (!userData?.email?.trim()) {
-        throw new Error('邮箱不能为空');
-      }
       if (!userData?.password?.trim()) {
         throw new Error('密码不能为空');
       }
+      
+      // 邮箱是可选的，但如果提供了就要验证格式
+      if (userData?.email && !userData.email.trim()) {
+        // 如果邮箱字段存在但是空字符串，清除它
+        userData.email = null;
+      }
 
-      // 检查用户名和邮箱是否已存在
-      const [usernameExists, emailExists] = await Promise.all([
-        this.isUsernameExists(userData.username),
-        this.isEmailExists(userData.email)
-      ]);
-
+      // 检查用户名是否已存在
+      const usernameExists = await this.isUsernameExists(userData.username);
       if (usernameExists) {
         throw new Error('用户名已存在');
       }
-      if (emailExists) {
-        throw new Error('邮箱已存在');
+
+      // 如果提供了邮箱，检查邮箱是否已存在
+      if (userData.email && userData.email.trim()) {
+        const emailExists = await this.isEmailExists(userData.email);
+        if (emailExists) {
+          throw new Error('邮箱已存在');
+        }
       }
 
       // 加密密码
@@ -206,7 +210,6 @@ class UserService {
         data: {
           last_login_at: new Date(),
           last_login_ip: ip || null,
-          login_count: { increment: 1 },
           updated_at: new Date()
         }
       });
@@ -529,8 +532,7 @@ class UserService {
     
     // 确保数据类型正确
     if (safeUser.id) safeUser.id = Number(safeUser.id);
-    if (safeUser.login_count !== undefined) safeUser.login_count = Number(safeUser.login_count);
-    
+
     return safeUser;
   }
 
