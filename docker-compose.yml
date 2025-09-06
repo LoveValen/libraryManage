@@ -50,8 +50,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_URL=mysql://${DB_USER:-root}:${DB_PASSWORD:-root}@mysql:3306/${DB_NAME:-library_db}
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=mysql://${DB_USER:-root}:${DB_PASSWORD:-root}@${DB_HOST:-mysql}:3306/${DB_NAME:-library_db}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379
       - JWT_SECRET=${JWT_SECRET:-da555f549f113d99ee0b85fb180ba187d0ec4a6a47325ded9272a777d8271ed4}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:8080}
