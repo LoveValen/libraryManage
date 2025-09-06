@@ -97,7 +97,11 @@
       "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\SystemHealth.vue\")",
       "Bash(openssl rand:*)",
       "Bash(git log:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(ping:*)",
+      "Bash(git config:*)",
+      "Bash(move:*)"
     ],
     "deny": []
   }

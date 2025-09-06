@@ -1,37 +1,67 @@
 #!/bin/bash
 
-# Library Management System 部署脚本
-# 作者: ultrathink
+# Library Management System Docker部署脚本
+# 完全基于Docker的部署，无需手动安装Node.js等环境
 
-echo "开始部署图书管理系统..."
+echo "🚀 开始Docker部署图书管理系统..."
 
 # 设置颜色输出
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # 检查Docker是否安装
 if ! command -v docker &> /dev/null; then
-    echo -e "${RED}错误: Docker未安装${NC}"
+    echo -e "${RED}❌ 错误: Docker未安装${NC}"
+    echo "请先安装Docker: https://docs.docker.com/engine/install/"
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo -e "${RED}错误: Docker Compose未安装${NC}"
+# 检查Docker Compose
+if ! command -v docker-compose &> /dev/null && ! command -v docker compose &> /dev/null; then
+    echo -e "${RED}❌ 错误: Docker Compose未安装${NC}"
+    echo "请先安装Docker Compose"
     exit 1
 fi
+
+# 使用兼容的docker-compose命令
+DOCKER_COMPOSE_CMD="docker-compose -f docker-compose.yml"
+if command -v docker compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose -f docker-compose.yml"
+fi
+
+echo -e "${GREEN}✅ Docker环境检查通过${NC}"
 
 # 检查环境变量配置文件
 if [ ! -f ".env.production" ]; then
-    echo -e "${YELLOW}警告: 未找到.env.production文件${NC}"
-    echo "请创建.env.production文件并配置以下环境变量:"
-    echo "DB_HOST=8.133.18.41"
-    echo "DB_USER=root"
-    echo "DB_PASSWORD=root"
-    echo "REDIS_HOST=8.133.18.41"
-    echo "JWT_SECRET=da555f549f113d99ee0b85fb180ba187d0ec4a6a47325ded9272a777d8271ed4"
-    exit 1
+    echo -e "${YELLOW}⚠️ 创建生产环境配置文件${NC}"
+    cat > .env.production << EOF
+# 数据库配置
+DB_HOST=mysql
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=root
+DB_NAME=library_db
+
+# Redis配置
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# JWT配置
+JWT_SECRET=da555f549f113d99ee0b85fb180ba187d0ec4a6a47325ded9272a777d8271ed4
+JWT_EXPIRES_IN=7d
+
+# 应用配置
+NODE_ENV=production
+PORT=3000
+FRONTEND_URL=http://localhost:8080
+
+# 外部访问地址（根据实际情况修改）
+EXTERNAL_HOST=8.133.18.41
+EOF
+    echo -e "${GREEN}✅ 已创建.env.production配置文件${NC}"
 fi
 
 # 加载环境变量
@@ -39,77 +69,93 @@ set -a
 source .env.production
 set +a
 
-echo -e "${GREEN}✓ 环境变量已加载${NC}"
+echo -e "${GREEN}✅ 环境变量已加载${NC}"
 
 # 停止旧的容器
-echo "停止旧的容器..."
-docker-compose down
+echo -e "${BLUE}🛑 停止旧的容器...${NC}"
+$DOCKER_COMPOSE_CMD down --remove-orphans
 
-# 构建前端
-echo "构建前端..."
-cd admin-panel
-if [ ! -d "node_modules" ]; then
-    echo "安装前端依赖..."
-    npm install
+# 清理旧的镜像（可选）
+echo -e "${BLUE}🧹 清理未使用的Docker镜像...${NC}"
+docker image prune -f
+
+# 拉取最新代码（如果是git仓库）
+if [ -d ".git" ]; then
+    echo -e "${BLUE}📥 拉取最新代码...${NC}"
+    git pull origin main || echo -e "${YELLOW}⚠️ Git拉取失败，继续使用本地代码${NC}"
 fi
 
-echo "构建前端生产版本..."
-npm run build
+# 构建和启动所有服务
+echo -e "${BLUE}🔨 构建并启动所有Docker服务...${NC}"
+echo "包含服务:"
+echo "  - MySQL 8.4数据库"
+echo "  - Redis 7.2缓存"
+echo "  - Node.js后端API"
+echo "  - Vue.js前端应用"
+echo "  - Nginx反向代理"
 
-if [ ! -d "dist" ]; then
-    echo -e "${RED}错误: 前端构建失败${NC}"
+$DOCKER_COMPOSE_CMD up -d --build
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Docker构建失败${NC}"
     exit 1
 fi
 
-cd ..
-echo -e "${GREEN}✓ 前端构建完成${NC}"
+echo -e "${GREEN}✅ Docker容器启动完成${NC}"
 
-# 检查后端依赖
-echo "检查后端环境..."
-if [ ! -f "backend/package.json" ]; then
-    echo -e "${RED}错误: 后端项目文件不存在${NC}"
-    exit 1
-fi
-
-echo -e "${GREEN}✓ 后端项目检查完成${NC}"
-
-# 构建和启动容器
-echo "构建并启动Docker容器..."
-echo "- 构建后端服务（Node.js + Express）"
-echo "- 启动Nginx反向代理"
-echo "- 配置网络和存储卷"
-
-docker-compose --env-file .env.production up -d --build
-
-echo -e "${GREEN}✓ Docker容器部署完成${NC}"
+# 等待数据库启动
+echo -e "${BLUE}⏳ 等待数据库启动...${NC}"
+sleep 30
 
 # 初始化数据库
-echo "初始化数据库..."
-sleep 5
-if docker exec library_backend_prod npm run db:push 2>/dev/null; then
-    echo -e "${GREEN}✓ 数据库初始化成功${NC}"
+echo -e "${BLUE}💾 初始化数据库...${NC}"
+$DOCKER_COMPOSE_CMD exec -T backend npm run db:generate
+$DOCKER_COMPOSE_CMD exec -T backend npm run db:push
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ 数据库初始化成功${NC}"
 else
-    echo -e "${YELLOW}⚠ 数据库初始化可能需要手动执行${NC}"
-    echo "请手动运行: docker exec library_backend_prod npm run db:push"
+    echo -e "${YELLOW}⚠️ 数据库初始化失败，请手动执行:${NC}"
+    echo "  $DOCKER_COMPOSE_CMD exec backend npm run db:push"
 fi
 
-# 等待服务启动
-echo "等待服务启动..."
+# 等待所有服务就绪
+echo -e "${BLUE}⏳ 等待所有服务就绪...${NC}"
 sleep 10
 
 # 检查服务状态
-if docker-compose ps | grep -q "Up"; then
-    echo -e "${GREEN}✓ 部署成功！${NC}"
+echo -e "${BLUE}🔍 检查服务状态...${NC}"
+$DOCKER_COMPOSE_CMD ps
+
+# 健康检查
+echo -e "${BLUE}🏥 执行健康检查...${NC}"
+BACKEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health || echo "000")
+FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 || echo "000")
+
+if [ "$BACKEND_HEALTH" = "200" ] && [ "$FRONTEND_HEALTH" = "200" ]; then
+    echo -e "${GREEN}🎉 部署成功！所有服务正常运行${NC}"
     echo ""
-    echo "服务访问地址:"
-    echo "- 前端管理面板: http://8.133.18.41:8080"
-    echo "- 备用访问地址: http://8.133.18.41"
-    echo "- 后端API: http://8.133.18.41:3000"
+    echo "📱 服务访问地址:"
+    echo "  🌐 前端管理面板: http://${EXTERNAL_HOST:-localhost}:8080"
+    echo "  🔧 后端API: http://${EXTERNAL_HOST:-localhost}:3000"
+    echo "  📊 API文档: http://${EXTERNAL_HOST:-localhost}:3000/api/docs"
     echo ""
-    echo "查看服务状态: docker-compose ps"
-    echo "查看日志: docker-compose logs -f"
+    echo "🛠️  管理命令:"
+    echo "  查看服务状态: $DOCKER_COMPOSE_CMD ps"
+    echo "  查看日志: $DOCKER_COMPOSE_CMD logs -f"
+    echo "  停止服务: $DOCKER_COMPOSE_CMD down"
+    echo "  重启服务: $DOCKER_COMPOSE_CMD restart"
+    echo ""
+    echo "🔑 默认登录信息:"
+    echo "  用户名: admin"
+    echo "  密码: admin123"
 else
-    echo -e "${RED}✗ 部署失败，请检查日志${NC}"
-    docker-compose logs
+    echo -e "${RED}❌ 部署失败，请检查日志${NC}"
+    echo "后端健康检查: $BACKEND_HEALTH (期望: 200)"
+    echo "前端健康检查: $FRONTEND_HEALTH (期望: 200)"
+    echo ""
+    echo "查看详细日志:"
+    echo "  $DOCKER_COMPOSE_CMD logs backend"
+    echo "  $DOCKER_COMPOSE_CMD logs frontend"
     exit 1
 fi
