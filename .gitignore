@@ -85,3 +85,8 @@ admin-panel/.nuxt/
 
 # 后端相关
 backend/public/uploads/
+
+CLAUDE.md
+.claude
+.serena
+.vscode

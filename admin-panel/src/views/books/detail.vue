@@ -565,7 +565,7 @@
           <!-- 电子书文件 -->
           <el-tab-pane label="电子书文件" name="files">
             <div class="tab-content">
-              <BookFileManager :book-id="bookDetail.id" />
+              <p>电子书文件功能开发中...</p>
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -638,7 +638,6 @@ import { bookApi } from '@/api/book'
 import { borrowApi } from '@/api/borrows'
 import { formatDate, formatDateTime, formatTimeAgo } from '@/utils/date'
 import BookCover from '@/components/common/BookCover.vue'
-import BookFileManager from '@/components/book/BookFileManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
 
