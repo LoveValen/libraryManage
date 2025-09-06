@@ -82,7 +82,20 @@ docker image prune -f
 # 拉取最新代码（如果是git仓库）
 if [ -d ".git" ]; then
     echo -e "${BLUE}📥 拉取最新代码...${NC}"
+    # 设置远程仓库地址
+    git remote set-url origin https://github.com/LoveValen/libraryManage.git
     git pull origin main || echo -e "${YELLOW}⚠️ Git拉取失败，继续使用本地代码${NC}"
+else
+    echo -e "${BLUE}📥 克隆代码仓库...${NC}"
+    git clone https://github.com/LoveValen/libraryManage.git /tmp/library_source
+    if [ $? -eq 0 ]; then
+        cp -r /tmp/library_source/* ./
+        cp -r /tmp/library_source/.* ./ 2>/dev/null || true
+        rm -rf /tmp/library_source
+        echo -e "${GREEN}✅ 代码克隆成功${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Git克隆失败，继续使用本地代码${NC}"
+    fi
 fi
 
 # 构建和启动所有服务
