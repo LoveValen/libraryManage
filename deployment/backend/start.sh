@@ -7,18 +7,19 @@ echo "🔄 生成Prisma客户端..."
 npx prisma generate
 
 echo "📊 检查数据库连接..."
-# 等待数据库连接可用，最多等待60秒
-for i in $(seq 1 60); do
+# 测试数据库连接，最多等待30秒
+for i in $(seq 1 30); do
   if npx prisma db push --accept-data-loss --skip-generate 2>/dev/null; then
-    echo "✅ 数据库连接成功"
+    echo "✅ 数据库连接成功，Schema已同步"
     break
   fi
-  if [ $i -eq 60 ]; then
-    echo "❌ 数据库连接超时"
-    exit 1
+  if [ $i -eq 30 ]; then
+    echo "⚠️ 数据库连接或Schema同步失败，但继续启动应用"
+    echo "请确保外部数据库可访问且Schema正确"
+    break
   fi
-  echo "⏳ 等待数据库连接... ($i/60)"
-  sleep 1
+  echo "⏳ 等待数据库连接... ($i/30)"
+  sleep 2
 done
 
 echo "🚀 启动应用..."
