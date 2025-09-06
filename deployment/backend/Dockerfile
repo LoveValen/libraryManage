@@ -48,6 +48,9 @@ COPY --from=deps --chown=library:nodejs /app/node_modules ./node_modules
 # 复制应用代码
 COPY --chown=library:nodejs . .
 
+# 生成Prisma客户端
+RUN npx prisma generate
+
 # 创建必要的目录
 RUN mkdir -p public/uploads public/ebooks public/pdf-viewer logs \
     && chown -R library:nodejs public logs

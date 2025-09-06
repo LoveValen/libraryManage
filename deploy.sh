@@ -109,7 +109,18 @@ sleep 30
 
 # 初始化数据库
 echo -e "${BLUE}💾 初始化数据库...${NC}"
-$DOCKER_COMPOSE_CMD exec -T backend npm run db:generate
+# 等待后端服务完全启动
+echo -e "${BLUE}⏳ 等待后端服务启动...${NC}"
+for i in {1..30}; do
+    if $DOCKER_COMPOSE_CMD exec -T backend curl -f http://localhost:3000/api/health >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ 后端服务已启动${NC}"
+        break
+    fi
+    echo -n "."
+    sleep 2
+done
+
+# 推送数据库架构
 $DOCKER_COMPOSE_CMD exec -T backend npm run db:push
 
 if [ $? -eq 0 ]; then
