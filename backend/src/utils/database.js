@@ -41,6 +41,7 @@ async function createInitialAdmin() {
         role: 'admin',
         status: 'active',
         email_verified: true,
+        created_at: new Date(),
       }
     });
 
