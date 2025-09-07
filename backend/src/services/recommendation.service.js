@@ -335,7 +335,7 @@ class RecommendationService extends EventEmitter {
       }
 
       // 创建反馈记录
-      const feedback = await prisma.recommendation_feedback.create({
+      const feedback = await prisma.recommendation_feedbacks.create({
         data: {
           user_id: userId,
           recommendation_id: recommendationId,
@@ -827,7 +827,7 @@ class RecommendationService extends EventEmitter {
       
       if (!recommendation) return;
 
-      await prisma.recommendation_feedback.create({
+      await prisma.recommendation_feedbacks.create({
         data: {
           user_id: userId,
           recommendation_id: recommendationId,
