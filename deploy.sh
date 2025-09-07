@@ -153,7 +153,7 @@ $DOCKER_COMPOSE_CMD ps
 
 # 服务检查
 echo -e "${BLUE}🔍 执行服务检查...${NC}"
-BACKEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api || echo "000")
+BACKEND_HEALTH=$($DOCKER_COMPOSE_CMD exec -T backend curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api || echo "000")
 FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 || echo "000")
 
 if [ "$BACKEND_HEALTH" = "200" ] && [ "$FRONTEND_HEALTH" = "200" ]; then
