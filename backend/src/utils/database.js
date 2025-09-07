@@ -40,7 +40,6 @@ async function createInitialAdmin() {
         real_name: '系统管理员',
         role: 'admin',
         status: 'active',
-        email_verified: true,
         created_at: new Date(),
         updated_at: new Date(),
       }
