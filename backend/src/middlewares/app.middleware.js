@@ -62,13 +62,14 @@ const securityMiddleware = () => {
  */
 const corsMiddleware = () => {
   const allowedOrigins = [
-    'http://localhost:8080'
+    'http://localhost:8080',
+    'http://8.133.18.41:8080'
   ];
   
   return cors({
     origin: (origin, callback) => {
-      // 开发环境允许localhost请求
-      if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed.split(':').slice(0, 2).join(':')))) {
+      // 允许无来源（如移动应用、Postman等）或允许的来源
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error('CORS policy violation'));
