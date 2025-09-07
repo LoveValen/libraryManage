@@ -74,6 +74,36 @@ const setupApiInfo = (app) => {
  * 健康检查端点
  */
 const setupHealthCheck = (app) => {
+  // 简单健康检查（保持向后兼容）
+  app.get('/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      requestId: req.id,
+      service: config.app.name,
+      version: config.app.version,
+      environment: config.app.environment,
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      pid: process.pid,
+    });
+  });
+
+  // 兼容旧版本的健康检查端点
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      requestId: req.id,
+      service: config.app.name,
+      version: config.app.version,
+      environment: config.app.environment,
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      pid: process.pid,
+    });
+  });
+
   // API版本化健康检查
   app.get('/api/v1/health', (req, res) => {
     res.json({
