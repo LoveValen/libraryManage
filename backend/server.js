@@ -8,7 +8,8 @@
 const http = require('http');
 const config = require('./src/config');
 const { logger } = require('./src/utils/logger');
-const { createApp, setupGracefulShutdown } = require('./src/app');
+const { createApp } = require('./src/app');
+const { setupGracefulShutdown } = require('./src/config/graceful-shutdown.config');
 const { initializeDatabase } = require('./src/models');
 const webSocketService = require('./src/services/websocket.service');
 const { initializeNotificationTemplates } = require('./src/scripts/init-templates');

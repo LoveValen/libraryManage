@@ -101,7 +101,9 @@
       "Bash(git push:*)",
       "Bash(ping:*)",
       "Bash(git config:*)",
-      "Bash(move:*)"
+      "Bash(move:*)",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__find_referencing_symbols"
     ],
     "deny": []
   }
