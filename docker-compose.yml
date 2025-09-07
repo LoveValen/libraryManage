@@ -42,8 +42,8 @@ services:
   # 后端API服务
   backend:
     build: 
-      context: ./backend
-      dockerfile: ../deployment/backend/Dockerfile
+      context: .
+      dockerfile: deployment/backend/Dockerfile
       target: production
     container_name: library_backend_prod
     restart: unless-stopped

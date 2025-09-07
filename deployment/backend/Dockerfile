@@ -15,7 +15,7 @@ RUN addgroup -g 1001 -S nodejs \
     && adduser -S library -u 1001
 
 # 复制package文件
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # 开发依赖安装阶段
 FROM base AS deps
@@ -25,14 +25,14 @@ RUN npm ci --only=production && npm cache clean --force
 FROM base AS development
 ENV NODE_ENV=development
 RUN npm ci
-COPY . .
+COPY backend/ .
 USER library
 EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # 构建阶段
 FROM deps AS build
-COPY . .
+COPY backend/ .
 RUN npm run build 2>/dev/null || echo "No build script defined"
 
 # 生产阶段
@@ -46,10 +46,10 @@ ENV PORT=3000
 COPY --from=deps --chown=library:nodejs /app/node_modules ./node_modules
 
 # 复制应用代码
-COPY --chown=library:nodejs . .
+COPY --chown=library:nodejs backend/ .
 
 # 复制启动脚本
-COPY --chown=library:nodejs ../deployment/backend/start.sh ./start.sh
+COPY --chown=library:nodejs deployment/backend/start.sh ./start.sh
 
 # 创建必要的目录并设置脚本权限
 RUN mkdir -p public/uploads public/ebooks public/pdf-viewer logs \
