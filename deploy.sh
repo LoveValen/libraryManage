@@ -40,7 +40,7 @@ if [ ! -f ".env.production" ]; then
     cat > .env.production << EOF
 # 数据库配置
 DB_HOST=mysql
-DB_PORT=3306
+DB_PORT=3307
 DB_USER=root
 DB_PASSWORD=root
 DB_NAME=library_db
