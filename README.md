@@ -197,7 +197,7 @@ npm run dev
 - **前端界面**: http://localhost:8080
 - **后端API**: http://localhost:3000
 - **API文档**: http://localhost:3000/api/docs
-- **健康检查**: http://localhost:3000/health
+- **API信息**: http://localhost:3000/api
 - **系统监控**: http://localhost:8080/system-health
 
 ### 默认账户

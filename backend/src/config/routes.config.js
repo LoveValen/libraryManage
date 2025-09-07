@@ -30,7 +30,6 @@ const setupApiInfo = (app) => {
       timestamp: new Date().toISOString(),
       requestId: req.id,
       endpoints: {
-        health: '/api/v1/health',
         auth: '/api/v1/auth',
         books: '/api/v1/books',
         bookCategories: '/api/v1/books/categories',

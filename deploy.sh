@@ -125,7 +125,7 @@ echo -e "${BLUE}💾 初始化数据库...${NC}"
 # 等待后端服务完全启动
 echo -e "${BLUE}⏳ 等待后端服务启动...${NC}"
 for i in {1..30}; do
-    if $DOCKER_COMPOSE_CMD exec -T backend curl -f http://localhost:3000/api/v1/health >/dev/null 2>&1; then
+    if $DOCKER_COMPOSE_CMD exec -T backend curl -f http://localhost:3000/api >/dev/null 2>&1; then
         echo -e "${GREEN}✅ 后端服务已启动${NC}"
         break
     fi
@@ -151,9 +151,9 @@ sleep 10
 echo -e "${BLUE}🔍 检查服务状态...${NC}"
 $DOCKER_COMPOSE_CMD ps
 
-# 健康检查
-echo -e "${BLUE}🏥 执行健康检查...${NC}"
-BACKEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/v1/health || echo "000")
+# 服务检查
+echo -e "${BLUE}🔍 执行服务检查...${NC}"
+BACKEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api || echo "000")
 FRONTEND_HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 || echo "000")
 
 if [ "$BACKEND_HEALTH" = "200" ] && [ "$FRONTEND_HEALTH" = "200" ]; then
@@ -175,8 +175,8 @@ if [ "$BACKEND_HEALTH" = "200" ] && [ "$FRONTEND_HEALTH" = "200" ]; then
     echo "  密码: admin123"
 else
     echo -e "${RED}❌ 部署失败，请检查日志${NC}"
-    echo "后端健康检查: $BACKEND_HEALTH (期望: 200)"
-    echo "前端健康检查: $FRONTEND_HEALTH (期望: 200)"
+    echo "后端服务检查: $BACKEND_HEALTH (期望: 200)"
+    echo "前端服务检查: $FRONTEND_HEALTH (期望: 200)"
     echo ""
     echo "查看详细日志:"
     echo "  $DOCKER_COMPOSE_CMD logs backend"

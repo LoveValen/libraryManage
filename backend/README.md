@@ -136,7 +136,7 @@ npm run dev
 🎉 系统启动成功！
 🌐 服务器地址: http://0.0.0.0:3000
 📚 API基础URL: http://0.0.0.0:3000/api/v1  
-🏥 健康检查: http://0.0.0.0:3000/health
+📋 API信息: http://0.0.0.0:3000/api
 📖 API文档: http://0.0.0.0:3000/api/docs
 ⚡ 启动耗时: 86ms
 ```
@@ -395,9 +395,9 @@ GET    /api/v1/users        # 获取用户列表
 GET    /api/v1/users/:id    # 获取用户详情
 PUT    /api/v1/users/:id    # 更新用户信息
 
-系统监控:
-GET    /health              # 健康检查
-GET    /api/v1/health       # 详细健康状态
+系统信息:
+GET    /api                 # API信息
+GET    /api/v1             # API版本信息
 ```
 
 ## 🐳 Docker 支持
