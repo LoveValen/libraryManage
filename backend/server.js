@@ -43,7 +43,6 @@ async function startServer() {
       logger.info(`📍 HTTP服务器: http://localhost:${port}`);
       logger.info(`🔗 WebSocket服务器: ws://localhost:${port}/socket.io/`);
       logger.info(`📊 API文档: http://localhost:${port}/api/docs`);
-      logger.info(`🏥 健康检查: http://localhost:${port}/health`);
       logger.info(`🌍 环境: ${config.app.environment}`);
       logger.info(`📝 日志级别: ${config.logging.level}`);
     });
