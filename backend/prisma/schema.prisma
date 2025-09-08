@@ -74,13 +74,10 @@ model audit_logs {
 model book_categories {
   id                    Int               @id @default(autoincrement()) @db.UnsignedInt
   name                  String            @unique(map: "name") @db.VarChar(50)
-  name_en               String?           @db.VarChar(50)
   code                  String            @unique(map: "code") @db.VarChar(20)
   parent_id             Int?              @db.UnsignedInt
   level                 Int               @default(1) @db.UnsignedInt
   description           String?           @db.Text
-  icon                  String?           @db.VarChar(50)
-  color                 String?           @db.VarChar(7)
   sort_order            Int?              @default(0)
   is_active             Boolean?          @default(true)
   book_count            Int?              @default(0) @db.UnsignedInt

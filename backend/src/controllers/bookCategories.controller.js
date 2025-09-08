@@ -12,22 +12,16 @@ class BookCategoriesController {
   // 验证模式常量
   static CREATE_CATEGORY_SCHEMA = Joi.object({
     name: Joi.string().trim().min(1).max(100).required(),
-    nameEn: Joi.string().trim().max(100).optional(),
     code: Joi.string().trim().max(50).optional(),
     parentId: Joi.number().integer().positive().optional(),
     parentName: Joi.string().trim().max(100).optional(),
     description: Joi.string().trim().max(500).optional(),
-    icon: Joi.string().trim().max(100).optional(),
-    color: Joi.string().trim().max(20).optional(),
     sortOrder: Joi.number().integer().min(0).optional()
   });
 
   static UPDATE_CATEGORY_SCHEMA = Joi.object({
     name: Joi.string().trim().min(1).max(100).optional(),
-    nameEn: Joi.string().trim().max(100).optional(),
     description: Joi.string().trim().max(500).optional(),
-    icon: Joi.string().trim().max(100).optional(),
-    color: Joi.string().trim().max(20).optional(),
     sortOrder: Joi.number().integer().min(0).optional(),
     isActive: Joi.boolean().optional(),
     id: Joi.number().integer().positive().optional(),
@@ -64,13 +58,10 @@ class BookCategoriesController {
     return {
       id: category.id,
       name: category.name,
-      nameEn: category.name_en,
       code: category.code,
       parentId: category.parent_id,
       level: category.level,
       description: category.description,
-      icon: category.icon,
-      color: category.color,
       sortOrder: category.sort_order,
       isActive: category.is_active,
       bookCount: category._count?.books || category.stats?.total || 0,
@@ -119,7 +110,7 @@ class BookCategoriesController {
    */
   createCategory = asyncHandler(async (req, res) => {
     const validatedData = validateRequest(BookCategoriesController.CREATE_CATEGORY_SCHEMA, req.body);
-    const { name, nameEn, code, parentId, parentName, description, icon, color, sortOrder } = validatedData;
+    const { name, code, parentId, parentName, description, sortOrder } = validatedData;
 
     // Check if name already exists
     const existingCategory = await BookCategoryService.findByName(name);
@@ -151,12 +142,9 @@ class BookCategoriesController {
     
     const categoryData = {
       name,
-      name_en: nameEn,
       code: code || name,
       parent_id: resolvedParentId,
       description,
-      icon,
-      color,
       sort_order: sortOrder,
       level,
       is_active: true
@@ -175,7 +163,7 @@ class BookCategoriesController {
   updateCategory = asyncHandler(async (req, res) => {
     const { identifier } = req.params;
     const validatedData = validateRequest(BookCategoriesController.UPDATE_CATEGORY_SCHEMA, req.body);
-    const { name, nameEn, description, icon, color, sortOrder, isActive, id, categoryName } = validatedData;
+    const { name, description, sortOrder, isActive, id, categoryName } = validatedData;
     
     let category = null;
     let categoryId = null;
@@ -207,10 +195,7 @@ class BookCategoriesController {
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
-    if (nameEn !== undefined) updateData.name_en = nameEn;
     if (description !== undefined) updateData.description = description;
-    if (icon !== undefined) updateData.icon = icon;
-    if (color !== undefined) updateData.color = color;
     if (sortOrder !== undefined) updateData.sort_order = sortOrder;
     if (isActive !== undefined) updateData.is_active = isActive;
     

@@ -15,13 +15,8 @@
       <!-- 分类内容区域 -->
       <div class="categories-content" v-loading="loading">
 
-        <!-- 空状态 -->
-        <el-empty v-if="!loading && categories.length === 0" description="暂无分类数据" image-size="120">
-          <el-button type="primary" @click="loadCategories">重新加载</el-button>
-        </el-empty>
-
         <!-- 分类表格 -->
-        <div v-else class="categories-table">
+        <div class="categories-table">
           <ProTable
             ref="proTableRef"
             :request="requestCategories"
@@ -42,54 +37,40 @@
           >
             <!-- 分类名称插槽 -->
             <template #categoryName="{ record }">
-              <div class="category-name-cell" :style="{ paddingLeft: record.level ? `${(record.level - 1) * 20}px` : '0' }">
-                <div class="category-icon" :style="{ 
-                  backgroundColor: getCategoryColorByLevel(record.level) + '20', 
-                  color: getCategoryColorByLevel(record.level),
-                  fontSize: record.level > 1 ? '14px' : '16px'
-                }">
-                  <el-icon>
-                    <FolderOpened v-if="record.children && record.children.length > 0" />
-                    <Document v-else />
-                  </el-icon>
-                </div>
-                <div class="category-info">
-                  <div class="name">
-                    {{ record.name || '未分类' }}
-                    <el-tag v-if="record.level > 1" size="small" type="info" class="level-tag">
-                      {{ record.level }}级
-                    </el-tag>
-                  </div>
-                  <div class="description">{{ record.description || '暂无描述' }}</div>
-                </div>
-              </div>
+              <span class="category-name">{{ record.name || '未分类' }}</span>
             </template>
 
-            <!-- 图书统计插槽 -->
-            <template #bookStats="{ record }">
-              <div class="book-stats">
-                <div class="stat-item">
-                  <el-tag type="info" size="small">总数: {{ record.bookCount }}</el-tag>
-                </div>
-                <div class="stat-item">
-                  <el-tag type="success" size="small">可借: {{ record.availableCount }}</el-tag>
-                </div>
-                <div class="stat-item">
-                  <el-tag type="warning" size="small">借出: {{ record.borrowedCount }}</el-tag>
-                </div>
-              </div>
+            <!-- 分类描述插槽 -->
+            <template #description="{ record }">
+              <span class="category-description">{{ record.description || '暂无描述' }}</span>
             </template>
 
-            <!-- 分类等级插槽 -->
-            <template #categoryLevel="{ record }">
-              <el-tag :type="getCategoryTagType(record.bookCount)" size="small">
-                {{ getCategoryLevel(record.bookCount) }}
-              </el-tag>
+            <!-- 分类层级插槽 -->
+            <template #level="{ record }">
+              <span>
+                {{ getLevelText(record.level) }}
+              </span>
             </template>
+
+            <!-- 图书总数插槽 -->
+            <template #totalBooks="{ record }">
+              <span>{{ record.bookCount || 0 }}</span>
+            </template>
+
+            <!-- 可借数量插槽 -->
+            <template #availableBooks="{ record }">
+              <span>{{ record.availableCount || 0 }}</span>
+            </template>
+
+            <!-- 借出数量插槽 -->
+            <template #borrowedBooks="{ record }">
+              <span>{{ record.borrowedCount || 0 }}</span>
+            </template>
+
 
             <!-- 更新时间插槽 -->
             <template #updateTime="{ record }">
-              <span class="update-time">{{ formatDate(record.lastUpdated) }}</span>
+              <span>{{ formatDate(record.lastUpdated) }}</span>
             </template>
 
             <!-- 工具栏插槽 -->
@@ -165,8 +146,6 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Menu,
-  FolderOpened,
-  Document,
   Refresh,
   MoreFilled,
   View,
@@ -183,7 +162,7 @@ import {
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import CategoryEditDialog from './components/CategoryEditDialog.vue'
 import { ProTable, ColumnSettings } from '@/components/common'
-import { getBookCategories, getBookStatistics, getBooks, createBookCategory, updateBookCategory, deleteBookCategory } from '@/api/books'
+import { getBookCategories, createBookCategory, updateBookCategory, deleteBookCategory } from '@/api/books'
 import { formatDate } from '@/utils/date'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
@@ -198,16 +177,22 @@ const proTableRef = ref()
 
 // 默认列设置配置
 const defaultVisibleColumns = [
+  'level',
   'categoryName',
-  'bookStats',
-  'categoryLevel',
+  'description',
+  'totalBooks',
+  'availableBooks',
+  'borrowedBooks',
   'updateTime'
 ]
 
 const defaultColumnOptions = [
+  { label: '分类层级', value: 'level', required: true },
   { label: '分类名称', value: 'categoryName', required: true },
-  { label: '图书统计', value: 'bookStats' },
-  { label: '分类等级', value: 'categoryLevel' },
+  { label: '分类描述', value: 'description' },
+  { label: '图书总数', value: 'totalBooks' },
+  { label: '可借数量', value: 'availableBooks' },
+  { label: '借出数量', value: 'borrowedBooks' },
   { label: '更新时间', value: 'updateTime' }
 ]
 
@@ -230,23 +215,11 @@ const { finalTableHeight } = useTableHeight(tableHeightConfig)
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  sortBy: 'bookCount',
-  sortOrder: 'desc'
+  sortBy: '',
+  sortOrder: ''
 })
 
-// 统计数据
-const statistics = reactive({
-  totalCategories: 0,
-  categorizedBooks: 0,
-  uncategorizedBooks: 0,
-  maxBooksInCategory: 0
-})
 
-// 分页数据
-const pagination = reactive({
-  page: 1,
-  pageSize: 12
-})
 
 
 
@@ -286,31 +259,46 @@ const searchFields = [
 // 所有可用的表格列配置
 const allCategoryTableColumns = [
   {
+    key: 'level',
+    title: '分类层级',
+    slot: 'level',
+    minWidth: 120
+  },
+  {
     key: 'categoryName',
     title: '分类名称',
     slot: 'categoryName',
-    minWidth: 280
+    minWidth: 200
   },
   {
-    key: 'bookStats',
-    title: '图书统计',
-    slot: 'bookStats',
-    minWidth: 250,
-    align: 'center'
+    key: 'description',
+    title: '分类描述',
+    slot: 'description',
+    minWidth: 200
   },
   {
-    key: 'categoryLevel',
-    title: '分类等级',
-    slot: 'categoryLevel',
-    minWidth: 100,
-    align: 'center'
+    key: 'totalBooks',
+    title: '图书总数',
+    slot: 'totalBooks',
+    minWidth: 100
+  },
+  {
+    key: 'availableBooks',
+    title: '可借数量',
+    slot: 'availableBooks',
+    minWidth: 100
+  },
+  {
+    key: 'borrowedBooks',
+    title: '借出数量',
+    slot: 'borrowedBooks',
+    minWidth: 100
   },
   {
     key: 'updateTime',
     title: '更新时间',
     slot: 'updateTime',
     minWidth: 150,
-    align: 'center',
     sorter: true
   }
 ]
@@ -368,37 +356,7 @@ const categoryToolBarConfig = {
   fullScreen: true
 }
 
-// 计算属性
-const filteredCategories = computed(() => {
-  let filtered = [...categories.value]
 
-  // 关键词过滤
-  if (searchForm.keyword) {
-    filtered = filtered.filter(category => category.name.toLowerCase().includes(searchForm.keyword.toLowerCase()))
-  }
-
-  // 排序
-  filtered.sort((a, b) => {
-    const aValue = a[searchForm.sortBy]
-    const bValue = b[searchForm.sortBy]
-
-    if (searchForm.sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1
-    } else {
-      return aValue < bValue ? 1 : -1
-    }
-  })
-
-  return filtered
-})
-
-// 分页数据 - 对于树形表格，我们需要对整个树结构进行分页
-const paginatedCategories = computed(() => {
-  // 对于树形结构，我们按顶级分类进行分页
-  const start = (pagination.page - 1) * pagination.pageSize
-  const end = start + pagination.pageSize
-  return filteredCategories.value.slice(start, end)
-})
 
 // ProTable数据请求函数
 const requestCategories = async (params) => {
@@ -561,12 +519,6 @@ const loadCategories = async () => {
 
     categories.value = rootCategories
 
-    // 更新统计数据
-    statistics.totalCategories = backendCategories.length
-    statistics.categorizedBooks = backendCategories.reduce((sum, cat) => sum + (cat.stats?.total || cat._count?.books || 0), 0)
-    statistics.uncategorizedBooks = 0
-    statistics.maxBooksInCategory = Math.max(...backendCategories.map(c => c.stats?.total || c._count?.books || 0), 0)
-
     console.log('处理后的树形分类数据:', rootCategories)
   } catch (error) {
     console.error('加载分类数据失败:', error)
@@ -669,6 +621,7 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
+      proTableRef.value?.refresh()
       ElMessage.success('分类编辑成功')
     } else if (formData.isSubCategory) {
       // 新增子分类
@@ -686,6 +639,7 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
+      proTableRef.value?.refresh()
       ElMessage.success('子分类创建成功')
     } else {
       // 新增分类
@@ -700,6 +654,7 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
+      proTableRef.value?.refresh()
       ElMessage.success('分类创建成功')
     }
 
@@ -719,31 +674,7 @@ const handleCancelEdit = () => {
 }
 
 
-const handleSizeChange = newSize => {
-  pagination.pageSize = newSize
-  pagination.page = 1
-}
 
-const handlePageChange = newPage => {
-  pagination.page = newPage
-}
-
-// 工具函数
-const getCategoryColor = index => {
-  const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
-  return colors[index % colors.length]
-}
-
-const getCategoryColorByLevel = (level) => {
-  const colors = {
-    1: '#409EFF', // 一级分类 - 蓝色
-    2: '#67C23A', // 二级分类 - 绿色
-    3: '#E6A23C', // 三级分类 - 橙色
-    4: '#F56C6C', // 四级分类 - 红色
-    5: '#909399'  // 五级及以上分类 - 灰色
-  }
-  return colors[level] || colors[5]
-}
 
 // 深度查找分类数据（包括子分类）
 const findCategoryData = (categoryName, categories) => {
@@ -757,24 +688,6 @@ const findCategoryData = (categoryName, categories) => {
     }
   }
   return null
-}
-
-const getCategoryDescription = categoryName => {
-  // 首先从实际分类数据中查找描述（包括子分类）
-  const category = findCategoryData(categoryName, categories.value)
-  if (category && category.description) {
-    return category.description
-  }
-  
-  // 如果没有找到，使用默认描述
-  const defaultDescriptions = {
-    计算机: '计算机科学、编程、软件工程等相关书籍',
-    文学: '小说、诗歌、散文等文学作品',
-    历史: '历史研究、传记、史料等历史类书籍',
-    科学: '自然科学、物理、化学、生物等科学类书籍',
-    艺术: '美术、音乐、设计等艺术类书籍'
-  }
-  return defaultDescriptions[categoryName] || '暂无描述'
 }
 
 // ProTable工具栏处理函数
@@ -840,6 +753,12 @@ const getCategoryLevel = bookCount => {
   if (bookCount >= 50) return '中型分类'
   if (bookCount >= 20) return '小型分类'
   return '微型分类'
+}
+
+// 获取层级文字
+const getLevelText = (level) => {
+  const levelNames = ['一级', '二级', '三级', '四级', '五级', '六级', '七级', '八级', '九级', '十级']
+  return levelNames[level - 1] || `${level}级`
 }
 
 // 生命周期
@@ -924,95 +843,20 @@ onMounted(() => {
   padding: 20px;
 }
 
-// 统计概览样式
-.stats-overview {
-  .stats-card {
-    @apply rounded-xl p-6 text-white shadow-lg;
-    border: none;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .stats-content {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      .stats-icon {
-        font-size: 2.5rem;
-        opacity: 0.9;
-      }
-
-      .stats-info {
-        text-align: right;
-
-        .stats-value {
-          font-size: 2rem;
-          font-weight: 700;
-          line-height: 1;
-          margin-bottom: 4px;
-        }
-
-        .stats-label {
-          font-size: 0.875rem;
-          opacity: 0.9;
-          font-weight: 500;
-        }
-      }
-    }
-  }
-}
 
 // 分类表格样式
 .categories-table {
-  .category-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .category-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
-
-    .category-info {
-      flex: 1;
-      min-width: 0;
-
-      .name {
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--el-text-color-primary);
-        margin-bottom: 4px;
-        line-height: 1.2;
-      }
-
-      .description {
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-        line-height: 1.2;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
+  // 增加表格行高
+  :deep(.el-table__row) {
+    height: 60px;
   }
+
 
   .action-trigger {
     width: 32px;
     height: 32px;
     border-radius: 6px;
-    color: var(--el-text-color-secondary);
+    color: var(--el-color-primary);
     transition: all 0.2s ease;
 
     &:hover {
@@ -1021,34 +865,8 @@ onMounted(() => {
     }
   }
 
-  .update-time {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-  }
-
-  .book-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    .stat-item {
-      display: flex;
-      justify-content: flex-start;
-    }
-  }
 }
 
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-  padding: 16px 0;
-  border-top: 1px solid var(--el-border-color-extra-light);
-  background: var(--el-fill-color-extra-light);
-  border-radius: 0 0 8px 8px;
-  margin-left: -20px;
-  margin-right: -20px;
-}
 
 
 
@@ -1096,38 +914,8 @@ onMounted(() => {
   .categories-content {
     padding: 12px 16px 16px;
   }
-
-  .categories-table {
-    .category-name-cell {
-      gap: 8px;
-
-      .category-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 14px;
-      }
-
-      .category-info {
-        .name {
-          font-size: 13px;
-        }
-
-        .description {
-          font-size: 11px;
-        }
-      }
-    }
-  }
-
-
-  .pagination-wrapper {
-    justify-content: center;
-  }
 }
 
-.level-tag {
-  margin-left: 8px;
-}
 
 .column-settings {
   display: grid;
@@ -1135,32 +923,4 @@ onMounted(() => {
   gap: 8px;
 }
 
-@media (max-width: 480px) {
-  .stats-overview {
-    .grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .stats-card {
-      padding: 12px;
-
-      .stats-content {
-        .stats-icon {
-          font-size: 2rem;
-        }
-
-        .stats-info {
-          .stats-value {
-            font-size: 1.5rem;
-          }
-
-          .stats-label {
-            font-size: 0.75rem;
-          }
-        }
-      }
-    }
-  }
-}
 </style>

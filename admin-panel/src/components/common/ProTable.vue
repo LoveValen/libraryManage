@@ -188,7 +188,7 @@
             :fixed="column.fixed"
             :sortable="column.sorter ? 'custom' : false"
             :show-overflow-tooltip="column.ellipsis !== false"
-            :align="column.align || 'left'"
+            :align="column.align || 'center'"
             :header-align="column.headerAlign || column.align || 'center'"
           >
             <!-- 自定义表头 -->
@@ -763,12 +763,16 @@ defineExpose({
         text-overflow: ellipsis;
         white-space: nowrap;
         text-align: center !important;
+        color: var(--el-text-color-primary) !important;
+        font-size: 14px !important;
         
         .cell {
           text-align: center !important;
           display: flex !important;
           justify-content: center !important;
           align-items: center !important;
+          color: var(--el-text-color-primary) !important;
+          font-size: 14px !important;
         }
       }
       
