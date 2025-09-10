@@ -8,7 +8,7 @@ datasource db {
 }
 
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 审计日志模型 - 记录系统操作和安全事件
 model audit_logs {
   id                  String                @id @db.Char(36)
   action              String                @db.VarChar(100)
@@ -63,14 +63,10 @@ model audit_logs {
   @@index([parent_log_id], map: "parent_log_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-// backup_jobs model removed
 
-// backup_schedules model removed
 
-// backup_storages model removed
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 图书分类模型 - 管理图书的分类信息
 model book_categories {
   id                    Int               @id @default(autoincrement()) @db.UnsignedInt
   name                  String            @unique(map: "name") @db.VarChar(50)
@@ -93,49 +89,38 @@ model book_categories {
   @@index([sort_order], map: "book_categories_sort_order")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 图书模型 - 存储图书的基本信息和状态
 model books {
   id                       Int                        @id @default(autoincrement()) @db.UnsignedInt
   title                    String                     @db.VarChar(255)
-  // subtitle removed
   isbn                     String                     @unique(map: "books_isbn") @db.VarChar(20)
-  authors                  Json
+  authors                  Json                       // 作者信息(支持多作者)
   publisher                String?                    @db.VarChar(100)
   publication_year         Int?
-  // publication_date removed
   language                 String                     @default("zh-CN") @db.VarChar(20)
   category_id              Int?                       @db.UnsignedInt
   category                 String?                    @db.VarChar(50)
-  // subcategory removed
   tags                     Json?
   summary                  String?                    @db.Text
   description              String?                    @db.Text
-  // table_of_contents removed
   cover_image              String?                    @db.VarChar(255)
-  // back_cover_image removed
-  total_stock              Int                        @default(0) @db.UnsignedInt
-  available_stock          Int                        @default(0) @db.UnsignedInt
-  reserved_stock           Int                        @default(0) @db.UnsignedInt
+  total_stock              Int                        @default(0) @db.UnsignedInt // 总库存
+  available_stock          Int                        @default(0) @db.UnsignedInt // 可借数量
+  reserved_stock           Int                        @default(0) @db.UnsignedInt // 预约数量
   status                   books_status               @default(available)
   location                 String?                    @db.VarChar(50)
-  // call_number removed
   price                    Decimal?                   @db.Decimal(10, 2)
   pages                    Int?                       @db.UnsignedInt
   format                   String?                    @db.VarChar(20)
-  // dimensions removed
-  // weight removed
   ebook_url                String?                    @db.VarChar(500)
   ebook_format             String?                    @db.VarChar(20)
   ebook_file_size          BigInt?                    @db.UnsignedBigInt
   has_ebook                Boolean?                   @default(false)
-  borrow_count             Int?                       @default(0) @db.UnsignedInt
-  // reserve_count removed
-  view_count               Int?                       @default(0) @db.UnsignedInt
-  download_count           Int?                       @default(0) @db.UnsignedInt
-  average_rating           Decimal?                   @db.Decimal(3, 2)
-  review_count             Int?                       @default(0) @db.UnsignedInt
-  // acquired_date removed
-  // acquired_from removed
+  borrow_count             Int?                       @default(0) @db.UnsignedInt // 借阅次数
+  view_count               Int?                       @default(0) @db.UnsignedInt // 查看次数
+  download_count           Int?                       @default(0) @db.UnsignedInt // 下载次数
+  average_rating           Decimal?                   @db.Decimal(3, 2)          // 平均评分
+  review_count             Int?                       @default(0) @db.UnsignedInt // 评价数量
   condition                books_condition?           @default(new)
   notes                    String?                    @db.Text
   is_deleted               Boolean?                   @default(false)
@@ -162,7 +147,7 @@ model books {
   @@index([category_id], map: "category_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 借阅记录模型 - 管理用户借阅和归还记录
 model borrows {
   id                                Int                @id @default(autoincrement()) @db.UnsignedInt
   user_id                           Int                @db.UnsignedInt
@@ -173,21 +158,16 @@ model borrows {
   actual_return_date                DateTime?          @db.DateTime(0)
   status                            borrows_status     @default(borrowed)
   borrow_days                       Int                @default(30) @db.UnsignedInt
-  renewal_count                     Int?               @default(0) @db.UnsignedInt
-  max_renewals                      Int?               @default(2) @db.UnsignedInt
-  overdue_days                      Int?               @default(0) @db.UnsignedInt
-  fine                              Decimal?           @default(0.00) @db.Decimal(10, 2)
-  fine_paid                         Boolean?           @default(false)
+  renewal_count                     Int?               @default(0) @db.UnsignedInt  // 续借次数
+  max_renewals                      Int?               @default(2) @db.UnsignedInt  // 最大续借次数
+  overdue_days                      Int?               @default(0) @db.UnsignedInt  // 逾期天数
+  fine                              Decimal?           @default(0.00) @db.Decimal(10, 2) // 罚金
+  fine_paid                         Boolean?           @default(false)                    // 罚金已支付
   condition                         borrows_condition? @default(good)
   damage_description                String?            @db.Text
   return_notes                      String?            @db.Text
   borrow_notes                      String?            @db.Text
-  // notifications_sent removed
-  // points_earned removed
-  // points_deducted removed
   processed_by                      Int?               @db.UnsignedInt
-  // borrow_location removed
-  // return_location removed
   is_deleted                        Boolean?           @default(false)
   created_at                        DateTime           @db.DateTime(0)
   updated_at                        DateTime           @db.DateTime(0)
@@ -210,12 +190,9 @@ model borrows {
   @@index([processed_by], map: "processed_by")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-// import_files model removed
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 登录尝试记录模型 - 记录登录行为和安全分析
 model login_attempts {
   id                     String                         @id @db.Char(36)
   user_id                Int?                           @db.UnsignedInt
@@ -275,7 +252,7 @@ model login_attempts {
   @@index([security_event_id], map: "security_event_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 通知模板模型 - 定义系统通知的模板
 model notification_templates {
   id               Int                              @id @default(autoincrement()) @db.UnsignedInt
   code             String                           @unique(map: "code") @db.VarChar(100)
@@ -299,7 +276,7 @@ model notification_templates {
   @@index([type], map: "notification_templates_type")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 通知模型 - 管理用户通知消息
 model notifications {
   id            Int                     @id @default(autoincrement()) @db.UnsignedInt
   user_id       Int                     @db.UnsignedInt
@@ -310,30 +287,22 @@ model notifications {
   status        notifications_status?   @default(pending)
   is_read       Boolean?                @default(false)
   read_at       DateTime?               @db.DateTime(0)
-  // channel removed
   metadata      Json?
   related_id    Int?                    @db.UnsignedInt
   related_type  String?                 @db.VarChar(50)
   action_url    String?                 @db.VarChar(500)
-  // expires_at removed
-  // scheduled_at removed
-  // sent_at removed
-  // retry_count removed
-  // error_message removed
   created_at    DateTime                @db.DateTime(0)
   updated_at    DateTime                @db.DateTime(0)
   deleted_at    DateTime?               @db.DateTime(0)
   relatedBorrow borrows?                @relation(fields: [related_id], references: [id], onDelete: Cascade, map: "notifications_ibfk_2")
 
   @@index([created_at], map: "notifications_created_at")
-  // expires_at index removed
   @@index([related_id, related_type], map: "notifications_related_id_related_type")
-  // scheduled_at index removed
   @@index([type, priority], map: "notifications_type_priority")
   @@index([user_id, status], map: "notifications_user_id_status")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 积分交易记录模型 - 记录用户积分变化
 model points_transactions {
   id                                                                                         BigInt                               @id @default(autoincrement()) @db.UnsignedBigInt
   user_id                                                                                    Int                                  @db.UnsignedInt
@@ -346,22 +315,12 @@ model points_transactions {
   related_entity_id                                                                          Int?                                 @db.UnsignedInt
   metadata                                                                                   Json?
   processed_by                                                                               Int?                                 @db.UnsignedInt
-  // batch_id removed
   status                                                                                     points_transactions_status?          @default(completed)
-  // reversal_transaction_id removed
-  // original_transaction_id removed
-  // expires_at removed
-  // ip_address removed
-  // user_agent removed
-  // notes removed
   created_at                                                                                 DateTime                             @db.DateTime(0)
   updated_at                                                                                 DateTime                             @db.DateTime(0)
   user                                                                                       users                                @relation("UserPointsTransactions", fields: [user_id], references: [id], onDelete: Cascade, map: "points_transactions_ibfk_1")
   processor                                                                                  users?                               @relation("PointsTransactionProcessor", fields: [processed_by], references: [id], map: "points_transactions_ibfk_2")
-  // reversal transaction relations removed
-  // original transaction relations removed
 
-  // batch_id index removed
   @@index([created_at], map: "points_transactions_created_at")
   @@index([processed_by], map: "points_transactions_processed_by")
   @@index([related_entity_type, related_entity_id], map: "points_transactions_related_entity_type_related_entity_id")
@@ -370,10 +329,9 @@ model points_transactions {
   @@index([user_id], map: "points_transactions_user_id")
   @@index([user_id, created_at], map: "points_transactions_user_id_created_at")
   @@index([user_id, transaction_type], map: "points_transactions_user_id_transaction_type")
-  // reversal transaction indexes removed
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 推荐反馈模型 - 记录用户对推荐结果的反馈
 model recommendation_feedbacks {
   id                  Int                                          @id @default(autoincrement()) @db.UnsignedInt
   user_id             Int                                          @db.UnsignedInt
@@ -422,7 +380,7 @@ model recommendation_feedbacks {
   @@index([weight], map: "recommendation_feedbacks_weight")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 推荐算法模型 - 管理推荐系统的算法配置
 model recommendation_models {
   id                                            Int                                   @id @default(autoincrement()) @db.UnsignedInt
   name                                          String                                @unique(map: "name") @db.VarChar(200)
@@ -473,7 +431,7 @@ model recommendation_models {
   @@index([updated_by], map: "updated_by")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 推荐记录模型 - 存储生成的推荐结果
 model recommendations {
   id                       Int                                 @id @default(autoincrement()) @db.UnsignedInt
   user_id                  Int                                 @db.UnsignedInt
@@ -531,10 +489,8 @@ model recommendations {
   @@index([user_id, status], map: "recommendations_user_id_status")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-// restore_operations model removed - unused enterprise feature
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 书评模型 - 管理用户对图书的评价
 model reviews {
   id                                Int            @id @default(autoincrement()) @db.UnsignedInt
   user_id                           Int            @db.UnsignedInt
@@ -552,8 +508,6 @@ model reviews {
   moderator_notes                   String?        @db.Text
   moderated_at                      DateTime?      @db.DateTime(0)
   is_verified_purchase              Boolean        @default(false)
-  // reading_progress removed
-  // reading_time removed
   spoiler_alert                     Boolean        @default(false)
   language                          String         @default("zh-CN") @db.VarChar(10)
   created_at                        DateTime       @db.DateTime(0)
@@ -575,7 +529,7 @@ model reviews {
   @@index([moderator_id], map: "moderator_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 安全事件模型 - 记录和管理安全相关事件
 model security_events {
   id                                       String                           @id @db.Char(36)
   event_type                               security_events_event_type
@@ -646,9 +600,8 @@ model security_events {
   @@index([user_id], map: "security_events_user_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 用户行为模型 - 追踪用户的操作行为
 model user_behaviors {
   id                       Int                          @id @default(autoincrement()) @db.UnsignedInt
   user_id                  Int                          @db.UnsignedInt
@@ -692,24 +645,17 @@ model user_behaviors {
   @@index([user_id, book_id], map: "user_behaviors_user_id_book_id")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 用户积分模型 - 管理用户积分余额和等级
 model user_points {
   user_id                Int       @id @db.UnsignedInt
-  balance                Int       @default(0)
-  total_earned           Int?      @default(0) @db.UnsignedInt
-  total_spent            Int?      @default(0) @db.UnsignedInt
-  level                  String    @default("NEWCOMER") @db.VarChar(20)
-  level_name             String    @default("新手读者") @db.VarChar(50)
+  balance                Int       @default(0)        // 积分余额
+  total_earned           Int?      @default(0) @db.UnsignedInt // 总获得积分
+  total_spent            Int?      @default(0) @db.UnsignedInt // 总消耗积分
+  level                  String    @default("NEWCOMER") @db.VarChar(20)    // 用户等级代码
+  level_name             String    @default("新手读者") @db.VarChar(50)  // 等级显示名称
   next_level_points      Int?      @db.UnsignedInt
   progress_to_next_level Decimal?  @default(0.00) @db.Decimal(5, 2)
   last_transaction_at    DateTime? @db.DateTime(0)
-  // borrow_points removed
-  // review_points removed
-  // bonus_points removed
-  // penalty_points removed
-  // badge_count removed
-  // rank_position removed
-  // last_rank_update removed
   created_at             DateTime  @db.DateTime(0)
   updated_at             DateTime  @db.DateTime(0)
   user                   users     @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "user_points_ibfk_1")
@@ -717,11 +663,10 @@ model user_points {
   @@index([balance], map: "user_points_balance")
   @@index([last_transaction_at], map: "user_points_last_transaction_at")
   @@index([level], map: "user_points_level")
-  // rank_position index removed
   @@index([total_earned], map: "user_points_total_earned")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 用户偏好模型 - 存储个性化推荐的用户偏好
 model user_preferences {
   id                       Int                                  @id @default(autoincrement()) @db.UnsignedInt
   user_id                  Int                                  @unique(map: "user_id") @db.UnsignedInt
@@ -770,7 +715,7 @@ model user_preferences {
   @@index([preference_type], map: "user_preferences_preference_type")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+// 用户模型 - 存储用户基本信息和账户状态
 model users {
   id                                                            Int                        @id @default(autoincrement()) @db.UnsignedInt
   username                                                      String                     @unique(map: "username") @db.VarChar(50)
@@ -779,32 +724,15 @@ model users {
   real_name                                                     String?                    @db.VarChar(50)
   phone                                                         String?                    @db.VarChar(20)
   avatar                                                        String?                    @db.VarChar(255)
-  // bio removed
-  // gender removed
-  // birthday removed
-  // student_id removed
-  // department removed
-  // points_balance removed - duplicate with user_points table
-  // borrow_permission removed
-  // borrow_limit removed
-  // wechat_openid removed
-  // wechat_unionid removed
   role                                                          users_role                 @default(patron)
   status                                                        users_status               @default(active)
   last_login_at                                                 DateTime?                  @db.DateTime(0)
   last_login_ip                                                 String?                    @db.VarChar(45)
-  // login_count removed
-  // preferences removed - use user_preferences table instead
   is_deleted                                                    Boolean?                   @default(false)
   deleted_at                                                    DateTime?                  @db.DateTime(0)
   created_at                                                    DateTime                   @db.DateTime(0)
   updated_at                                                    DateTime                   @db.DateTime(0)
   auditLogs                                                     audit_logs[]
-  // triggeredBackupJobs removed
-  // createdBackupSchedules removed
-  // updatedBackupSchedules removed
-  // createdBackupStorages removed
-  // updatedBackupStorages removed
   userBorrows                                                   borrows[]                  @relation("UserBorrows")
   processedBorrows                                              borrows[]                  @relation("BorrowProcessor")
   uploadedBookFiles                                             book_files[]
@@ -815,8 +743,6 @@ model users {
   createdRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelCreator")
   updatedRecommendationModels                                   recommendation_models[]    @relation("RecommendationModelUpdater")
   recommendations                                               recommendations[]
-  // triggeredRestoreOperations removed
-  // approvedRestoreOperations removed
   userReviews                                                   reviews[]                  @relation("UserReviews")
   moderatedReviews                                              reviews[]                  @relation("ReviewModerator")
   affectedBySecurityEvents                                      security_events[]          @relation("SecurityEventUser")
@@ -831,12 +757,11 @@ model users {
   @@index([role], map: "users_role")
   @@index([status], map: "users_status")
   @@index([username], map: "users_username")
-  // wechat_openid index removed
 }
 
 
-// backup_jobs_backup_type enum removed
 
+// 安全事件类型
 enum security_events_event_type {
   authentication_failure
   authorization_failure
@@ -863,11 +788,10 @@ enum security_events_event_type {
 
 
 
-// backup_jobs_status enum removed
-
-// backup_storages_type enum removed
 
 
+
+// 通知类型
 enum notifications_type {
   system
   borrow_reminder
@@ -883,6 +807,7 @@ enum notifications_type {
   admin_alert
 }
 
+// 推荐模型类型
 enum recommendation_models_type {
   collaborative_filtering
   content_based
@@ -901,8 +826,8 @@ enum recommendation_models_type {
   wide_and_deep
 }
 
-// restore_operations_restore_type enum removed
 
+// 安全事件严重级别
 enum security_events_severity {
   low
   medium
@@ -910,6 +835,7 @@ enum security_events_severity {
   critical
 }
 
+// 用户偏好类型
 enum user_preferences_preference_type {
   explicit
   implicit
@@ -917,6 +843,7 @@ enum user_preferences_preference_type {
   hybrid
 }
 
+// 通知模板类型
 enum notification_templates_type {
   system
   borrow_reminder
@@ -932,8 +859,8 @@ enum notification_templates_type {
   admin_alert
 }
 
-// restore_operations_status enum removed
 
+// 安全事件状态
 enum security_events_status {
   new
   investigating
@@ -944,6 +871,7 @@ enum security_events_status {
 }
 
 
+// 用户行为类型
 enum user_behaviors_behavior_type {
   view
   search
@@ -971,6 +899,7 @@ enum backup_schedules_backup_type {
   custom
 }
 
+// 推荐反馈类型
 enum recommendation_feedbacks_feedback_type {
   explicit
   implicit
@@ -983,6 +912,7 @@ enum recommendation_feedbacks_feedback_type {
 }
 
 
+// 登录失败原因
 enum login_attempts_failure_reason {
   invalid_credentials
   user_not_found
@@ -1002,6 +932,7 @@ enum login_attempts_failure_reason {
   other
 }
 
+// 通知优先级
 enum notifications_priority {
   low
   normal
@@ -1009,6 +940,7 @@ enum notifications_priority {
   urgent
 }
 
+// 积分交易类型
 enum points_transactions_transaction_type {
   BORROW_BOOK
   RETURN_ON_TIME
@@ -1021,6 +953,7 @@ enum points_transactions_transaction_type {
   REDEEM_REWARD
 }
 
+// 通知状态
 enum notifications_status {
   pending
   sent
@@ -1028,6 +961,7 @@ enum notifications_status {
   archived
 }
 
+// 借阅状态
 enum borrows_status {
   borrowed
   returned
@@ -1036,8 +970,8 @@ enum borrows_status {
   damaged
 }
 
-// import_files_status enum removed
 
+// 推荐类型
 enum recommendations_recommendation_type {
   personalized
   similar_items
@@ -1056,6 +990,7 @@ enum recommendations_recommendation_type {
   time_aware
 }
 
+// 推荐场景
 enum recommendations_scenario {
   homepage
   book_detail
@@ -1072,12 +1007,14 @@ enum recommendations_scenario {
   social_share
 }
 
+// 用户性别
 enum users_gender {
   male
   female
   other
 }
 
+// 推荐状态
 enum recommendations_status {
   generated
   displayed
@@ -1189,6 +1126,7 @@ enum recommendation_feedbacks_verification_status {
   validated
 }
 
+// 用户角色
 enum users_role {
   admin
   librarian
@@ -1223,6 +1161,7 @@ enum security_events_detection_method {
   automated
 }
 
+// 用户状态
 enum users_status {
   active
   inactive
@@ -1249,6 +1188,7 @@ enum user_preferences_last_update_source {
   model_inference
 }
 
+// 图书状态
 enum books_status {
   available
   borrowed
@@ -1265,7 +1205,6 @@ enum login_attempts_mfa_method {
   biometric
 }
 
-// restore_operations_trigger enum removed
 
 enum recommendations_source {
   system
@@ -1293,8 +1232,8 @@ enum backup_jobs_trigger {
   auto
 }
 
-// restore_operations_priority enum removed
 
+// 图书品相
 enum books_condition {
   new
   good
@@ -1303,6 +1242,7 @@ enum books_condition {
   damaged
 }
 
+// 书籍文件类型
 enum book_files_file_type {
   pdf
   epub
@@ -1313,7 +1253,7 @@ enum book_files_file_type {
   other
 }
 
-/// Book files model for managing ebook files
+// 书籍文件模型 - 管理电子书文件的存储和访问
 model book_files {
   id              Int                     @id @default(autoincrement()) @db.UnsignedInt
   book_id         Int                     @db.UnsignedInt
