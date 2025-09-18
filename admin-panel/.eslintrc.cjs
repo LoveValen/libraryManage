@@ -37,7 +37,6 @@ module.exports = {
     'vue/no-multiple-template-root': 'off',
 
     // Vue 格式化规则 - 降级为警告
-    'vue/prefer-const': 'warn',
     'vue/no-irregular-whitespace': 'warn',
     'vue/object-curly-spacing': 'off',
     'vue/array-bracket-spacing': 'off',
@@ -65,14 +64,7 @@ module.exports = {
     // JavaScript 通用规则 - 更宽松的配置
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
-    'no-unused-vars': [
-      'warn',
-      {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_'
-      }
-    ],
+    'no-unused-vars': 'off',
     'no-undef': 'off', // 关闭未定义检查，因为有自动导入
     'prefer-const': 'warn',
     'no-var': 'error',

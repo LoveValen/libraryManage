@@ -567,11 +567,12 @@ const handleCategoryAction = ({ action, category }) => {
     case 'addSubCategory':
       handleAddSubCategory(category)
       break
-    case 'editCategory':
+    case 'editCategory': {
       const categoryData = findCategoryData(category, categories.value)
       editCategoryData.value = categoryData
       editDialogVisible.value = true
       break
+    }
     case 'deleteCategory':
       handleDeleteCategory(category)
       break
