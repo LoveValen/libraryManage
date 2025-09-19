@@ -317,7 +317,7 @@ const closeMenu = () => {
         }
       }
 
-      &:hover {
+      &:hover:not(.active) {
         color: var(--el-color-primary);
       }
 

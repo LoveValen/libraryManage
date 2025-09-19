@@ -187,7 +187,7 @@ const handleMenuSelect = index => {
       color: var(--sidebar-text-color);
       border-bottom: none;
 
-      &:hover {
+      &:hover:not(.is-active) {
         background-color: var(--sidebar-menu-hover-bg) !important;
         color: var(--sidebar-text-hover-color);
       }

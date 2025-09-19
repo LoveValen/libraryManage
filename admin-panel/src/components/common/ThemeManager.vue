@@ -346,7 +346,7 @@ onMounted(() => {
   }
 
   .theme-item {
-    @apply hover:bg-gray-700;
+    @apply hover:bg-gray-600;
 
     &.active {
       @apply bg-gray-700;

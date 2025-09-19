@@ -688,7 +688,7 @@ const goBack = () => {
   try {
     router.go(-1)
   } catch (error) {
-    router.push('/users/list')
+    router.push('/system/users')
   }
 }
 

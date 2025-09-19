@@ -64,58 +64,6 @@ export const asyncRoutes = [
     ]
   },
   {
-    path: '/users',
-    component: Layout,
-    redirect: '/users/list',
-    meta: {
-      title: '用户管理',
-      icon: 'User',
-      roles: ['admin']
-    },
-    children: [
-      {
-        path: 'list',
-        name: 'UserList',
-        component: () => import('@/views/users/list.vue'),
-        meta: {
-          title: '用户列表',
-          icon: 'UserFilled',
-          transition: 'fade-slide'
-        }
-      },
-      {
-        path: 'create',
-        name: 'UserCreate',
-        component: () => import('@/views/users/form.vue'),
-        meta: {
-          title: '新增用户',
-          icon: 'Plus',
-          hidden: true
-        }
-      },
-      {
-        path: 'edit/:id',
-        name: 'UserEdit',
-        component: () => import('@/views/users/form.vue'),
-        meta: {
-          title: '编辑用户',
-          icon: 'Edit',
-          hidden: true
-        }
-      },
-      {
-        path: 'detail/:id',
-        name: 'UserDetail',
-        component: () => import('@/views/users/detail.vue'),
-        meta: {
-          title: '用户详情',
-          icon: 'View',
-          hidden: true
-        }
-      }
-    ]
-  },
-  {
     path: '/books',
     component: Layout,
     redirect: '/books/list',
@@ -383,6 +331,49 @@ export const asyncRoutes = [
         meta: {
           title: '系统日志',
           icon: 'Document'
+        }
+      },
+      {
+        path: 'users',
+        name: 'SystemUsers',
+        component: () => import('@/views/users/list.vue'),
+        meta: {
+          title: '用户列表',
+          icon: 'UserFilled',
+          roles: ['admin']
+        }
+      },
+      {
+        path: 'users/create',
+        name: 'SystemUserCreate',
+        component: () => import('@/views/users/form.vue'),
+        meta: {
+          title: '新增用户',
+          icon: 'Plus',
+          hidden: true,
+          roles: ['admin']
+        }
+      },
+      {
+        path: 'users/edit/:id',
+        name: 'SystemUserEdit',
+        component: () => import('@/views/users/form.vue'),
+        meta: {
+          title: '编辑用户',
+          icon: 'Edit',
+          hidden: true,
+          roles: ['admin']
+        }
+      },
+      {
+        path: 'users/detail/:id',
+        name: 'SystemUserDetail',
+        component: () => import('@/views/users/detail.vue'),
+        meta: {
+          title: '用户详情',
+          icon: 'View',
+          hidden: true,
+          roles: ['admin']
         }
       }
     ]

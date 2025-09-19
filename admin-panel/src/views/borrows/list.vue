@@ -712,7 +712,7 @@ const sendReminder = borrow => {
 
 const viewUserHistory = borrow => {
   router.push({
-    name: 'UserDetail',
+    name: 'SystemUserDetail',
     params: { id: borrow.userId },
     query: { tab: 'borrows' }
   })

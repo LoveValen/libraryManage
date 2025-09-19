@@ -183,7 +183,7 @@ const resetPasswordFormRef = ref()
 
 // 计算属性
 const userId = computed(() => route.params.id)
-const isEdit = computed(() => route.name === 'UserEdit' || !!userId.value)
+const isEdit = computed(() => route.name === 'SystemUserEdit' || !!userId.value)
 const mode = computed(() => {
   if (route.query.mode === 'view') return 'view'
   return isEdit.value ? 'edit' : 'create'
@@ -197,7 +197,7 @@ const resetPasswordForm = reactive({
 
 // 方法
 const handleBack = () => {
-  router.push('/users')
+  router.push('/system/users')
 }
 
 const handleSuccess = (userData) => {

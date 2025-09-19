@@ -607,10 +607,10 @@ const goBack = () => {
   } catch (error) {
     console.error('Navigation failed:', error)
     try {
-      router.push('/users/list')
+      router.push('/system/users')
     } catch (pushError) {
       console.error('Push navigation failed:', pushError)
-      window.location.href = '/users/list'
+      window.location.href = '/system/users'
     }
   }
 }
@@ -623,7 +623,7 @@ const handleRetry = () => {
 }
 
 const handleEdit = () => {
-  router.push(`/users/edit/${userId.value}`)
+  router.push(`/system/users/edit/${userId.value}`)
 }
 
 const handleAction = async command => {
@@ -712,7 +712,7 @@ const handleDelete = async () => {
 
     await userApi.deleteUser(userId.value)
     ElMessage.success('用户删除成功')
-    router.push('/users/list')
+    router.push('/system/users')
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除用户失败:', error)

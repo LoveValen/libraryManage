@@ -526,7 +526,7 @@ const handleBack = () => {
 
 const viewUserDetail = () => {
   router.push({
-    name: 'UserDetail',
+    name: 'SystemUserDetail',
     params: { id: borrowRecord.value.userId }
   })
 }

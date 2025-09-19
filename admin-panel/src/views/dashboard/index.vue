@@ -414,7 +414,7 @@ const handleQuickAction = actionKey => {
   const actionMap = {
     addBook: () => router.push('/books/add'),
     borrowBook: () => router.push('/borrows'),
-    userManage: () => router.push('/users'),
+    userManage: () => router.push('/system/users'),
     systemSettings: () => router.push('/settings')
   }
 

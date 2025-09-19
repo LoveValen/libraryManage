@@ -465,12 +465,12 @@ const handleSubmit = async (formData) => {
       ).catch(() => 'cancel')
 
       if (action === 'cancel') {
-        router.push('/users')
+        router.push('/system/users')
       } else {
         handleReset()
       }
     } else {
-      router.push('/users')
+      router.push('/system/users')
     }
   } catch (error) {
     console.error('保存用户失败:', error)

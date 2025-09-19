@@ -636,7 +636,7 @@ const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
 
 const handleAdd = () => {
   try {
-    router.push('/users/create')
+    router.push('/system/users/create')
   } catch (error) {
     console.error('Navigation to create user failed:', error)
     ElMessage.error('导航失败，请刷新页面后重试')
@@ -644,7 +644,7 @@ const handleAdd = () => {
 }
 
 const handleView = user => {
-  router.push(`/users/detail/${user.id}`)
+  router.push(`/system/users/detail/${user.id}`)
 }
 
 const handleEdit = user => {
