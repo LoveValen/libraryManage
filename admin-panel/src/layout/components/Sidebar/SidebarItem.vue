@@ -34,7 +34,7 @@
       <ElSubMenu ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
         <template #title>
           <ItemIcon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" />
-          <span>{{ item.meta?.title || '' }}</span>
+          <span>{{ collapsed ? '' : item.meta?.title || '' }}</span>
         </template>
 
         <SidebarItem
@@ -179,4 +179,5 @@ function resolvePath(routePath) {
     }
   }
 }
+
 </style>
