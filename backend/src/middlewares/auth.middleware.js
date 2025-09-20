@@ -35,6 +35,8 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = user;
+    req.token = decoded; // 添加解码后的token信息
+    req.tokenPayload = decoded; // 为了兼容性
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
