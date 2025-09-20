@@ -104,10 +104,6 @@
               <el-icon><Setting /></el-icon>
               系统设置
             </el-dropdown-item>
-            <el-dropdown-item command="help">
-              <el-icon><QuestionFilled /></el-icon>
-              帮助中心
-            </el-dropdown-item>
             <el-dropdown-item divided command="logout">
               <el-icon><SwitchButton /></el-icon>
               退出登录
@@ -122,7 +118,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { Switch, QuestionFilled, SwitchButton } from '@element-plus/icons-vue'
+import { Switch, SwitchButton } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useRouter } from 'vue-router'
@@ -203,13 +199,16 @@ const handleLanguageChange = lang => {
 const handleUserCommand = async command => {
   switch (command) {
     case 'profile':
-      router.push('/profile')
+      // 跳转到当前用户的详情页
+      if (authStore.user && authStore.user.id) {
+        router.push(`/system/users/detail/${authStore.user.id}`)
+      } else {
+        router.push('/system/users')
+      }
       break
     case 'settings':
-      router.push('/settings')
-      break
-    case 'help':
-      window.open('https://help.example.com', '_blank')
+      // 跳转到系统设置页面
+      router.push('/system/settings')
       break
     case 'logout':
       await handleLogout()

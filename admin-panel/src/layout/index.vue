@@ -15,8 +15,6 @@
       <AppMain />
     </div>
 
-    <!-- 设置抽屉 -->
-    <Settings />
   </div>
 </template>
 
@@ -27,7 +25,6 @@ import Sidebar from './components/Sidebar/index.vue'
 import NavHeader from './components/NavHeader/index.vue'
 import TagsView from './components/TagsView/index.vue'
 import AppMain from './components/AppMain/index.vue'
-import Settings from './components/Settings/index.vue'
 
 const appStore = useAppStore()
 

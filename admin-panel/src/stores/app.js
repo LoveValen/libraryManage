@@ -18,7 +18,6 @@ export const useAppStore = defineStore(
     const systemInfo = ref({})
 
     // Settings state
-    const showSettings = ref(false)
     const themeColor = ref('#409EFF')
     const fixedHeader = ref(true)
     const showTagsView = ref(true)
@@ -375,17 +374,6 @@ export const useAppStore = defineStore(
       detectDevice()
     }
 
-    /**
-     * 切换设置抽屉显示状态
-     * @param {boolean} show - 是否显示
-     */
-    const toggleSettings = show => {
-      if (typeof show === 'boolean') {
-        showSettings.value = show
-      } else {
-        showSettings.value = !showSettings.value
-      }
-    }
 
     /**
      * 设置主题色
@@ -455,7 +443,6 @@ export const useAppStore = defineStore(
      */
     const resetSettings = () => {
       // 重置设置状态
-      showSettings.value = false
       themeColor.value = '#409EFF'
       fixedHeader.value = true
       showTagsView.value = true
@@ -504,7 +491,6 @@ export const useAppStore = defineStore(
       systemInfo,
 
       // Settings state
-      showSettings,
       themeColor,
       fixedHeader,
       showTagsView,
@@ -549,7 +535,6 @@ export const useAppStore = defineStore(
       setSystemInfo,
 
       // Settings actions
-      toggleSettings,
       setThemeColor,
       setFixedHeader,
       setTagsView,
