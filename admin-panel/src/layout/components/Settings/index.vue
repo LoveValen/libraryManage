@@ -32,13 +32,13 @@
           <div class="color-picker-wrapper">
             <div
               v-for="color in themeColors"
-              :key="color.name"
+              :key="color.value"
               class="color-item"
-              :class="{ active: currentThemeColor === color.value }"
-              :style="{ backgroundColor: color.value }"
+              :class="{ active: currentTheme === color.value }"
+              :style="{ backgroundColor: color.color }"
               @click="handleThemeColorChange(color.value)"
             >
-              <el-icon v-if="currentThemeColor === color.value" class="check-icon">
+              <el-icon v-if="currentTheme === color.value" class="check-icon">
                 <Check />
               </el-icon>
             </div>
@@ -130,8 +130,10 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAppStore } from '@/stores/app'
+import { useTheme } from '@/composables/useTheme'
 
 const appStore = useAppStore()
+const { setTheme, currentTheme, getAvailableThemes } = useTheme()
 
 // 响应式数据
 const visible = computed({
@@ -141,7 +143,7 @@ const visible = computed({
 
 // 主题设置
 const isDarkMode = ref(appStore.theme === 'dark')
-const currentThemeColor = ref(appStore.themeColor || '#409EFF')
+const currentThemeColor = ref(currentTheme.value || 'blue')
 
 // 布局设置
 const fixedHeader = ref(appStore.fixedHeader)
@@ -156,17 +158,14 @@ const colorWeakMode = ref(appStore.colorWeakMode)
 // 其他设置
 const language = ref(appStore.language)
 
-// 主题色选项
-const themeColors = [
-  { name: '默认蓝', value: '#409EFF' },
-  { name: '成功绿', value: '#67C23A' },
-  { name: '警告橙', value: '#E6A23C' },
-  { name: '危险红', value: '#F56C6C' },
-  { name: '信息灰', value: '#909399' },
-  { name: '紫色', value: '#722ED1' },
-  { name: '青色', value: '#13C2C2' },
-  { name: '粉色', value: '#EB2F96' }
-]
+// 主题色选项 - 从 useTheme 获取
+const themeColors = computed(() =>
+  getAvailableThemes().map(theme => ({
+    name: theme.name,
+    value: theme.key,
+    color: theme.primary
+  }))
+)
 
 // 语言选项
 const languages = [
@@ -180,12 +179,10 @@ const handleThemeChange = value => {
   appStore.setTheme(theme)
 }
 
-const handleThemeColorChange = color => {
-  currentThemeColor.value = color
-  appStore.setThemeColor(color)
-
-  // 动态设置CSS变量
-  document.documentElement.style.setProperty('--el-color-primary', color)
+const handleThemeColorChange = themeKey => {
+  currentThemeColor.value = themeKey
+  setTheme(themeKey) // 使用 useTheme 的 setTheme 方法
+  appStore.setThemeColor(themeKey)
 
   ElMessage.success('主题色已更换')
 }

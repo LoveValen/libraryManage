@@ -20,7 +20,7 @@
           :unique-opened="true"
           :collapse-transition="false"
           mode="vertical"
-          background-color="var(--sidebar-bg-color)"
+          background-color="transparent"
           text-color="var(--sidebar-text-color)"
           active-text-color="var(--sidebar-text-hover-color)"
           @select="handleMenuSelect"
@@ -104,8 +104,8 @@ const handleMenuSelect = index => {
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background-color: var(--sidebar-bg-color);
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  background: var(--sidebar-bg-color);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
   z-index: 1001;
   transition: width 0.3s ease;
   display: flex;
@@ -130,7 +130,7 @@ const handleMenuSelect = index => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
 
   .logo-link {
@@ -223,7 +223,7 @@ const handleMenuSelect = index => {
         top: 0;
         bottom: 0;
         width: 3px;
-        background-color: var(--el-color-primary);
+        background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
       }
     }
 
@@ -275,9 +275,9 @@ const handleMenuSelect = index => {
             transform: translateY(-50%);
             width: 4px;
             height: 4px;
-            background-color: var(--sidebar-text-color);
+            background-color: var(--sidebar-text-hover-color);
             border-radius: 50%;
-            opacity: 0.6;
+            opacity: 0.8;
           }
 
           &:hover::after {
@@ -298,7 +298,7 @@ const handleMenuSelect = index => {
           top: 0;
           bottom: 0;
           width: 3px;
-          background-color: var(--el-color-primary);
+          background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
         }
       }
     }
@@ -310,7 +310,7 @@ const handleMenuSelect = index => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--sidebar-text-color);
   cursor: pointer;
   transition: all 0.3s ease;

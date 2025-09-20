@@ -146,12 +146,12 @@ $transition-collapse: 0.3s height ease-in-out, 0.3s padding-top ease-in-out, 0.3
   --sidebar-width: #{$sidebar-width};
   --sidebar-collapsed-width: #{$sidebar-collapsed-width};
   
-  // 侧边栏
-  --sidebar-bg-color: #001529;
-  --sidebar-text-color: rgba(255, 255, 255, 0.65);
+  // 侧边栏 - 使用动态主题渐变
+  --sidebar-bg-color: var(--gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  --sidebar-text-color: #ffffff;
   --sidebar-text-hover-color: #ffffff;
-  --sidebar-menu-hover-bg: rgba(255, 255, 255, 0.08);
-  --sidebar-menu-active-bg: var(--el-color-primary);
+  --sidebar-menu-hover-bg: rgba(255, 255, 255, 0.15);
+  --sidebar-menu-active-bg: rgba(255, 255, 255, 0.25);
   
   // 头部
   --header-bg-color: #ffffff;
