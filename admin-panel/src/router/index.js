@@ -284,26 +284,6 @@ export const asyncRoutes = [
       }
     ]
   },
-  {
-    path: '/examples',
-    component: Layout,
-    redirect: '/examples/virtual-table',
-    meta: {
-      title: '示例',
-      icon: 'Monitor'
-    },
-    children: [
-      {
-        path: 'virtual-table',
-        name: 'VirtualTableDemo',
-        component: () => import('@/views/examples/VirtualTableDemo.vue'),
-        meta: {
-          title: '虚拟滚动表格示例',
-          icon: 'Monitor'
-        }
-      }
-    ]
-  },
 
   {
     path: '/system',
