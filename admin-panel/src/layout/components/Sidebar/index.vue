@@ -34,13 +34,6 @@
           />
         </el-menu>
       </el-scrollbar>
-
-      <!-- 折叠按钮 -->
-      <div class="sidebar-toggle" @click="toggleSidebar">
-        <el-icon>
-          <component :is="collapsed ? 'Expand' : 'Fold'" />
-        </el-icon>
-      </div>
     </div>
 
     <!-- 移动端遮罩 -->
@@ -292,10 +285,6 @@ const handleMenuSelect = index => {
             opacity: 1;
           }
         }
-
-        .el-submenu__icon-arrow {
-          display: none;
-        }
       }
 
       // 活跃状态的菜单项
@@ -360,6 +349,15 @@ const handleMenuSelect = index => {
 
   @include respond-to(desktop) {
     display: none;
+  }
+}
+
+// 强制隐藏所有菜单箭头图标
+.sidebar {
+  :deep(.el-menu--collapse) {
+    .el-icon.el-sub-menu__icon-arrow {
+      display: none;
+    }
   }
 }
 

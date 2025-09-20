@@ -14,7 +14,7 @@
           placement="right"
           :disabled="!collapsed || isNest"
         >
-          <ElMenuItem :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
+          <ElMenuItem :index="resolvePath(onlyOneChild.path)">
             <ItemIcon v-if="onlyOneChild.meta?.icon" :icon="onlyOneChild.meta.icon" />
             <template #title>
               <span>{{ onlyOneChild.meta?.title || '' }}</span>
@@ -34,7 +34,7 @@
       <ElSubMenu ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
         <template #title>
           <ItemIcon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" />
-          <span>{{ collapsed ? '' : item.meta?.title || '' }}</span>
+          <span v-if="!collapsed">{{ item.meta?.title || '' }}</span>
         </template>
 
         <SidebarItem
@@ -44,7 +44,6 @@
           :item="child"
           :base-path="resolvePath(child.path)"
           :collapsed="collapsed"
-          class="nest-menu"
         />
       </ElSubMenu>
     </el-tooltip>
@@ -169,15 +168,4 @@ function resolvePath(routePath) {
 }
 </script>
 
-<style lang="scss" scoped>
-.nest-menu {
-  :deep(.el-submenu__title) {
-    padding-left: 56px !important;
-
-    .el-submenu__icon-arrow {
-      display: none;
-    }
-  }
-}
-
-</style>
+<style lang="scss" scoped></style>
