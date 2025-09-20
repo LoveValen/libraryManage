@@ -162,7 +162,7 @@ $transition-collapse: 0.3s height ease-in-out, 0.3s padding-top ease-in-out, 0.3
   --tabs-border-color: var(--el-border-color-lighter);
   
   // 内容区域
-  --content-bg-color: var(--el-bg-color-page);
+  --content-bg-color: #{$bg-color-page};
   
   // 卡片
   --card-bg-color: #ffffff;
@@ -178,4 +178,9 @@ $transition-collapse: 0.3s height ease-in-out, 0.3s padding-top ease-in-out, 0.3
   --status-inactive-color: var(--el-color-info);
   --status-warning-color: var(--el-color-warning);
   --status-danger-color: var(--el-color-danger);
+
+  // Loading 相关样式
+  --loading-bg-color: rgba(242, 243, 245, 0.9); // 使用半透明的页面背景色
+  --el-loading-background-color: rgba(242, 243, 245, 0.9);
+  --el-loading-mask-background-color: rgba(242, 243, 245, 0.9);
 }

@@ -63,7 +63,7 @@ const showTagsView = computed(() => {
   left: var(--sidebar-width, 200px);
   display: flex;
   flex-direction: column;
-  background-color: var(--content-bg-color, #f5f7fa);
+  background-color: var(--content-bg-color, #f2f3f5);
   overflow: hidden;
   transition: left 0.3s ease;
 }

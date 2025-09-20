@@ -71,13 +71,28 @@ body {
   height: 100%;
   font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
   color: var(--el-text-color-primary);
-  background-color: var(--el-bg-color-page, #f2f3f5); // 提供默认值防止闪烁
+  background-color: #f2f3f5; // 固定背景色，防止切换时出现黑色
   transition: background-color 0.3s ease; // 平滑过渡
+  overflow-x: hidden; // 防止水平滚动条
 }
 
 #app {
   width: 100%;
   height: 100%;
+  background-color: #f2f3f5; // 应用级背景保障
+}
+
+// 路由切换过渡期间的背景保障
+.admin-layout {
+  background-color: #f2f3f5 !important;
+}
+
+// 确保所有Vue过渡组件都有正确的背景
+.v-enter-active,
+.v-leave-active,
+.v-enter-from,
+.v-leave-to {
+  background-color: #f2f3f5 !important;
 }
 
 // 链接样式
@@ -450,4 +465,28 @@ button {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+// Element Plus Loading 组件样式覆盖
+.el-loading-mask {
+  background-color: rgba(242, 243, 245, 0.9) !important; // 覆盖默认的黑色背景
+}
+
+.el-loading-mask.is-fullscreen {
+  background-color: rgba(242, 243, 245, 0.95) !important; // 全屏loading使用稍微不透明的背景
+}
+
+// 页面级loading样式覆盖
+.page-loading {
+  background-color: #f2f3f5 !important;
+}
+
+// 确保所有loading相关的容器都使用正确的背景色
+[v-loading] {
+  background-color: transparent !important;
+}
+
+.loading-container,
+.el-loading-parent--relative {
+  background-color: #f2f3f5 !important;
 }
