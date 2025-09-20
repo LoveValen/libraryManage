@@ -42,5 +42,15 @@ const isClassIcon = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+
+  // 折叠状态下的特殊样式
+  :global(.el-menu--collapse) & {
+    margin-right: 0;
+    font-size: 20px;
+    width: 24px;
+    height: 24px;
+  }
 }
 </style>

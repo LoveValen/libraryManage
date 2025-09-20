@@ -84,7 +84,7 @@ service.interceptors.response.use(
       if (data.code === 'VALIDATION_ERROR') {
         handleValidationError(data.errors)
       } else {
-        ElMessage.error(errorMessage)
+        showErrorMessage(errorMessage)
       }
 
       return Promise.reject(new Error(errorMessage))
@@ -137,11 +137,11 @@ service.interceptors.response.use(
           handleDefaultError(data || {})
       }
     } else if (error.code === 'ECONNABORTED') {
-      ElMessage.error('请求超时，请稍后重试')
+      showErrorMessage('请求超时，请稍后重试')
     } else if (error.message === 'Network Error') {
-      ElMessage.error('网络连接失败，请检查网络设置')
+      showErrorMessage('网络连接失败，请检查网络设置')
     } else {
-      ElMessage.error('请求失败，请稍后重试')
+      showErrorMessage('请求失败，请稍后重试')
     }
 
     return Promise.reject(error)
@@ -167,20 +167,20 @@ async function handle401Error(data) {
       // 刷新失败，跳转到登录页
       authStore.logout()
       router.push('/login')
-      ElMessage.error(message)
+      showErrorMessage(message)
     }
   } else {
     // 没有刷新令牌，直接跳转登录页
     authStore.logout()
     router.push('/login')
-    ElMessage.error(message)
+    showErrorMessage(message)
   }
 }
 
 // 403错误处理 - 权限不足
 function handle403Error(data) {
   const message = data.message || '权限不足，无法访问该资源'
-  ElMessage.error(message)
+  showErrorMessage(message)
 
   // 可以选择跳转到403页面
   // router.push('/403')
@@ -189,23 +189,23 @@ function handle403Error(data) {
 // 404错误处理 - 资源不存在
 function handle404Error(data) {
   const message = data.message || '请求的资源不存在'
-  ElMessage.error(message)
+  showErrorMessage(message)
 }
 
 // 422错误处理 - 数据验证失败
 function handleValidationError(errors) {
   if (Array.isArray(errors) && errors.length > 0) {
     const errorMessages = errors.map(err => err.message).join('；')
-    ElMessage.error(`数据验证失败：${errorMessages}`)
+    showErrorMessage(`数据验证失败：${errorMessages}`)
   } else {
-    ElMessage.error('数据验证失败')
+    showErrorMessage('数据验证失败')
   }
 }
 
 // 429错误处理 - 请求频率限制
 function handle429Error(data) {
   const message = data.message || '请求过于频繁，请稍后再试'
-  ElMessage.warning(message)
+  showErrorMessage(message, 'warning')
 }
 
 // 500错误处理 - 服务器内部错误
@@ -221,7 +221,7 @@ function handle500Error(data) {
 // 默认错误处理
 function handleDefaultError(data) {
   const message = data.message || '请求失败，请稍后重试'
-  ElMessage.error(message)
+  showErrorMessage(message)
 }
 
 // 生成请求ID
@@ -231,6 +231,94 @@ function generateRequestId() {
 
 // 防止重复刷新token
 let isRefreshing = false
+
+// 页面加载时清理过期缓存
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    errorTimeCache.clear()
+    errorMessageCache.clear()
+  })
+}
+
+// 错误提示防重复机制
+const errorMessageCache = new Set()
+const errorTimeCache = new Map()
+const ERROR_CACHE_DURATION = 3000 // 3秒内不重复显示相同错误
+const NETWORK_ERROR_CACHE_DURATION = 5000 // 网络错误显示间隔更长
+
+// 错误类型分类
+const ERROR_TYPES = {
+  NETWORK: 'network',
+  AUTH: 'auth',
+  VALIDATION: 'validation',
+  SERVER: 'server',
+  PERMISSION: 'permission',
+  NOT_FOUND: 'not_found',
+  RATE_LIMIT: 'rate_limit',
+  TIMEOUT: 'timeout',
+  DEFAULT: 'default'
+}
+
+// 获取错误类型
+function getErrorType(message, errorCode) {
+  if (message.includes('网络') || message.includes('Network')) return ERROR_TYPES.NETWORK
+  if (message.includes('登录') || message.includes('授权')) return ERROR_TYPES.AUTH
+  if (message.includes('验证')) return ERROR_TYPES.VALIDATION
+  if (message.includes('服务器')) return ERROR_TYPES.SERVER
+  if (message.includes('权限')) return ERROR_TYPES.PERMISSION
+  if (message.includes('不存在')) return ERROR_TYPES.NOT_FOUND
+  if (message.includes('频繁')) return ERROR_TYPES.RATE_LIMIT
+  if (message.includes('超时')) return ERROR_TYPES.TIMEOUT
+  return ERROR_TYPES.DEFAULT
+}
+
+// 显示错误消息（防重复）
+function showErrorMessage(message, type = 'error') {
+  if (!message) return
+
+  const now = Date.now()
+  const errorType = getErrorType(message)
+  const cacheKey = `${type}:${errorType}:${message}`
+
+  // 根据错误类型设置不同的缓存时间
+  const cacheDuration = errorType === ERROR_TYPES.NETWORK ? NETWORK_ERROR_CACHE_DURATION : ERROR_CACHE_DURATION
+
+  // 检查是否在缓存时间内
+  if (errorTimeCache.has(cacheKey)) {
+    const lastShowTime = errorTimeCache.get(cacheKey)
+    if (now - lastShowTime < cacheDuration) {
+      return // 跳过重复显示
+    }
+  }
+
+  // 显示消息并更新缓存
+  if (type === 'error') {
+    ElMessage.error({
+      message,
+      duration: errorType === ERROR_TYPES.NETWORK ? 4000 : 3000,
+      showClose: true
+    })
+  } else if (type === 'warning') {
+    ElMessage.warning({
+      message,
+      duration: 3000,
+      showClose: true
+    })
+  } else {
+    ElMessage({
+      message,
+      duration: 3000,
+      showClose: true
+    })
+  }
+
+  errorTimeCache.set(cacheKey, now)
+
+  // 清理过期缓存
+  setTimeout(() => {
+    errorTimeCache.delete(cacheKey)
+  }, cacheDuration)
+}
 
 // 导出常用的请求方法
 export const request = {

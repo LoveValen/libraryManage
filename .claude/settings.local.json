@@ -105,7 +105,9 @@
       "mcp__serena__check_onboarding_performed",
       "mcp__serena__find_referencing_symbols",
       "Bash(xargs kill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\system\\settings.vue\")",
+      "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\system\\logs.vue\")"
     ],
     "deny": []
   }

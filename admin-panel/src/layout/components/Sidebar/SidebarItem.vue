@@ -8,32 +8,46 @@
         !item.alwaysShow
       "
     >
-      <AppLink v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path)">
-        <ElMenuItem :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
-          <ItemIcon v-if="onlyOneChild.meta.icon" :icon="onlyOneChild.meta.icon" />
-          <template #title>
-            <span>{{ onlyOneChild.meta.title }}</span>
-          </template>
-        </ElMenuItem>
+      <AppLink v-if="onlyOneChild && onlyOneChild.meta" :to="resolvePath(onlyOneChild.path || '')">
+        <el-tooltip
+          :content="onlyOneChild.meta?.title || ''"
+          placement="right"
+          :disabled="!collapsed || isNest"
+        >
+          <ElMenuItem :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
+            <ItemIcon v-if="onlyOneChild.meta?.icon" :icon="onlyOneChild.meta.icon" />
+            <template #title>
+              <span>{{ onlyOneChild.meta?.title || '' }}</span>
+            </template>
+          </ElMenuItem>
+        </el-tooltip>
       </AppLink>
     </template>
 
     <!-- 多级菜单 -->
-    <ElSubMenu v-else ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
-      <template #title>
-        <ItemIcon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" />
-        <span>{{ item.meta.title }}</span>
-      </template>
+    <el-tooltip
+      v-else
+      :content="item.meta?.title || ''"
+      placement="right"
+      :disabled="!collapsed || isNest"
+    >
+      <ElSubMenu ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
+        <template #title>
+          <ItemIcon v-if="item.meta && item.meta.icon" :icon="item.meta.icon" />
+          <span>{{ item.meta?.title || '' }}</span>
+        </template>
 
-      <SidebarItem
-        v-for="child in visibleChildren"
-        :key="child.path"
-        :is-nest="true"
-        :item="child"
-        :base-path="resolvePath(child.path)"
-        class="nest-menu"
-      />
-    </ElSubMenu>
+        <SidebarItem
+          v-for="child in visibleChildren"
+          :key="child.path"
+          :is-nest="true"
+          :item="child"
+          :base-path="resolvePath(child.path)"
+          :collapsed="collapsed"
+          class="nest-menu"
+        />
+      </ElSubMenu>
+    </el-tooltip>
   </div>
 </template>
 
@@ -59,6 +73,11 @@ const props = defineProps({
   basePath: {
     type: String,
     default: ''
+  },
+  // 是否折叠
+  collapsed: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -66,9 +85,12 @@ const onlyOneChild = ref({})
 
 // 计算属性：过滤掉隐藏的子菜单
 const visibleChildren = computed(() => {
-  if (!props.item.children) return []
+  if (!props.item || !Array.isArray(props.item.children)) return []
 
   const filtered = props.item.children.filter(child => {
+    // 安全检查
+    if (!child) return false
+
     // 检查路由本身的 hidden 属性或 meta.hidden
     const isHidden = child.hidden || (child.meta && child.meta.hidden)
 
@@ -87,9 +109,13 @@ const visibleChildren = computed(() => {
  * 检查是否只有一个显示的子菜单
  */
 function hasOneShowingChild(children = [], parent) {
+  if (!Array.isArray(children)) {
+    children = []
+  }
+
   const showingChildren = children.filter(item => {
     // 检查路由本身的 hidden 属性或 meta.hidden
-    if (item.hidden || (item.meta && item.meta.hidden)) {
+    if (!item || item.hidden || (item.meta && item.meta.hidden)) {
       return false
     } else {
       // 临时设置，用于判断是否只有一个子菜单
@@ -105,7 +131,12 @@ function hasOneShowingChild(children = [], parent) {
 
   // 如果没有子路由显示，则显示父路由
   if (showingChildren.length === 0) {
-    onlyOneChild.value = { ...parent, path: '', noShowingChildren: true }
+    onlyOneChild.value = {
+      ...parent,
+      path: '',
+      noShowingChildren: true,
+      meta: parent?.meta || {}
+    }
     return true
   }
 
@@ -116,6 +147,11 @@ function hasOneShowingChild(children = [], parent) {
  * 解析路径
  */
 function resolvePath(routePath) {
+  // 安全检查
+  if (!routePath && routePath !== '') {
+    return props.basePath || '/'
+  }
+
   if (isExternal(routePath)) {
     return routePath
   }
@@ -125,10 +161,11 @@ function resolvePath(routePath) {
   }
 
   // 简单的路径拼接，适用于前端路由
-  if (props.basePath && !props.basePath.endsWith('/')) {
-    return props.basePath + '/' + routePath
+  const basePath = props.basePath || ''
+  if (basePath && !basePath.endsWith('/') && routePath) {
+    return basePath + '/' + routePath
   }
-  return (props.basePath || '') + routePath
+  return basePath + routePath
 }
 </script>
 

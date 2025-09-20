@@ -305,15 +305,6 @@ export const asyncRoutes = [
         }
       },
       {
-        path: 'logs',
-        name: 'SystemLogs',
-        component: () => import('@/views/system/logs.vue'),
-        meta: {
-          title: '系统日志',
-          icon: 'Document'
-        }
-      },
-      {
         path: 'users',
         name: 'SystemUsers',
         component: () => import('@/views/users/list.vue'),

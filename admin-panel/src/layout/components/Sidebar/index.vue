@@ -25,7 +25,13 @@
           active-text-color="var(--sidebar-text-hover-color)"
           @select="handleMenuSelect"
         >
-          <SidebarItem v-for="route in routes" :key="route.path" :item="route" :base-path="route.path" />
+          <SidebarItem
+            v-for="route in routes"
+            :key="route.path"
+            :item="route"
+            :base-path="route.path"
+            :collapsed="collapsed"
+          />
         </el-menu>
       </el-scrollbar>
 
@@ -132,6 +138,7 @@ const handleMenuSelect = index => {
   align-items: center;
   justify-content: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
 
   .logo-link {
     display: flex;
@@ -140,6 +147,11 @@ const handleMenuSelect = index => {
     color: var(--sidebar-text-hover-color);
     padding: 0 16px;
     width: 100%;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
 
     .logo-content {
       display: flex;
@@ -151,12 +163,14 @@ const handleMenuSelect = index => {
     .logo-icon-mini {
       color: var(--sidebar-text-hover-color);
       flex-shrink: 0;
+      transition: color 0.3s ease;
     }
 
     .logo-icon-mini {
       display: flex;
       justify-content: center;
       width: 100%;
+      font-size: 28px;
     }
 
     .logo-title {
@@ -165,6 +179,13 @@ const handleMenuSelect = index => {
       font-weight: 600;
       white-space: nowrap;
       transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      .logo-icon,
+      .logo-icon-mini {
+        color: var(--el-color-primary);
+      }
     }
   }
 }
@@ -229,13 +250,66 @@ const handleMenuSelect = index => {
       .el-submenu__title {
         text-align: center;
         padding: 0 !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
 
         .el-icon {
           margin-right: 0;
+          font-size: 20px;
+        }
+
+        .menu-icon {
+          margin-right: 0 !important;
         }
 
         span {
           display: none;
+        }
+      }
+
+      // 子菜单在折叠状态下的特殊处理
+      .el-submenu {
+        .el-submenu__title {
+          position: relative;
+
+          &::after {
+            content: '';
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 4px;
+            background-color: var(--sidebar-text-color);
+            border-radius: 50%;
+            opacity: 0.6;
+          }
+
+          &:hover::after {
+            background-color: var(--sidebar-text-hover-color);
+            opacity: 1;
+          }
+        }
+
+        .el-submenu__icon-arrow {
+          display: none;
+        }
+      }
+
+      // 活跃状态的菜单项
+      .el-menu-item.is-active {
+        position: relative;
+
+        &::before {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background-color: var(--el-color-primary);
         }
       }
     }
@@ -251,14 +325,27 @@ const handleMenuSelect = index => {
   color: var(--sidebar-text-color);
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 
   &:hover {
     background-color: var(--sidebar-menu-hover-bg);
     color: var(--sidebar-text-hover-color);
   }
 
+  &:active {
+    background-color: var(--sidebar-menu-active-bg);
+  }
+
   .el-icon {
     font-size: 18px;
+    transition: transform 0.3s ease;
+  }
+
+  // 折叠状态下的动画效果
+  .sidebar--collapsed & {
+    .el-icon {
+      transform: rotate(180deg);
+    }
   }
 }
 

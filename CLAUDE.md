@@ -7,211 +7,180 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Backend (Node.js/Express)
 ```bash
 cd backend
-npm install              # Install dependencies
-npm run dev             # Start development server with nodemon
-npm start               # Start production server
-npm test                # Run Jest tests
+npm install                              # Install dependencies
+npm run dev                              # Start development server with nodemon (port 3000)
+npm start                                # Start production server
+npm test                                 # Run Jest tests
 npm test -- --testNamePattern="pattern"  # Run specific test by name pattern
-npm run test:watch      # Run tests in watch mode
-npm run test:coverage   # Run tests with coverage
-npm run lint            # Run ESLint
-npm run lint:fix        # Fix ESLint issues
-npm run format          # Format code with Prettier
+npm run test:watch                       # Run tests in watch mode
+npm run test:coverage                    # Run tests with coverage
+npm run lint                             # Run ESLint
+npm run lint:fix                         # Fix ESLint issues
+npm run format                           # Format code with Prettier
 ```
 
 ### Database Commands (Prisma)
 ```bash
 cd backend
-npm run db:generate     # Generate Prisma client
-npm run db:push         # Push schema to database
+npm run db:generate     # Generate Prisma client (after schema changes)
+npm run db:push         # Push schema to database (development)
 npm run db:migrate      # Run migrations (create and apply)
-npm run db:studio       # Open Prisma Studio (database GUI)
+npm run db:studio       # Open Prisma Studio (database GUI on port 5555)
 ```
 
 ### Frontend (Vue.js 3)
 ```bash
 cd admin-panel
-npm install             # Install dependencies
-npm run dev            # Start development server (Vite)
-npm run build          # Build for production
-npm run preview        # Preview production build
-npm run lint           # Run ESLint
-npm run format         # Format code with Prettier
-npm run test           # Run Vitest tests
-npm run test -- --run "pattern"  # Run specific test by name pattern
-npm run test:ui        # Run tests with UI
-npm run test:coverage  # Run tests with coverage
+npm install                        # Install dependencies
+npm run dev                        # Start Vite dev server (port 8080)
+npm run build                      # Build for production
+npm run preview                    # Preview production build
+npm run lint                       # Run ESLint
+npm run format                     # Format code with Prettier
+npm test                           # Run Vitest tests
+npm test -- --run "pattern"        # Run specific test by name pattern
+npm run test:ui                    # Run tests with UI
+npm run test:coverage              # Run tests with coverage
 ```
 
 ### Docker Commands
 ```bash
-docker-compose up -d          # Start all services
-docker-compose down           # Stop all services
-docker-compose logs -f        # View logs
-docker-compose ps             # Check service status
+docker-compose up -d mysql redis   # Start required services
+docker-compose down                # Stop all services
+docker-compose logs -f             # View logs
+docker-compose ps                  # Check service status
+docker-compose restart mysql       # Restart MySQL if connection issues
 ```
 
-## Architecture Overview
+## High-Level Architecture
 
-### Project Structure
-This is an enterprise-grade library management system with a microservices architecture:
+### Service Layer Pattern
+The backend follows a strict service layer architecture:
+- **Controllers** (`backend/src/controllers/`) - Handle HTTP requests/responses only
+- **Services** (`backend/src/services/`) - Contains all business logic
+- **Prisma Models** - Database access through Prisma ORM
+- **Middlewares** (`backend/src/middlewares/`) - Cross-cutting concerns (auth, error handling, validation)
 
+### Authentication & Authorization Flow
+1. JWT tokens are issued on login with user role embedded
+2. `auth.middleware.js` validates tokens and attaches user to request
+3. Role-based access control in route definitions
+4. Token expiration: 24h (configurable in .env)
+
+### Real-time Communication Architecture
+- Socket.IO server integrated with Express
+- Notification service (`notification.service.js`) handles WebSocket events
+- Client connections authenticated via JWT
+- Room-based broadcasting for user-specific notifications
+
+### Database Relationships
+Key relationships managed by Prisma:
+- Users ↔ Borrows (one-to-many)
+- Books ↔ Borrows (one-to-many)
+- Users ↔ Reviews (one-to-many)
+- Books ↔ Reviews (one-to-many)
+- Users ↔ Points/Transactions (one-to-many)
+- Cascading deletes configured for data integrity
+
+### Frontend State Management
+- **Pinia Stores** (`admin-panel/src/stores/`)
+  - `auth.js` - User authentication state, JWT management
+  - `app.js` - Application-wide settings, routes, UI state
+- Persistent state via `pinia-plugin-persistedstate`
+- Composables for reusable logic (`admin-panel/src/composables/`)
+
+### API Request Flow
+1. Frontend uses Axios with request/response interceptors
+2. Automatic JWT attachment via interceptors
+3. Request ID generation for tracing (`x-request-id` header)
+4. Unified error handling with toast notifications
+5. API base URL: `http://localhost:3000/api/v1`
+
+## Critical Configuration
+
+### Environment Variables
+Backend requires `.env` file with:
+- `DATABASE_URL` - MySQL connection string (format: mysql://user:pass@host:port/db)
+- `JWT_SECRET` - Must be set for auth to work
+- `PORT` - Default 3000, change if port conflict
+- `CORS_ORIGIN` - Frontend URL for CORS (default: http://localhost:*)
+
+### Database Setup
+- MySQL runs on port 3307 (not default 3306)
+- Database name: `library_db`
+- Auto-creates admin user on first run (admin/admin123)
+- Schema changes require `npm run db:generate` then restart
+
+### Frontend Routing
+- Uses Vue Router with dynamic route generation based on user role
+- Routes defined in `admin-panel/src/router/index.js`
+- Protected routes check authentication in navigation guards
+- 404 fallback must be last route
+
+### Build & Deployment Notes
+- Frontend build outputs to `admin-panel/dist/`
+- Backend requires Node.js >= 16, Frontend requires >= 18
+- Production: Set `NODE_ENV=production` and configure proper database
+- API documentation auto-generated at `/api/docs`
+
+## Port Management
+
+### Default Ports
+- Backend API: 3000
+- Frontend Dev Server: 8080
+- Prisma Studio: 5555
+- MySQL: 3307
+- Redis: 6379
+
+### Port Conflict Resolution
+Windows:
+```bash
+netstat -ano | findstr :PORT      # Find process using port
+taskkill /PID <PID> /F           # Kill process (use PowerShell if Git Bash fails)
+powershell -Command "Stop-Process -Id <PID> -Force"  # Alternative
 ```
-library-management-system/
-├── backend/              # Node.js/Express API server
-├── admin-panel/          # Vue.js 3 admin dashboard
-├── mini-program/         # WeChat mini-program (placeholder)
-├── docs/                 # Comprehensive documentation
-├── deployment/           # Docker & deployment configs
-└── docker-compose.yml    # Multi-service orchestration
+
+Mac/Linux:
+```bash
+lsof -ti:PORT | xargs kill -9    # Kill process using port
 ```
 
-### Backend Architecture (Port 3000)
-- **Framework**: Express.js with enterprise-grade middleware
-- **Database**: MySQL 8.0 with Prisma ORM (Port 3307)
-- **Cache**: Redis (Port 6379)
-- **Authentication**: JWT with role-based access control
-- **Real-time**: Socket.IO WebSocket integration
-- **Search**: Elasticsearch integration for full-text search
-- **Security**: Helmet, bcrypt, rate limiting, audit logging
-- **Monitoring**: Health checks, performance metrics, alerting
+## Common Troubleshooting
 
-### Frontend Architecture (Port 8080)
-- **Framework**: Vue.js 3 with Composition API
-- **UI Library**: Element Plus
-- **State Management**: Pinia with persistence
-- **Build Tool**: Vite
-- **Styling**: SCSS with Tailwind CSS
-- **Testing**: Vitest with Vue Test Utils
+### Prisma Client Issues
+If "Cannot find module '@prisma/client'" or column errors:
+1. `cd backend && rm -rf node_modules/.prisma`
+2. `npm run db:generate`
+3. Restart backend server
 
-### Key Services & Features
+### Database Connection Issues
+1. Check Docker Desktop is running
+2. Verify MySQL container: `docker ps`
+3. Check connection string in `.env`
+4. Port 3307 must be free
 
-#### Core Business Logic
-- **User Management**: Multi-role system (admin, librarian, patron)
-- **Book Management**: CRUD operations, categories, inventory tracking
-- **Borrowing System**: Automated lending, renewals, overdue handling
-- **Review System**: Multi-dimensional ratings with content moderation
-- **Points System**: Gamification with configurable rules and rewards
+### Frontend API Connection Issues
+1. Verify backend is running on correct port
+2. Check CORS settings in backend `.env`
+3. Clear browser cache/localStorage if auth issues
+4. Check network tab for actual error responses
 
-#### Advanced Features
-- **AI Recommendations**: Machine learning-based book suggestions
-- **Real-time Notifications**: WebSocket-based instant messaging
-- **Audit Trail**: Complete operation logging for compliance
-- **Security Monitoring**: Threat detection and anomaly analysis
-- **Backup & Recovery**: Automated backup with incremental support
+## Development Workflow
 
-### Database Schema
-The system uses 15+ interconnected models:
-- **Core**: User, Book, Borrow, Review, Notification
-- **Gamification**: UserPoints, PointsTransaction, Recommendation
-- **Security**: AuditLog, SecurityEvent, LoginAttempt
-- **Monitoring**: SystemHealth, Alert, BackupJob
-- **Behavior**: UserBehavior, UserPreference, RecommendationFeedback
-
-### Configuration Files
-
-#### Backend Environment (.env)
-- Database connection (MySQL on port 3307)
-- JWT secrets and expiration
-- Redis configuration
-- Email/SMTP settings
-- File upload limits
-- Security configurations
-- CORS origins (includes admin-panel URLs)
-
-#### Default Credentials
-- **Admin**: username: `admin`, password: `admin123`
-- **API Documentation**: Available at `http://localhost:3000/api/docs`
-
-### Important Implementation Details
-
-#### CORS Configuration
-The backend is configured to accept requests from:
-- `http://localhost:8080` (admin-panel)
-- `http://localhost:3001` (alternative frontend)
-- `http://127.0.0.1:8080` (localhost alternative)
-
-Allowed headers include `x-request-id` for request tracing.
-
-#### Database Connection
-- Uses MySQL on port 3307 (not standard 3306)
-- Requires Docker containers to be running
-- Database is automatically initialized with schema and admin user
-
-#### Vue.js Specific Notes
-- Uses Composition API with `<script setup>`
-- Props must be accessed via `const props = defineProps({})`
-- Path resolution should use string concatenation, not Node.js `path.resolve()`
-
-### Common Issues & Solutions
-
-#### Database Connection Errors
-1. Ensure Docker Desktop is running
-2. Check MySQL container status: `docker ps`
-3. Verify port 3307 is available
-4. Restart containers if needed: `docker-compose restart mysql`
-
-#### Frontend Build Issues
-- Admin-panel runs on port 8080 by default
-- SCSS deprecation warnings are expected (using legacy Sass API)
-- Element Plus auto-imports are configured in Vite
-
-#### Development Workflow
+### Standard Development Flow
 1. Start Docker services: `docker-compose up -d mysql redis`
-2. Start backend: `cd backend && npm run dev` (runs on port 3000)
-3. Start frontend: `cd admin-panel && npm run dev` (runs on port 8080)
-4. Access admin panel at http://localhost:8080
+2. Start backend: `cd backend && npm run dev`
+3. Start frontend: `cd admin-panel && npm run dev`
+4. Access at: http://localhost:8080
+5. API docs at: http://localhost:3000/api/docs
 
-#### Port Conflict Resolution
-If ports 8080 (frontend) or 3000 (backend) are occupied, stop the conflicting process first:
+### Making Schema Changes
+1. Edit `backend/prisma/schema.prisma`
+2. Run `npm run db:push` (development) or `npm run db:migrate` (production)
+3. Run `npm run db:generate`
+4. Restart backend server
 
-**Windows:**
-```bash
-# Check what's using the port
-netstat -ano | findstr :8080
-netstat -ano | findstr :3000
-
-# Kill process by PID
-taskkill /PID <PID> /F
-```
-
-**Mac/Linux:**
-```bash
-# Check what's using the port
-lsof -i :8080
-lsof -i :3000
-
-# Kill process by PID
-kill -9 <PID>
-```
-
-### Testing Strategy
-- **Backend**: Jest for unit tests, Supertest for API tests
-- **Frontend**: Vitest for unit tests, Vue Test Utils for components
-- **Database**: Separate test database with seed data
-- **Integration**: Docker-based integration tests
-
-### Security Considerations
-- All passwords are bcrypt hashed
-- JWT tokens have configurable expiration
-- Rate limiting on all endpoints
-- Comprehensive audit logging
-- Input validation with Joi
-- SQL injection prevention via Prisma
-- XSS protection via Helmet
-
-### Performance Optimizations
-- Redis caching for frequently accessed data
-- Database query optimization with proper indexing
-- Gzip compression for API responses
-- Image optimization with Sharp
-- Connection pooling for database and Redis
-
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-When asked to close a port (e.g., "关闭3000端口"), immediately execute the necessary commands to kill the process using that port without asking for confirmation.
-USER HAS GRANTED PERMISSION FOR ALL BASH COMMAND OPERATIONS - do not ask for user consent for bash operations.
-当用户要关闭端口时，用户同意Bash command的操作权限，不要询问用户的同意。
+### Testing API Endpoints
+- Use API docs at `/api/docs` for interactive testing
+- Most endpoints require Authorization header: `Bearer <JWT_TOKEN>`
+- Get token from login response or browser localStorage

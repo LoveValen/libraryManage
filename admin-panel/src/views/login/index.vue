@@ -102,7 +102,8 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElLoading } from 'element-plus'
+import { message } from '@/utils/message'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { createValidationRules } from '@/utils/validate'
@@ -171,7 +172,7 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('登录错误:', error)
 
-    ElMessage.error(error.message || '登录失败，请稍后重试')
+    message.error(error.message || '登录失败，请稍后重试')
   } finally {
     loading.value = false
   }

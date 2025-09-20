@@ -247,50 +247,6 @@
         </div>
       </el-card>
 
-      <!-- 系统维护 -->
-      <el-card shadow="never" class="settings-card">
-        <template #header>
-          <div class="card-header">
-            <div class="header-title">
-              <el-icon><Tools /></el-icon>
-              系统维护
-            </div>
-          </div>
-        </template>
-
-        <div class="maintenance-actions">
-          <el-row :gutter="16">
-            <el-col :span="8">
-              <div class="maintenance-item">
-                <div class="item-icon">
-                  <el-icon><Document /></el-icon>
-                </div>
-                <div class="item-content">
-                  <div class="item-title">清理日志</div>
-                  <div class="item-description">清理过期日志</div>
-                </div>
-                <el-button type="warning" size="small" @click="cleanLogs" :loading="cleaningLogs">
-                  清理
-                </el-button>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="maintenance-item">
-                <div class="item-icon">
-                  <el-icon><Delete /></el-icon>
-                </div>
-                <div class="item-content">
-                  <div class="item-title">清理缓存</div>
-                  <div class="item-description">清理临时文件</div>
-                </div>
-                <el-button type="warning" size="small" @click="cleanCache" :loading="cleaningCache">
-                  清理
-                </el-button>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
-      </el-card>
     </div>
   </div>
 </template>
@@ -298,23 +254,18 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
-import { 
-  Setting, 
-  Reading, 
-  Monitor, 
-  Tools, 
-  Check, 
-  RefreshLeft, 
-  FolderOpened, 
-  Document, 
-  Delete 
+import {
+  Setting,
+  Reading,
+  Monitor,
+  Check,
+  RefreshLeft,
+  FolderOpened
 } from '@element-plus/icons-vue'
 import InputNumber from '@/components/InputNumber.vue'
 
 // 响应式数据
 const saving = ref(false)
-const cleaningLogs = ref(false)
-const cleaningCache = ref(false)
 const currentTime = ref('')
 
 // 系统信息
@@ -332,8 +283,8 @@ const basicSettings = reactive({
   contactPhone: '010-12345678',
   capacity: 10000,
   annualFee: 50.00,
-  openTime: '08:00',
-  closeTime: '20:00'
+  openTime: new Date(2024, 0, 1, 8, 0), // 08:00
+  closeTime: new Date(2024, 0, 1, 20, 0) // 20:00
 })
 
 // 借阅规则设置
@@ -378,8 +329,8 @@ const resetSettings = () => {
       contactPhone: '010-12345678',
       capacity: 10000,
       annualFee: 50.00,
-      openTime: '08:00',
-      closeTime: '20:00'
+      openTime: new Date(2024, 0, 1, 8, 0), // 08:00
+      closeTime: new Date(2024, 0, 1, 20, 0) // 20:00
     })
     
     Object.assign(borrowSettings, {
@@ -394,54 +345,6 @@ const resetSettings = () => {
   }).catch(() => {})
 }
 
-// 系统维护操作
-const cleanLogs = async () => {
-  try {
-    await ElMessageBox.confirm('确定要清理过期日志吗？', '清理日志', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    cleaningLogs.value = true
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    ElNotification.success({
-      title: '清理完成',
-      message: '过期日志已清理完成'
-    })
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('清理失败')
-    }
-  } finally {
-    cleaningLogs.value = false
-  }
-}
-
-const cleanCache = async () => {
-  try {
-    await ElMessageBox.confirm('确定要清理系统缓存吗？', '清理缓存', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    cleaningCache.value = true
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    ElNotification.success({
-      title: '清理完成',
-      message: '系统缓存已清理完成'
-    })
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('清理失败')
-    }
-  } finally {
-    cleaningCache.value = false
-  }
-}
 
 // 更新时间
 const updateCurrentTime = () => {
@@ -555,53 +458,6 @@ onUnmounted(() => {
   }
 }
 
-.maintenance-actions {
-  .maintenance-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 8px;
-    background: var(--el-fill-color-blank);
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: var(--el-color-primary-light-7);
-      background: var(--el-color-primary-light-9);
-    }
-
-    .item-icon {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--el-color-primary-light-9);
-      border-radius: 50%;
-      color: var(--el-color-primary);
-      
-      .el-icon {
-        font-size: 18px;
-      }
-    }
-
-    .item-content {
-      flex: 1;
-
-      .item-title {
-        font-weight: 500;
-        color: var(--el-text-color-primary);
-        margin-bottom: 2px;
-      }
-
-      .item-description {
-        font-size: 12px;
-        color: var(--el-text-color-regular);
-      }
-    }
-  }
-}
 
 // 响应式设计
 @media (max-width: 768px) {
@@ -619,17 +475,6 @@ onUnmounted(() => {
     justify-content: center;
   }
 
-  .maintenance-actions {
-    .el-col {
-      margin-bottom: 16px;
-    }
-    
-    .maintenance-item {
-      flex-direction: column;
-      text-align: center;
-      gap: 8px;
-    }
-  }
 
   .system-info {
     .info-item {

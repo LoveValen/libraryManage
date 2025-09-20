@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '@/api/auth'
-import { ElMessage } from 'element-plus'
+import { message } from '@/utils/message'
 import router from '@/router'
 
 export const useAuthStore = defineStore(
@@ -46,7 +46,7 @@ export const useAuthStore = defineStore(
 
         return response
       } catch (error) {
-        ElMessage.error(error.message || '登录失败')
+        message.error(error.message || '登录失败')
         throw error
       } finally {
         loading.value = false
@@ -135,7 +135,7 @@ export const useAuthStore = defineStore(
 
         return response
       } catch (error) {
-        ElMessage.error(error.message || '密码修改失败')
+        message.error(error.message || '密码修改失败')
         throw error
       } finally {
         loading.value = false
@@ -159,7 +159,7 @@ export const useAuthStore = defineStore(
 
         return response
       } catch (error) {
-        ElMessage.error(error.message || '资料更新失败')
+        message.error(error.message || '资料更新失败')
         throw error
       } finally {
         loading.value = false

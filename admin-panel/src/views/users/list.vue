@@ -34,31 +34,29 @@
           @create="handleAdd"
           @selection-change="handleProTableSelectionChange"
         >
-          <!-- 用户信息插槽 -->
-          <template #userInfo="{ record }">
-            <div class="user-info">
-              <el-avatar :size="40" :src="record.avatar" class="user-avatar">
+          <!-- 用户名插槽 -->
+          <template #username="{ record }">
+            <div class="username-info">
+              <el-avatar :size="32" :src="record.avatar" class="user-avatar">
                 <el-icon><User /></el-icon>
               </el-avatar>
-              <div class="user-details">
-                <div class="user-name">{{ record.username }}</div>
-                <div class="user-real-name">{{ record.realName || '-' }}</div>
-              </div>
+              <span class="username">{{ record.username }}</span>
             </div>
           </template>
 
-          <!-- 联系方式插槽 -->
-          <template #contact="{ record }">
-            <div class="contact-info">
-              <div class="contact-item">
-                <el-icon><Message /></el-icon>
-                <span>{{ record.email || '-' }}</span>
-              </div>
-              <div class="contact-item">
-                <el-icon><Phone /></el-icon>
-                <span>{{ record.phone || '-' }}</span>
-              </div>
-            </div>
+          <!-- 真实姓名插槽 -->
+          <template #realName="{ record }">
+            <span>{{ record.realName || '-' }}</span>
+          </template>
+
+          <!-- 邮箱插槽 -->
+          <template #email="{ record }">
+            <span>{{ record.email || '-' }}</span>
+          </template>
+
+          <!-- 电话插槽 -->
+          <template #phone="{ record }">
+            <span>{{ record.phone || '-' }}</span>
           </template>
 
           <!-- 角色插槽 -->
@@ -76,38 +74,32 @@
             <StatusTag :status="record.status" :preset="'user'" size="small" />
           </template>
 
-          <!-- 借阅统计插槽 -->
-          <template #borrowStats="{ record }">
-            <div class="borrow-stats">
-              <div class="stat-item">
-                <span class="stat-label">当前:</span>
-                <span class="stat-value">{{ record.currentBorrows || 0 }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">历史:</span>
-                <span class="stat-value">{{ record.totalBorrows || 0 }}</span>
-              </div>
-            </div>
+          <!-- 当前借阅插槽 -->
+          <template #currentBorrows="{ record }">
+            <span>{{ record.currentBorrows || 0 }}</span>
+          </template>
+
+          <!-- 历史借阅插槽 -->
+          <template #historyBorrows="{ record }">
+            <span>{{ record.totalBorrows || 0 }}</span>
           </template>
 
           <!-- 积分插槽 -->
           <template #points="{ record }">
-            <span class="points-value">{{ record.points?.balance || record.pointsBalance || 0 }}</span>
+            <span>{{ record.points?.balance || record.pointsBalance || 0 }}</span>
           </template>
 
           <!-- 最后登录时间插槽 -->
           <template #lastLogin="{ record }">
             <div class="time-info">
-              <div>{{ formatDate(record.lastLoginAt) }}</div>
-              <div class="time-ago">{{ formatTimeAgo(record.lastLoginAt) }}</div>
+              <div>{{ formatDate(record.last_login_at) }}</div>
             </div>
           </template>
 
           <!-- 注册时间插槽 -->
           <template #createdTime="{ record }">
             <div class="time-info">
-              <div>{{ formatDate(record.createdAt) }}</div>
-              <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
+              <div>{{ formatDate(record.created_at) }}</div>
             </div>
           </template>
 
@@ -176,7 +168,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
+import { message } from '@/utils/message'
 import {
   User,
   Message,
@@ -235,17 +228,31 @@ const userSearchParams = computed(() => ({
 // 所有可用的列配置
 const allUserTableColumns = [
   {
-    key: 'userInfo',
-    title: '用户信息',
-    slot: 'userInfo',
+    key: 'username',
+    title: '用户名',
+    slot: 'username',
+    minWidth: 140,
+    align: 'center'
+  },
+  {
+    key: 'realName',
+    title: '真实姓名',
+    slot: 'realName',
+    minWidth: 120,
+    align: 'center'
+  },
+  {
+    key: 'email',
+    title: '邮箱',
+    slot: 'email',
     minWidth: 180,
     align: 'center'
   },
   {
-    key: 'contact',
-    title: '联系方式',
-    slot: 'contact',
-    minWidth: 160,
+    key: 'phone',
+    title: '电话',
+    slot: 'phone',
+    minWidth: 140,
     align: 'center'
   },
   {
@@ -265,17 +272,24 @@ const allUserTableColumns = [
     align: 'center'
   },
   {
-    key: 'borrowStats',
-    title: '借阅统计',
-    slot: 'borrowStats',
-    minWidth: 110,
+    key: 'currentBorrows',
+    title: '当前借阅',
+    slot: 'currentBorrows',
+    minWidth: 100,
+    align: 'center'
+  },
+  {
+    key: 'historyBorrows',
+    title: '历史借阅',
+    slot: 'historyBorrows',
+    minWidth: 100,
     align: 'center'
   },
   {
     key: 'points',
     title: '积分',
     slot: 'points',
-    minWidth: 70,
+    minWidth: 100,
     sorter: true,
     align: 'center'
   },
@@ -413,22 +427,28 @@ const searchFields = [
 
 // 默认列设置配置
 const defaultVisibleColumns = [
-  'userInfo',
-  'contact',
+  'username',
+  'realName',
+  'email',
+  'phone',
   'role',
   'status',
-  'borrowStats',
+  'currentBorrows',
+  'historyBorrows',
   'points',
   'lastLogin',
   'registerTime'
 ]
 
 const defaultColumnOptions = [
-  { label: '用户信息', value: 'userInfo', required: true },
-  { label: '联系方式', value: 'contact' },
+  { label: '用户名', value: 'username', required: true },
+  { label: '真实姓名', value: 'realName' },
+  { label: '邮箱', value: 'email' },
+  { label: '电话', value: 'phone' },
   { label: '角色', value: 'role' },
   { label: '状态', value: 'status' },
-  { label: '借阅统计', value: 'borrowStats' },
+  { label: '当前借阅', value: 'currentBorrows' },
+  { label: '历史借阅', value: 'historyBorrows' },
   { label: '积分', value: 'points' },
   { label: '最后登录', value: 'lastLogin' },
   { label: '注册时间', value: 'registerTime' }
@@ -542,7 +562,7 @@ const fetchUsers = async () => {
   } catch (error) {
     console.error('获取用户列表失败:', error)
     const message = error.message || '获取用户列表失败'
-    ElMessage.error(message)
+    message.error(message)
 
     // 如果是API不可用，显示空状态而不是错误
     if (error.message === 'User API is not available') {
@@ -639,7 +659,7 @@ const handleAdd = () => {
     router.push('/system/users/create')
   } catch (error) {
     console.error('Navigation to create user failed:', error)
-    ElMessage.error('导航失败，请刷新页面后重试')
+    message.error('导航失败，请刷新页面后重试')
   }
 }
 
@@ -656,7 +676,7 @@ const handleEdit = user => {
     })
   } catch (error) {
     console.error('Navigation to edit user failed:', error)
-    ElMessage.error('导航失败，请刷新页面后重试')
+    message.error('导航失败，请刷新页面后重试')
   }
 }
 
@@ -687,11 +707,11 @@ const handleResetPassword = async user => {
     })
 
     await userApi.resetPassword(user.id)
-    ElMessage.success('密码重置成功')
+    message.success('密码重置成功')
   } catch (error) {
     if (error !== 'cancel') {
       console.error('重置密码失败:', error)
-      ElMessage.error('重置密码失败')
+      message.error('重置密码失败')
     }
   }
 }
@@ -705,11 +725,11 @@ const handleToggleStatus = async user => {
     await userApi.updateUser(user.id, { status: newStatus })
 
     user.status = newStatus
-    ElMessage.success(`用户${action}成功`)
+    message.success(`用户${action}成功`)
   } catch (error) {
     if (error !== 'cancel') {
       console.error('更新用户状态失败:', error)
-      ElMessage.error('更新用户状态失败')
+      message.error('更新用户状态失败')
     }
   }
 }
@@ -719,12 +739,12 @@ const handleDelete = async user => {
     await ElMessageBox.confirm(`确定要删除用户"${user.username}"吗？此操作不可撤销！`, '删除用户', { type: 'warning' })
 
     await userApi.deleteUser(user.id)
-    ElMessage.success('用户删除成功')
+    message.success('用户删除成功')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除用户失败:', error)
-      ElMessage.error('删除用户失败')
+      message.error('删除用户失败')
     }
   }
 }
@@ -741,19 +761,19 @@ const handleBatchDeleteFromTable = async (selectedRows) => {
     const userIds = selectedRows.map(user => user.id)
     await userApi.batchDeleteUsers(userIds)
 
-    ElMessage.success('批量删除成功')
+    message.success('批量删除成功')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
+      message.error('批量删除失败')
     }
   }
 }
 
 const handleBatchToggleStatusFromTable = async (selectedRows) => {
   if (selectedRows.length === 0) {
-    ElMessage.warning('请选择要切换状态的用户')
+    message.warning('请选择要切换状态的用户')
     return
   }
 
@@ -775,12 +795,12 @@ const handleBatchToggleStatusFromTable = async (selectedRows) => {
     const userIds = selectedRows.map(user => user.id)
     await userApi.batchUpdateStatus(userIds, action)
 
-    ElMessage.success('批量状态切换成功')
+    message.success('批量状态切换成功')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量状态切换失败:', error)
-      ElMessage.error('批量状态切换失败')
+      message.error('批量状态切换失败')
     }
   }
 }
@@ -813,10 +833,10 @@ const handleExport = async () => {
     link.click()
     window.URL.revokeObjectURL(url)
 
-    ElMessage.success('导出成功')
+    message.success('导出成功')
   } catch (error) {
     console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    message.error('导出失败')
   } finally {
     exportLoading.value = false
   }
@@ -908,82 +928,21 @@ onMounted(() => {
   gap: 8px;
 }
 
-.user-info {
+.username-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 8px 0;
-}
 
-.user-avatar {
-  flex-shrink: 0;
-}
-
-.user-details {
-  min-width: 0;
-
-  .user-name {
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    margin-bottom: 2px;
+  .user-avatar {
+    flex-shrink: 0;
   }
 
-  .user-real-name {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
+  .username {
+    font-weight: 500;
   }
 }
 
-.contact-info {
-  padding: 8px 0;
-  
-  .contact-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-    font-size: 13px;
-    color: var(--el-text-color-regular);
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .el-icon {
-      font-size: 14px;
-      color: var(--el-text-color-secondary);
-    }
-  }
-}
-
-.borrow-stats {
-  padding: 8px 0;
-  
-  .stat-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
-    font-size: 13px;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-
-    .stat-label {
-      color: var(--el-text-color-secondary);
-    }
-
-    .stat-value {
-      font-weight: 600;
-      color: var(--el-color-primary);
-    }
-  }
-}
-
-.points-value {
-  font-weight: 600;
-  color: var(--el-color-warning);
-}
 
 .time-info {
   padding: 8px 0;
@@ -1129,11 +1088,9 @@ onMounted(() => {
     justify-content: space-between;
   }
 
-  .user-info {
-    .user-details {
-      .user-name {
-        font-size: 14px;
-      }
+  .username-info {
+    .username {
+      font-size: 14px;
     }
   }
 
