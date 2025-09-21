@@ -44,17 +44,23 @@ export function useMenuSearch() {
           return
         }
 
-        // 添加有标题的路由
+        // 添加有标题的路由，但排除纯目录项（只作为父级容器的路由）
         if (route.meta?.title) {
-          const fullPath = parentPath + route.path
-          menuItems.push({
-            title: route.meta.title,
-            path: route.path === '' ? parentPath : fullPath,
-            icon: route.meta.icon,
-            name: route.name,
-            breadcrumb: getBreadcrumb(route, routes),
-            route: route
-          })
+          // 检查是否为纯目录项：有redirect属性且有children的路由通常是目录
+          const isDirectoryOnly = route.redirect && route.children && route.children.length > 0
+
+          // 只添加非目录项的路由
+          if (!isDirectoryOnly) {
+            const fullPath = parentPath + route.path
+            menuItems.push({
+              title: route.meta.title,
+              path: route.path === '' ? parentPath : fullPath,
+              icon: route.meta.icon,
+              name: route.name,
+              breadcrumb: getBreadcrumb(route, routes),
+              route: route
+            })
+          }
         }
 
         // 递归处理子路由

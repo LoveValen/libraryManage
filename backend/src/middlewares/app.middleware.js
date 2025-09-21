@@ -63,6 +63,9 @@ const securityMiddleware = () => {
 const corsMiddleware = () => {
   const allowedOrigins = [
     'http://localhost:8080',
+    'http://localhost:8081', // 添加8081端口支持
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:8081',
     'http://8.133.18.41:8080'
   ];
   

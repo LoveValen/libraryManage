@@ -28,11 +28,19 @@ const getBreadcrumb = () => {
   // 过滤掉不在面包屑中显示的路由
   let matched = route.matched.filter(item => item.meta && item.meta.title)
 
+  // 如果当前就是仪表板页面，直接显示仪表板
+  if (route.path === '/dashboard' || route.name === 'Dashboard') {
+    breadcrumbs.value = matched.filter(item => {
+      return item.meta && item.meta.title && item.meta.breadcrumb !== false
+    })
+    return
+  }
+
   const first = matched[0]
 
-  // 如果第一个不是首页，添加首页
-  if (!isDashboard(first)) {
-    matched = [{ path: '/dashboard', meta: { title: '首页' } }].concat(matched)
+  // 如果第一个不是首页且不是仪表板路由，添加首页
+  if (!isDashboard(first) && route.path !== '/dashboard') {
+    matched = [{ path: '/dashboard', meta: { title: '仪表板' } }].concat(matched)
   }
 
   breadcrumbs.value = matched.filter(item => {

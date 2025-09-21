@@ -32,10 +32,6 @@
         <div v-if="showDropdown" class="search-dropdown">
           <!-- 搜索结果 -->
           <div v-if="searchResults.length > 0" class="search-section">
-            <div class="search-section-title">
-              <el-icon><Search /></el-icon>
-              搜索结果
-            </div>
             <div
               v-for="(result, index) in searchResults"
               :key="result.path"
@@ -44,43 +40,10 @@
               @click="selectResult(result)"
               @mouseenter="selectedIndex = index"
             >
-              <el-icon v-if="result.icon" class="search-item-icon">
-                <component :is="result.icon" />
-              </el-icon>
-              <div class="search-item-content">
-                <div class="search-item-title" v-html="result.highlightedTitle"></div>
-                <div class="search-item-path">{{ result.path }}</div>
-              </div>
+              <div class="search-item-title" v-html="result.highlightedTitle"></div>
             </div>
           </div>
 
-          <!-- 搜索历史 -->
-          <div v-else-if="getPopularSearches.length > 0 && !searchKeyword" class="search-section">
-            <div class="search-section-title">
-              <el-icon><Clock /></el-icon>
-              最近访问
-              <el-button
-                type="text"
-                size="small"
-                class="clear-history-btn"
-                @click.stop="clearSearchHistory"
-              >
-                清空
-              </el-button>
-            </div>
-            <div
-              v-for="(item, index) in getPopularSearches"
-              :key="item.path"
-              class="search-item"
-              :class="{ 'selected': selectedIndex === index }"
-              @click="selectResult(item, false)"
-              @mouseenter="selectedIndex = index"
-            >
-              <div class="search-item-content">
-                <div class="search-item-title">{{ item.title }}</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -176,7 +139,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { Switch, SwitchButton, Search, Clock, DocumentRemove } from '@element-plus/icons-vue'
+import { Switch, SwitchButton, Search, DocumentRemove } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useRouter } from 'vue-router'
@@ -196,13 +159,10 @@ const {
   isSearching,
   showDropdown,
   selectedIndex,
-  searchHistory,
-  getPopularSearches,
   handleSearchInput,
   clearSearch,
   selectResult,
-  handleKeydown,
-  clearSearchHistory
+  handleKeydown
 } = useMenuSearch()
 
 // 响应式数据
@@ -242,8 +202,8 @@ const toggleSideBar = () => {
 
 // 显示搜索下拉框
 const showSearchDropdown = () => {
-  // 如果有搜索历史且没有搜索关键词，显示历史记录
-  if (!searchKeyword.value && getPopularSearches.value.length > 0) {
+  // 只在有搜索关键词时显示下拉框
+  if (searchKeyword.value) {
     showDropdown.value = true
   }
 }
@@ -532,10 +492,10 @@ document.addEventListener('fullscreenchange', () => {
   .search-item {
     display: flex;
     align-items: center;
-    gap: 12px;
     padding: 12px 16px;
     cursor: pointer;
     transition: background-color 0.2s;
+    line-height: 16px;
 
     &:hover,
     &.selected {
@@ -548,30 +508,10 @@ document.addEventListener('fullscreenchange', () => {
       flex-shrink: 0;
     }
 
-    .search-item-content {
-      flex: 1;
-      min-width: 0;
-
-      .search-item-title {
-        font-size: 14px;
-        color: var(--el-text-color-primary);
-        margin-bottom: 2px;
-
-        :deep(mark) {
-          background-color: var(--el-color-warning-light-7);
-          color: var(--el-color-warning-dark-2);
-          padding: 0 2px;
-          border-radius: 2px;
-        }
-      }
-
-      .search-item-path {
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
+    .search-item-title {
+      font-size: 14px;
+      color: var(--el-text-color-primary);
+      margin-bottom: 2px;
     }
   }
 
