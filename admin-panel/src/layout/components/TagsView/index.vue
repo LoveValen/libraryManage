@@ -116,8 +116,10 @@ const filterAffixTags = (routes, basePath = '/') => {
   let tags = []
   routes.forEach(route => {
     if (route.meta && route.meta.affix) {
-      // 简单的路径拼接，替代path.resolve
-      const tagPath = basePath === '/' ? route.path : `${basePath}/${route.path}`.replace(/\/+/g, '/')
+      // 确保路径始终以 / 开头
+      const tagPath = basePath === '/'
+        ? `/${route.path}`.replace(/\/+/g, '/')
+        : `${basePath}/${route.path}`.replace(/\/+/g, '/')
       tags.push({
         fullPath: tagPath,
         path: tagPath,
@@ -126,7 +128,9 @@ const filterAffixTags = (routes, basePath = '/') => {
       })
     }
     if (route.children) {
-      const tempTags = filterAffixTags(route.children, route.path)
+      // 确保传递的basePath以/开头
+      const childBasePath = route.path.startsWith('/') ? route.path : `/${route.path}`
+      const tempTags = filterAffixTags(route.children, childBasePath)
       if (tempTags.length >= 1) {
         tags = [...tags, ...tempTags]
       }

@@ -145,8 +145,8 @@ export const useAppStore = defineStore(
       visitedViews.value.push({
         name: view.name,
         path: view.path,
-        title: view.meta.title || 'No Title',
-        affix: view.meta.affix || false
+        title: view.meta?.title || 'No Title',
+        affix: view.meta?.affix || false
       })
     }
 
