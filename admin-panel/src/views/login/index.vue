@@ -283,11 +283,11 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 .login-container {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(135deg, 
-              #f0f9ff 0%, 
-              #e0f2fe 25%, 
-              #bae6fd 50%, 
-              #7dd3fc 75%, 
+  background: linear-gradient(135deg,
+              #f0f9ff 0%,
+              #e0f2fe 25%,
+              #bae6fd 50%,
+              #7dd3fc 75%,
               #38bdf8 100%);
   background-size: 400% 400%;
   display: flex;
@@ -297,6 +297,8 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
   position: relative;
   overflow: hidden;
   animation: gradientShift 8s ease-in-out infinite;
+  transition: background 0.3s ease;
+
 
   // 浮动粒子背景
   &::before {
@@ -1021,5 +1023,18 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
     flex-direction: column;
     gap: 10px;
   }
+}
+</style>
+
+<style lang="scss">
+// 深色主题登录页面样式 - 非scoped
+[data-theme="dark"] .login-container,
+.dark .login-container {
+  background: linear-gradient(135deg,
+              #0a0a0a 0%,
+              #1a1a1a 25%,
+              #2a2a2a 50%,
+              #1e293b 75%,
+              #334155 100%) !important;
 }
 </style>
