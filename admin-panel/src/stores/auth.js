@@ -46,7 +46,8 @@ export const useAuthStore = defineStore(
 
         return response
       } catch (error) {
-        message.error(error.message || '登录失败')
+        // 不在这里显示错误信息，让调用方处理
+        // 或者让API拦截器统一处理
         throw error
       } finally {
         loading.value = false

@@ -14,16 +14,74 @@
 
     <div class="nav-header-right">
       <!-- 搜索 -->
-      <div class="header-search">
+      <div class="header-search" v-click-outside="hideSearchDropdown">
         <el-input
+          ref="searchInputRef"
           v-model="searchKeyword"
           placeholder="搜索菜单..."
           prefix-icon="Search"
           size="small"
           clearable
-          @input="handleSearch"
-          @clear="handleSearchClear"
+          @input="handleSearchInput"
+          @clear="clearSearch"
+          @focus="showSearchDropdown"
+          @keydown="handleKeydown"
         />
+
+        <!-- 搜索下拉框 -->
+        <div v-if="showDropdown" class="search-dropdown">
+          <!-- 搜索结果 -->
+          <div v-if="searchResults.length > 0" class="search-section">
+            <div class="search-section-title">
+              <el-icon><Search /></el-icon>
+              搜索结果
+            </div>
+            <div
+              v-for="(result, index) in searchResults"
+              :key="result.path"
+              class="search-item"
+              :class="{ 'selected': selectedIndex === index }"
+              @click="selectResult(result)"
+              @mouseenter="selectedIndex = index"
+            >
+              <el-icon v-if="result.icon" class="search-item-icon">
+                <component :is="result.icon" />
+              </el-icon>
+              <div class="search-item-content">
+                <div class="search-item-title" v-html="result.highlightedTitle"></div>
+                <div class="search-item-path">{{ result.path }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 搜索历史 -->
+          <div v-else-if="getPopularSearches.length > 0 && !searchKeyword" class="search-section">
+            <div class="search-section-title">
+              <el-icon><Clock /></el-icon>
+              最近访问
+              <el-button
+                type="text"
+                size="small"
+                class="clear-history-btn"
+                @click.stop="clearSearchHistory"
+              >
+                清空
+              </el-button>
+            </div>
+            <div
+              v-for="(item, index) in getPopularSearches"
+              :key="item.path"
+              class="search-item"
+              :class="{ 'selected': selectedIndex === index }"
+              @click="selectResult(item, false)"
+              @mouseenter="selectedIndex = index"
+            >
+              <div class="search-item-content">
+                <div class="search-item-title">{{ item.title }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 通知 -->
@@ -118,10 +176,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { Switch, SwitchButton } from '@element-plus/icons-vue'
+import { Switch, SwitchButton, Search, Clock, DocumentRemove } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useRouter } from 'vue-router'
+import { useMenuSearch } from '@/composables/useMenuSearch'
+import { clickOutside } from '@/directives/clickOutside'
 import Breadcrumb from './Breadcrumb.vue'
 import NotificationPanel from './NotificationPanel.vue'
 
@@ -129,8 +189,24 @@ const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
+// 菜单搜索功能
+const {
+  searchKeyword,
+  searchResults,
+  isSearching,
+  showDropdown,
+  selectedIndex,
+  searchHistory,
+  getPopularSearches,
+  handleSearchInput,
+  clearSearch,
+  selectResult,
+  handleKeydown,
+  clearSearchHistory
+} = useMenuSearch()
+
 // 响应式数据
-const searchKeyword = ref('')
+const searchInputRef = ref()
 const notificationPanelRef = ref()
 const isFullscreen = ref(false)
 
@@ -164,15 +240,20 @@ const toggleSideBar = () => {
   appStore.toggleSidebar()
 }
 
-const handleSearch = value => {
-  if (value.trim()) {
-    // 实现菜单搜索逻辑
-    console.log('搜索菜单:', value)
+// 显示搜索下拉框
+const showSearchDropdown = () => {
+  // 如果有搜索历史且没有搜索关键词，显示历史记录
+  if (!searchKeyword.value && getPopularSearches.value.length > 0) {
+    showDropdown.value = true
   }
 }
 
-const handleSearchClear = () => {
-  searchKeyword.value = ''
+// 隐藏搜索下拉框
+const hideSearchDropdown = () => {
+  setTimeout(() => {
+    showDropdown.value = false
+    selectedIndex.value = -1
+  }, 200)
 }
 
 
@@ -296,8 +377,15 @@ document.addEventListener('fullscreenchange', () => {
   gap: 16px;
 
   .header-search {
+    position: relative;
+
     .el-input {
-      width: 200px;
+      width: 240px;
+      transition: width 0.3s;
+
+      &:focus-within {
+        width: 280px;
+      }
     }
   }
 
@@ -402,6 +490,138 @@ document.addEventListener('fullscreenchange', () => {
 }
 
 // 通知弹窗样式
+// 搜索下拉框样式
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 2000;
+  max-height: 400px;
+  overflow: auto;
+  margin-top: 4px;
+
+  .search-section {
+    padding: 8px 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--el-border-color-lighter);
+    }
+
+    .search-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      font-weight: 500;
+
+      .clear-history-btn {
+        margin-left: auto;
+        font-size: 12px;
+        padding: 0;
+      }
+    }
+  }
+
+  .search-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover,
+    &.selected {
+      background-color: var(--el-color-primary-light-9);
+    }
+
+    .search-item-icon {
+      font-size: 16px;
+      color: var(--el-color-primary);
+      flex-shrink: 0;
+    }
+
+    .search-item-content {
+      flex: 1;
+      min-width: 0;
+
+      .search-item-title {
+        font-size: 14px;
+        color: var(--el-text-color-primary);
+        margin-bottom: 2px;
+
+        :deep(mark) {
+          background-color: var(--el-color-warning-light-7);
+          color: var(--el-color-warning-dark-2);
+          padding: 0 2px;
+          border-radius: 2px;
+        }
+      }
+
+      .search-item-path {
+        font-size: 12px;
+        color: var(--el-text-color-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .search-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--el-text-color-secondary);
+
+    .el-icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .search-empty-tip {
+      font-size: 12px;
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+  }
+
+  .search-tips {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background-color: var(--el-fill-color-lighter);
+
+    .search-tip-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+
+      .tip-key {
+        background-color: var(--el-bg-color);
+        border: 1px solid var(--el-border-color);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: monospace;
+        font-size: 11px;
+      }
+    }
+  }
+}
+
 :deep(.notification-popover) {
   padding: 0 !important;
   border-radius: 8px !important;
@@ -411,7 +631,7 @@ document.addEventListener('fullscreenchange', () => {
   max-height: 500px !important;
   overflow: hidden !important;
   z-index: 2000 !important;
-  
+
   .el-popover__arrow {
     display: none !important;
   }

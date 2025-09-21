@@ -172,7 +172,17 @@ const handleLogin = async () => {
   } catch (error) {
     console.error('登录错误:', error)
 
-    message.error(error.message || '登录失败，请稍后重试')
+    // 检查错误类型，避免重复显示已被拦截器处理的错误
+    const errorMessage = error.message || ''
+    const isNetworkError = errorMessage.includes('Network Error') || errorMessage.includes('网络连接失败')
+    const isAlreadyHandled = errorMessage.includes('网络连接失败') ||
+                            errorMessage.includes('请求超时') ||
+                            errorMessage.includes('请求失败')
+
+    // 只有在拦截器未处理的情况下才显示错误
+    if (!isNetworkError && !isAlreadyHandled) {
+      message.error(errorMessage || '登录失败，请稍后重试')
+    }
   } finally {
     loading.value = false
   }

@@ -244,7 +244,7 @@ if (typeof window !== 'undefined') {
 const errorMessageCache = new Set()
 const errorTimeCache = new Map()
 const ERROR_CACHE_DURATION = 3000 // 3秒内不重复显示相同错误
-const NETWORK_ERROR_CACHE_DURATION = 5000 // 网络错误显示间隔更长
+const NETWORK_ERROR_CACHE_DURATION = 8000 // 网络错误显示间隔更长，避免重复弹窗
 
 // 错误类型分类
 const ERROR_TYPES = {
@@ -278,14 +278,25 @@ function showErrorMessage(message, type = 'error') {
 
   const now = Date.now()
   const errorType = getErrorType(message)
-  const cacheKey = `${type}:${errorType}:${message}`
+
+  // 为相同类型的错误创建通用缓存键，防止多层重复
+  const genericCacheKey = `${type}:${errorType}`
+  const specificCacheKey = `${type}:${errorType}:${message}`
 
   // 根据错误类型设置不同的缓存时间
   const cacheDuration = errorType === ERROR_TYPES.NETWORK ? NETWORK_ERROR_CACHE_DURATION : ERROR_CACHE_DURATION
 
-  // 检查是否在缓存时间内
-  if (errorTimeCache.has(cacheKey)) {
-    const lastShowTime = errorTimeCache.get(cacheKey)
+  // 检查通用错误类型是否在缓存时间内（防止同类错误多次显示）
+  if (errorTimeCache.has(genericCacheKey)) {
+    const lastShowTime = errorTimeCache.get(genericCacheKey)
+    if (now - lastShowTime < cacheDuration) {
+      return // 跳过重复显示
+    }
+  }
+
+  // 检查具体错误消息是否重复
+  if (errorTimeCache.has(specificCacheKey)) {
+    const lastShowTime = errorTimeCache.get(specificCacheKey)
     if (now - lastShowTime < cacheDuration) {
       return // 跳过重复显示
     }
@@ -296,27 +307,33 @@ function showErrorMessage(message, type = 'error') {
     ElMessage.error({
       message,
       duration: errorType === ERROR_TYPES.NETWORK ? 4000 : 3000,
-      showClose: true
+      showClose: true,
+      grouping: true // 启用Element Plus的消息分组功能
     })
   } else if (type === 'warning') {
     ElMessage.warning({
       message,
       duration: 3000,
-      showClose: true
+      showClose: true,
+      grouping: true
     })
   } else {
     ElMessage({
       message,
       duration: 3000,
-      showClose: true
+      showClose: true,
+      grouping: true
     })
   }
 
-  errorTimeCache.set(cacheKey, now)
+  // 同时缓存通用类型和具体消息
+  errorTimeCache.set(genericCacheKey, now)
+  errorTimeCache.set(specificCacheKey, now)
 
   // 清理过期缓存
   setTimeout(() => {
-    errorTimeCache.delete(cacheKey)
+    errorTimeCache.delete(genericCacheKey)
+    errorTimeCache.delete(specificCacheKey)
   }, cacheDuration)
 }
 
