@@ -1156,8 +1156,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 16px 24px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -1182,8 +1182,8 @@ onMounted(() => {
 
 .book-content {
   .book-overview {
-    margin-bottom: 24px;
-    padding: 24px;
+    margin-bottom: 20px;
+    padding: 20px;
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -1242,7 +1242,7 @@ onMounted(() => {
 
 .book-info-section {
   .book-title-area {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .book-title {
       font-size: 28px;
@@ -1261,7 +1261,7 @@ onMounted(() => {
     .book-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 24px;
+      gap: 20px;
 
       .meta-item {
         display: flex;
@@ -1288,7 +1288,7 @@ onMounted(() => {
   }
 
   .book-description {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     h3 {
       font-size: 16px;
@@ -1307,7 +1307,7 @@ onMounted(() => {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .detail-item {
       display: flex;
@@ -1346,7 +1346,7 @@ onMounted(() => {
 }
 
 .book-statistics {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .stat-card {
     :deep(.el-card__body) {
@@ -1367,7 +1367,7 @@ onMounted(() => {
         justify-content: center;
 
         .el-icon {
-          font-size: 24px;
+          font-size: 20px;
           color: white;
         }
 
@@ -1392,7 +1392,7 @@ onMounted(() => {
         flex: 1;
 
         .stat-value {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 700;
           color: var(--el-text-color-primary);
           line-height: 1;
@@ -1475,7 +1475,7 @@ onMounted(() => {
 }
 
 .reviews-summary {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding: 20px;
   background: var(--el-fill-color-lighter);
   border-radius: 8px;
@@ -1624,7 +1624,7 @@ onMounted(() => {
 
   .book-cover-section {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .book-meta {

@@ -288,7 +288,7 @@ onMounted(() => {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
-  padding: 24px;
+  padding: 20px;
   margin-bottom: 20px;
   border: 1px solid var(--el-border-color-lighter);
   display: flex;
@@ -303,7 +303,7 @@ onMounted(() => {
     .header-info {
       h1 {
         margin: 0 0 4px 0;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
         color: var(--el-text-color-primary);
       }

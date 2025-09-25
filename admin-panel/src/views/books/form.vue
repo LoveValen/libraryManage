@@ -7,21 +7,10 @@
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
-        <div class="breadcrumb">
-          <el-breadcrumb separator="/">
-            <el-breadcrumb-item :to="{ path: '/books' }">图书管理</el-breadcrumb-item>
-            <el-breadcrumb-item>{{ isEdit ? '编辑图书' : '新增图书' }}</el-breadcrumb-item>
-          </el-breadcrumb>
-        </div>
       </div>
       <div class="header-actions">
         <el-button @click="handleSave" type="primary" :loading="submitting">
-          <el-icon><Check /></el-icon>
-          {{ isEdit ? '更新图书' : '创建图书' }}
-        </el-button>
-        <el-button @click="handleSaveAndNew" v-if="!isEdit" :loading="submitting">
-          <el-icon><Plus /></el-icon>
-          保存并新建
+          保存
         </el-button>
       </div>
     </div>
@@ -770,26 +759,6 @@ const handleSave = async () => {
   }
 }
 
-const handleSaveAndNew = async () => {
-  try {
-    await formRef.value.validate()
-    submitting.value = true
-
-    await bookApi.createBook(formData)
-    ElMessage.success('图书创建成功')
-
-    // 清空表单继续新建
-    clearForm()
-  } catch (error) {
-    if (error !== false) {
-      console.error('保存失败:', error)
-      ElMessage.error('保存失败：' + (error.message || '未知错误'))
-    }
-  } finally {
-    submitting.value = false
-  }
-}
-
 const goBack = () => {
   router.go(-1)
 }
@@ -860,7 +829,6 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .book-form {
-  padding: 20px;
   background-color: var(--content-bg-color);
 }
 
@@ -868,8 +836,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
-  padding: 16px 24px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -879,12 +847,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
-
-  .breadcrumb {
-    :deep(.el-breadcrumb__item) {
-      font-size: 14px;
-    }
-  }
 }
 
 .header-actions {

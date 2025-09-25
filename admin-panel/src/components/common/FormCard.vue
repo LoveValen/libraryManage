@@ -657,12 +657,12 @@ defineExpose({
   &--large {
     .form-content {
       :deep(.el-form-item) {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
       }
     }
 
     .form-actions {
-      padding: 24px 0;
+      padding: 20px 0;
     }
   }
 

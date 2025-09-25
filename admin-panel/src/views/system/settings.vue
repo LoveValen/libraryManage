@@ -379,7 +379,7 @@ onUnmounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-bottom: 20px;
-  padding: 24px;
+  padding: 20px;
 }
 
 .header-content {
@@ -401,7 +401,7 @@ onUnmounted(() => {
 
 .header-title {
   margin: 0 0 8px 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }

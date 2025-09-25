@@ -259,7 +259,7 @@ const handleBorrowReset = () => {
   h2 {
     color: var(--el-text-color-primary);
     margin-bottom: 32px;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
   }
 
@@ -272,7 +272,7 @@ const handleBorrowReset = () => {
 
   .example-section {
     margin-bottom: 40px;
-    padding: 24px;
+    padding: 20px;
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid var(--el-border-color-extra-light);

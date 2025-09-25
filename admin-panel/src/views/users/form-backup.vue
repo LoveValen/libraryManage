@@ -991,7 +991,7 @@ onMounted(() => {
 
   // 分割线样式
   :deep(.el-divider) {
-    margin: 24px 0 20px 0;
+    margin: 20px 0 20px 0;
 
     .el-divider__text {
       display: flex;

@@ -51,7 +51,7 @@
                   <el-skeleton-item variant="text" style="width: 60%; height: 20px" />
                   <el-skeleton-item variant="text" style="width: 80%; height: 16px; margin-top: 16px" />
                   <el-skeleton-item variant="text" style="width: 40%; height: 16px; margin-top: 8px" />
-                  <div style="margin-top: 24px">
+                  <div style="margin-top: 20px">
                     <el-skeleton-item variant="rect" style="width: 100%; height: 200px" />
                   </div>
                 </div>
@@ -487,8 +487,8 @@ defineExpose({
 
   .floating-actions {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: 20px;
+    bottom: 20px;
     display: flex;
     flex-direction: column;
     gap: 12px;

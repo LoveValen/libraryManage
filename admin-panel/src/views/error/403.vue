@@ -307,7 +307,7 @@ document.title = '权限不足 - 图书管理系统'
   margin-bottom: 40px;
 
   .el-button {
-    padding: 12px 24px;
+    padding: 12px 20px;
     border-radius: 12px;
     font-weight: 600;
     transition: all 0.3s ease;
@@ -327,7 +327,7 @@ document.title = '权限不足 - 图书管理系统'
     font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    margin: 0 0 24px 0;
+    margin: 0 0 20px 0;
     text-align: center;
   }
 }
@@ -355,7 +355,7 @@ document.title = '权限不足 - 图书管理系统'
 }
 
 .permission-icon {
-  font-size: 24px;
+  font-size: 20px;
   padding: 8px;
   border-radius: 8px;
 
@@ -458,7 +458,7 @@ document.title = '权限不足 - 图书管理系统'
   }
 
   .error-title {
-    font-size: 24px !important;
+    font-size: 20px !important;
   }
 
   .error-description {

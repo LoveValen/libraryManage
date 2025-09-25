@@ -176,7 +176,7 @@ defineExpose({
 <style lang="scss" scoped>
 .dialog-footer {
   text-align: right;
-  padding: 16px 24px 24px;
+  padding: 16px 20px 20px;
   border-top: 1px solid var(--el-border-color-extra-light);
   margin-top: 8px;
 
@@ -194,7 +194,7 @@ defineExpose({
   .el-dialog__header {
     background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
     color: white;
-    padding: 20px 24px;
+    padding: 20px 20px;
     margin: 0;
 
     .el-dialog__title {
@@ -204,7 +204,7 @@ defineExpose({
 
     .el-dialog__headerbtn {
       top: 20px;
-      right: 24px;
+      right: 20px;
 
       .el-dialog__close {
         color: white;
@@ -218,7 +218,7 @@ defineExpose({
   }
 
   .el-dialog__body {
-    padding: 24px;
+    padding: 20px;
   }
 }
 </style>

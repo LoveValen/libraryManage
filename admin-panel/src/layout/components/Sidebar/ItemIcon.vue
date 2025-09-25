@@ -49,8 +49,8 @@ const isClassIcon = computed(() => {
   :global(.el-menu--collapse) & {
     margin-right: 0;
     font-size: 20px;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
   }
 }
 </style>

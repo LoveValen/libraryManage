@@ -222,7 +222,7 @@ const getOperationText = type => {
 }
 
 .book-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .book-info {
     display: flex;
@@ -274,7 +274,7 @@ const getOperationText = type => {
 }
 
 .borrow-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .detail-grid {
     display: grid;
@@ -316,7 +316,7 @@ const getOperationText = type => {
 
 .renewal-section,
 .operation-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .operation-content {

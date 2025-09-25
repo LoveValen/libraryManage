@@ -459,7 +459,7 @@ document.addEventListener('fullscreenchange', () => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   z-index: 2000;
   max-height: 400px;
   overflow: auto;
@@ -565,7 +565,7 @@ document.addEventListener('fullscreenchange', () => {
 :deep(.notification-popover) {
   padding: 0 !important;
   border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
   border: 1px solid var(--el-border-color-light) !important;
   background: var(--el-bg-color) !important;
   max-height: 500px !important;

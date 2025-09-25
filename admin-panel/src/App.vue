@@ -137,10 +137,10 @@ onMounted(async () => {
 
 // 页面头部样式
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   .page-title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin-bottom: 8px;

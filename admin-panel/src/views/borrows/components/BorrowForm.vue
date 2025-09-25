@@ -659,7 +659,7 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 @media (max-width: 768px) {

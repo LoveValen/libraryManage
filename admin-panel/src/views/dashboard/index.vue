@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 16px;
   padding: 32px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   color: white;
   position: relative;
   overflow: hidden;
@@ -557,7 +557,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   position: relative;
   z-index: 1;
 }
@@ -607,13 +607,13 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
@@ -722,7 +722,7 @@ onBeforeUnmount(() => {
 }
 
 .card-header {
-  padding: 20px 24px;
+  padding: 20px 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   display: flex;
   align-items: center;
@@ -747,7 +747,7 @@ onBeforeUnmount(() => {
 .notification-section {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -823,7 +823,7 @@ onBeforeUnmount(() => {
   }
 
   .welcome-section {
-    padding: 24px 20px;
+    padding: 20px 20px;
   }
 
   .stats-grid {

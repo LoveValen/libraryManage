@@ -183,7 +183,7 @@ watch(() => props.src, () => {
 }
 
 .loading-icon {
-  font-size: 24px;
+  font-size: 20px;
   animation: rotate 2s linear infinite;
 }
 
@@ -258,7 +258,7 @@ watch(() => props.src, () => {
 }
 
 .view-icon {
-  font-size: 24px;
+  font-size: 20px;
   color: white;
 }
 
@@ -278,7 +278,7 @@ watch(() => props.src, () => {
   }
   
   .book-icon {
-    font-size: 24px;
+    font-size: 20px;
   }
   
   .default-icon {

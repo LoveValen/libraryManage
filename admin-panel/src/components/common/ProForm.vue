@@ -532,7 +532,7 @@ defineExpose({
   }
 
   .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .group-header {
       margin-bottom: 16px;
@@ -574,8 +574,8 @@ defineExpose({
       background: var(--el-bg-color);
       z-index: 10;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-      margin: 0 -24px -24px -24px;
-      padding: 16px 24px;
+      margin: 0 -20px -20px -20px;
+      padding: 16px 20px;
     }
 
     :deep(.el-button) {

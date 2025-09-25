@@ -395,7 +395,7 @@ watch(visible, newValue => {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .stat-card {
       display: flex;
@@ -416,14 +416,14 @@ watch(visible, newValue => {
         align-items: center;
         justify-content: center;
         color: var(--el-color-primary);
-        font-size: 24px;
+        font-size: 20px;
       }
 
       .stat-content {
         flex: 1;
 
         .stat-value {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: bold;
           color: var(--el-text-color-primary);
           margin-bottom: 4px;
@@ -538,8 +538,8 @@ watch(visible, newValue => {
             }
 
             .rank-number {
-              width: 24px;
-              height: 24px;
+              width: 20px;
+              height: 20px;
               border-radius: 50%;
               display: flex;
               align-items: center;

@@ -767,7 +767,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
-  padding: 24px;
+  padding: 20px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -785,7 +785,7 @@ onBeforeUnmount(() => {
 
 .header-info {
   .page-title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 600;
     color: var(--el-text-color-primary);
     margin: 0 0 4px 0;
@@ -811,7 +811,7 @@ onBeforeUnmount(() => {
   height: 100%;
 
   :deep(.el-card__body) {
-    padding: 24px;
+    padding: 20px;
   }
 }
 
@@ -819,7 +819,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
@@ -856,7 +856,7 @@ onBeforeUnmount(() => {
 .profile-stats {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding: 20px 0;
   background: var(--el-fill-color-lighter);
   border-radius: 8px;
@@ -912,7 +912,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
-  padding: 24px;
+  padding: 20px;
 }
 
 .detail-item {
@@ -965,7 +965,7 @@ onBeforeUnmount(() => {
 .activity-section {
   .el-card {
     :deep(.el-card__body) {
-      padding: 0 24px 24px 24px;
+      padding: 0 20px 20px 20px;
     }
   }
 }

@@ -648,7 +648,7 @@ const handleResetToDefaults = async () => {
         }
         
         .el-tabs__item {
-          padding: 20px 24px;
+          padding: 20px 20px;
           font-weight: 600;
           color: var(--text-secondary);
           transition: all var(--transition-normal);
@@ -730,7 +730,7 @@ const handleResetToDefaults = async () => {
         
         .el-button {
           border-radius: var(--scheme-radius);
-          padding: 12px 24px;
+          padding: 12px 20px;
           font-weight: 600;
           background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
           border: none;
@@ -952,7 +952,7 @@ const handleResetToDefaults = async () => {
     
     :deep(.el-form) {
       .el-form-item {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         
         .el-form-item__label {
           font-weight: 600;
@@ -1024,7 +1024,7 @@ const handleResetToDefaults = async () => {
       justify-content: flex-end;
       gap: 16px;
       margin-top: 32px;
-      padding-top: 24px;
+      padding-top: 20px;
       border-top: 1px solid var(--scheme-border);
       position: relative;
       
@@ -1109,7 +1109,7 @@ const handleResetToDefaults = async () => {
       
       .card-content {
         text-align: center;
-        padding: 24px;
+        padding: 20px;
         
         p {
           margin-bottom: 20px;
@@ -1120,7 +1120,7 @@ const handleResetToDefaults = async () => {
         
         .el-button {
           border-radius: var(--scheme-radius);
-          padding: 12px 24px;
+          padding: 12px 20px;
           font-weight: 600;
           transition: all var(--transition-normal);
           
@@ -1142,7 +1142,7 @@ const handleResetToDefaults = async () => {
       margin-top: 32px;
       
       :deep(.el-divider) {
-        margin: 24px 0;
+        margin: 20px 0;
         
         .el-divider__text {
           color: var(--text-secondary);
@@ -1252,7 +1252,7 @@ const handleResetToDefaults = async () => {
 }
 
 // 响应式设计
-@media (max-width: 1024px) {
+@media (max-width: 1020px) {
   .scheme-manager {
     .import-export-section {
       .el-row {
@@ -1385,7 +1385,7 @@ const handleResetToDefaults = async () => {
       }
       
       .bulk-actions {
-        margin-top: 24px;
+        margin-top: 20px;
         
         .bulk-buttons {
           flex-direction: column;

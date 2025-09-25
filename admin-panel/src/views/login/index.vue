@@ -663,11 +663,11 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 
 .login-wrapper {
   background: rgba(255, 255, 255, 0.98);
-  border-radius: 24px;
+  border-radius: 20px;
   box-shadow: 0 32px 64px rgba(0, 0, 0, 0.25), 
               0 16px 32px rgba(0, 0, 0, 0.15),
               inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   overflow: hidden;
   width: 100%;
@@ -880,7 +880,7 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 
 .login-form {
   .el-form-item {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     &:last-child {
       margin-bottom: 0;

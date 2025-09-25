@@ -341,7 +341,7 @@ onUnmounted(() => {
 .scan-borrow-dialog {
   .scan-container {
     .scan-area {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
 
       .scan-tabs {
         .scan-section {
@@ -388,7 +388,7 @@ onUnmounted(() => {
                 gap: 12px;
 
                 .result-icon {
-                  font-size: 24px;
+                  font-size: 20px;
 
                   &.success {
                     color: var(--el-color-success);
@@ -422,7 +422,7 @@ onUnmounted(() => {
     }
 
     .manual-input {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
 
       .divider-text {
         color: var(--el-text-color-regular);
@@ -473,8 +473,8 @@ onUnmounted(() => {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    margin-top: 24px;
-    padding-top: 24px;
+    margin-top: 20px;
+    padding-top: 20px;
     border-top: 1px solid var(--el-border-color-lighter);
   }
 }

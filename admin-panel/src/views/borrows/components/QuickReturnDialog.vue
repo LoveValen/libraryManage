@@ -455,7 +455,7 @@ watch(visible, newValue => {
 
   .borrow-details {
     display: flex;
-    gap: 24px;
+    gap: 20px;
 
     .book-section {
       display: flex;

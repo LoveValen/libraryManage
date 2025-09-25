@@ -480,7 +480,7 @@ onMounted(() => {
   border: 1px solid var(--el-border-color-light);
 
   .stat-value {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--el-text-color-primary);
     margin-bottom: 4px;

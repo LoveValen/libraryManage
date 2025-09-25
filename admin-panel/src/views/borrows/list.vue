@@ -1177,7 +1177,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     gap: 20px;
-    padding: 16px 24px;
+    padding: 16px 20px;
 
     .selected-info {
       color: var(--el-text-color-primary);
@@ -1285,7 +1285,7 @@ onMounted(() => {
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 24px;
+  margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
 }

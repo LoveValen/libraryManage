@@ -397,7 +397,7 @@ onMounted(() => {
 }
 
 .borrow-rules-section {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .rules-list {

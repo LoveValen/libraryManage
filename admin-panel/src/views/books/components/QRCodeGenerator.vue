@@ -435,7 +435,7 @@ onMounted(() => {
   .book-info {
     display: flex;
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     padding: 16px;
     background: var(--el-fill-color-lighter);
     border-radius: 8px;
@@ -476,11 +476,11 @@ onMounted(() => {
   }
 
   .qrcode-config {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .color-config {
       display: flex;
-      gap: 24px;
+      gap: 20px;
 
       .color-item {
         display: flex;
@@ -502,7 +502,7 @@ onMounted(() => {
   }
 
   .qrcode-preview {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .preview-card {
       :deep(.el-card__body) {
@@ -540,7 +540,7 @@ onMounted(() => {
 
         .qrcode-display {
           display: flex;
-          gap: 24px;
+          gap: 20px;
 
           .qrcode-container {
             flex-shrink: 0;
@@ -580,7 +580,7 @@ onMounted(() => {
   }
 
   .batch-generate {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .batch-options {
       margin-bottom: 16px;

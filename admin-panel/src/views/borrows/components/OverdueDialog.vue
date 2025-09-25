@@ -465,7 +465,7 @@ watch(visible, newValue => {
     text-align: center;
 
     .stat-value {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: bold;
       color: var(--el-color-danger);
       margin-bottom: 4px;

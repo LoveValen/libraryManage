@@ -901,7 +901,7 @@ onMounted(() => {
   :deep(.user-pro-form) {
     .pro-form {
       background: white;
-      padding: 24px;
+      padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -910,7 +910,7 @@ onMounted(() => {
       background: var(--el-fill-color-light);
       padding: 20px;
       border-radius: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
 
       .el-divider__text {
         background: var(--el-fill-color-light);

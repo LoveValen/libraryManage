@@ -584,7 +584,7 @@ onMounted(() => {
     }
 
     .rules-list {
-      margin: 0 0 24px 0;
+      margin: 0 0 20px 0;
       padding-left: 20px;
 
       li {
@@ -595,8 +595,8 @@ onMounted(() => {
     }
 
     .user-levels-section {
-      margin-top: 24px;
-      padding-top: 24px;
+      margin-top: 20px;
+      padding-top: 20px;
       border-top: 1px solid var(--el-border-color-lighter);
 
       .levels-grid {
