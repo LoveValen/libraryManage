@@ -925,7 +925,7 @@ onMounted(() => {
 
 .book-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -976,7 +976,7 @@ onMounted(() => {
     top: 12px;
     right: 12px;
     padding: 4px 8px;
-    border-radius: 12px;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 500;
     color: white;

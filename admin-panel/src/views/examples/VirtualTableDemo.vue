@@ -861,7 +861,7 @@ watch(columnWidthMode, () => {
   
   .el-card {
     margin-bottom: 20px;
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
     
     &.intro {

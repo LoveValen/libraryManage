@@ -18,9 +18,6 @@
     <!-- 表单内容 -->
     <div class="form-content">
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px" size="default">
-        <el-row :gutter="24">
-          <!-- 左侧：基本信息 -->
-          <el-col :xl="16" :lg="16" :md="24" :sm="24">
             <el-card shadow="never" class="form-card">
               <template #header>
                 <div class="card-header">
@@ -29,153 +26,119 @@
                 </div>
               </template>
 
-              <el-row :gutter="20">
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="图书标题" prop="title" required>
-                    <el-input v-model="formData.title" placeholder="请输入图书标题" maxlength="200" show-word-limit />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="图书标题" prop="title" required>
+                <el-input v-model="formData.title" placeholder="请输入图书标题" maxlength="200" show-word-limit />
+              </el-form-item>
 
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="副标题" prop="subtitle">
-                    <el-input
-                      v-model="formData.subtitle"
-                      placeholder="请输入副标题（可选）"
-                      maxlength="200"
-                      show-word-limit
-                    />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="副标题" prop="subtitle">
+                <el-input
+                  v-model="formData.subtitle"
+                  placeholder="请输入副标题（可选）"
+                  maxlength="200"
+                  show-word-limit
+                />
+              </el-form-item>
 
-              <el-row :gutter="20">
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="作者" prop="author" required>
-                    <el-input v-model="formData.author" placeholder="请输入作者姓名" maxlength="100" show-word-limit />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="作者" prop="author" required>
+                <el-input v-model="formData.author" placeholder="请输入作者姓名" maxlength="100" show-word-limit />
+              </el-form-item>
 
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="ISBN" prop="isbn" required>
-                    <el-input
-                      v-model="formData.isbn"
-                      placeholder="请输入ISBN号码"
-                      maxlength="20"
-                      @blur="handleISBNBlur"
-                    >
-                      <template #append>
-                        <el-button @click="validateISBN" :loading="validatingISBN">验证</el-button>
-                      </template>
-                    </el-input>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="ISBN" prop="isbn" required>
+                <el-input
+                  v-model="formData.isbn"
+                  placeholder="请输入ISBN号码"
+                  maxlength="20"
+                  @blur="handleISBNBlur"
+                >
+                  <template #append>
+                    <el-button @click="validateISBN" :loading="validatingISBN">验证</el-button>
+                  </template>
+                </el-input>
+              </el-form-item>
 
-              <el-row :gutter="20">
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="出版社" prop="publisher" required>
-                    <el-input
-                      v-model="formData.publisher"
-                      placeholder="请输入出版社名称"
-                      maxlength="100"
-                      show-word-limit
-                    />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="出版社" prop="publisher" required>
+                <el-input
+                  v-model="formData.publisher"
+                  placeholder="请输入出版社名称"
+                  maxlength="100"
+                  show-word-limit
+                />
+              </el-form-item>
 
-                <el-col :lg="12" :md="24">
-                  <el-form-item label="出版日期" prop="publishDate" required>
-                    <el-date-picker
-                      v-model="formData.publishDate"
-                      type="date"
-                      placeholder="选择出版日期"
-                      style="width: 100%"
-                      format="YYYY-MM-DD"
-                      value-format="YYYY-MM-DD"
-                    />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="出版日期" prop="publishDate" required>
+                <el-date-picker
+                  v-model="formData.publishDate"
+                  type="date"
+                  placeholder="选择出版日期"
+                  style="width: 100%"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                />
+              </el-form-item>
 
-              <el-row :gutter="20">
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="分类" prop="categoryId" required>
-                    <el-tree-select
-                      v-model="formData.categoryId"
-                      :data="categoryTreeOptions"
-                      :props="{ label: 'name', value: 'id', children: 'children' }"
-                      placeholder="选择图书分类"
-                      clearable
-                      check-strictly
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="分类" prop="categoryId" required>
+                <el-tree-select
+                  v-model="formData.categoryId"
+                  :data="categoryTreeOptions"
+                  :props="{ label: 'name', value: 'id', children: 'children' }"
+                  placeholder="选择图书分类"
+                  clearable
+                  check-strictly
+                  style="width: 100%"
+                />
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="语言" prop="language">
-                    <el-select v-model="formData.language" placeholder="选择语言" style="width: 100%">
-                      <el-option label="中文" value="zh" />
-                      <el-option label="英文" value="en" />
-                      <el-option label="日文" value="ja" />
-                      <el-option label="法文" value="fr" />
-                      <el-option label="德文" value="de" />
-                      <el-option label="其他" value="other" />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="语言" prop="language">
+                <el-select v-model="formData.language" placeholder="选择语言" style="width: 100%">
+                  <el-option label="中文" value="zh" />
+                  <el-option label="英文" value="en" />
+                  <el-option label="日文" value="ja" />
+                  <el-option label="法文" value="fr" />
+                  <el-option label="德文" value="de" />
+                  <el-option label="其他" value="other" />
+                </el-select>
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="版次" prop="edition">
-                    <el-input-number
-                      v-model="formData.edition"
-                      :min="1"
-                      :max="99"
-                      placeholder="版次"
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="版次" prop="edition">
+                <el-input-number
+                  v-model="formData.edition"
+                  :min="1"
+                  :max="99"
+                  placeholder="版次"
+                  style="width: 100%"
+                />
+              </el-form-item>
 
-              <el-row :gutter="20">
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="页数" prop="pages">
-                    <el-input-number
-                      v-model="formData.pages"
-                      :min="1"
-                      :max="9999"
-                      placeholder="页数"
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="页数" prop="pages">
+                <el-input-number
+                  v-model="formData.pages"
+                  :min="1"
+                  :max="9999"
+                  placeholder="页数"
+                  style="width: 100%"
+                />
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="价格" prop="price">
-                    <el-input-number
-                      v-model="formData.price"
-                      :min="0"
-                      :precision="2"
-                      placeholder="价格"
-                      style="width: 100%"
-                    >
-                      <template #prefix>¥</template>
-                    </el-input-number>
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="价格" prop="price">
+                <el-input-number
+                  v-model="formData.price"
+                  :min="0"
+                  :precision="2"
+                  placeholder="价格"
+                  style="width: 100%"
+                >
+                  <template #prefix>¥</template>
+                </el-input-number>
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="格式" prop="format">
-                    <el-select v-model="formData.format" placeholder="选择格式" style="width: 100%">
-                      <el-option label="平装" value="paperback" />
-                      <el-option label="精装" value="hardcover" />
-                      <el-option label="电子书" value="ebook" />
-                      <el-option label="有声书" value="audiobook" />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="格式" prop="format">
+                <el-select v-model="formData.format" placeholder="选择格式" style="width: 100%">
+                  <el-option label="平装" value="paperback" />
+                  <el-option label="精装" value="hardcover" />
+                  <el-option label="电子书" value="ebook" />
+                  <el-option label="有声书" value="audiobook" />
+                </el-select>
+              </el-form-item>
 
               <el-form-item label="内容简介" prop="description">
                 <el-input
@@ -212,53 +175,42 @@
                 </div>
               </template>
 
-              <el-row :gutter="20">
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="库存数量" prop="stock" required>
-                    <el-input-number
-                      v-model="formData.stock"
-                      :min="0"
-                      :max="9999"
-                      placeholder="库存数量"
-                      style="width: 100%"
-                    />
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="库存数量" prop="stock" required>
+                <el-input-number
+                  v-model="formData.stock"
+                  :min="0"
+                  :max="9999"
+                  placeholder="库存数量"
+                  style="width: 100%"
+                />
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="存放位置" prop="location" required>
-                    <el-select
-                      v-model="formData.location"
-                      filterable
-                      allow-create
-                      placeholder="选择或输入位置"
-                      style="width: 100%"
-                    >
-                      <el-option
-                        v-for="location in commonLocations"
-                        :key="location"
-                        :label="location"
-                        :value="location"
-                      />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
+              <el-form-item label="存放位置" prop="location" required>
+                <el-select
+                  v-model="formData.location"
+                  filterable
+                  allow-create
+                  placeholder="选择或输入位置"
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="location in commonLocations"
+                    :key="location"
+                    :label="location"
+                    :value="location"
+                  />
+                </el-select>
+              </el-form-item>
 
-                <el-col :lg="8" :md="12" :sm="24">
-                  <el-form-item label="图书状态" prop="status" required>
-                    <el-select v-model="formData.status" placeholder="选择状态" style="width: 100%">
-                      <el-option label="可借阅" value="available" />
-                      <el-option label="维修中" value="maintenance" />
-                      <el-option label="已下架" value="offline" />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-              </el-row>
+              <el-form-item label="图书状态" prop="status" required>
+                <el-select v-model="formData.status" placeholder="选择状态" style="width: 100%">
+                  <el-option label="可借阅" value="available" />
+                  <el-option label="维修中" value="maintenance" />
+                  <el-option label="已下架" value="offline" />
+                </el-select>
+              </el-form-item>
             </el-card>
-          </el-col>
 
-          <!-- 右侧：封面和其他信息 -->
-          <el-col :xl="8" :lg="8" :md="24" :sm="24">
             <!-- 封面上传 -->
             <el-card shadow="never" class="form-card">
               <template #header>
@@ -313,129 +265,8 @@
                 </div>
               </div>
             </el-card>
-
-            <!-- 快捷操作 -->
-            <el-card shadow="never" class="form-card">
-              <template #header>
-                <div class="card-header">
-                  <el-icon><Tools /></el-icon>
-                  <span>快捷操作</span>
-                </div>
-              </template>
-
-              <div class="quick-actions">
-                <el-button @click="loadTemplate" style="width: 100%">
-                  <el-icon><Document /></el-icon>
-                  加载模板
-                </el-button>
-
-                <el-button @click="clearForm" style="width: 100%">
-                  <el-icon><RefreshLeft /></el-icon>
-                  清空表单
-                </el-button>
-
-                <el-button @click="previewData" style="width: 100%">
-                  <el-icon><View /></el-icon>
-                  预览数据
-                </el-button>
-              </div>
-            </el-card>
-
-            <!-- 字段检查 -->
-            <el-card shadow="never" class="form-card">
-              <template #header>
-                <div class="card-header">
-                  <el-icon><Select /></el-icon>
-                  <span>字段检查</span>
-                </div>
-              </template>
-
-              <div class="field-checks">
-                <div class="check-item">
-                  <el-icon :class="{ 'check-success': formData.title, 'check-error': !formData.title }">
-                    <component :is="formData.title ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>图书标题</span>
-                </div>
-
-                <div class="check-item">
-                  <el-icon :class="{ 'check-success': formData.author, 'check-error': !formData.author }">
-                    <component :is="formData.author ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>作者</span>
-                </div>
-
-                <div class="check-item">
-                  <el-icon
-                    :class="{
-                      'check-success': formData.isbn && isValidISBN,
-                      'check-error': !formData.isbn || !isValidISBN
-                    }"
-                  >
-                    <component :is="formData.isbn && isValidISBN ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>ISBN</span>
-                </div>
-
-                <div class="check-item">
-                  <el-icon :class="{ 'check-success': formData.publisher, 'check-error': !formData.publisher }">
-                    <component :is="formData.publisher ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>出版社</span>
-                </div>
-
-                <div class="check-item">
-                  <el-icon :class="{ 'check-success': formData.categoryId, 'check-error': !formData.categoryId }">
-                    <component :is="formData.categoryId ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>分类</span>
-                </div>
-
-                <div class="check-item">
-                  <el-icon :class="{ 'check-success': formData.stock >= 0, 'check-error': formData.stock < 0 }">
-                    <component :is="formData.stock >= 0 ? 'Check' : 'Close'" />
-                  </el-icon>
-                  <span>库存数量</span>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
       </el-form>
     </div>
-
-    <!-- 预览对话框 -->
-    <el-dialog v-model="showPreview" title="数据预览" width="600px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="图书标题">{{ formData.title }}</el-descriptions-item>
-        <el-descriptions-item label="副标题">{{ formData.subtitle || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="作者">{{ formData.author }}</el-descriptions-item>
-        <el-descriptions-item label="ISBN">{{ formData.isbn }}</el-descriptions-item>
-        <el-descriptions-item label="出版社">{{ formData.publisher }}</el-descriptions-item>
-        <el-descriptions-item label="出版日期">{{ formData.publishDate }}</el-descriptions-item>
-        <el-descriptions-item label="分类">{{ getCategoryName(formData.categoryId) }}</el-descriptions-item>
-        <el-descriptions-item label="语言">{{ getLanguageName(formData.language) }}</el-descriptions-item>
-        <el-descriptions-item label="版次">第{{ formData.edition }}版</el-descriptions-item>
-        <el-descriptions-item label="页数">{{ formData.pages }}页</el-descriptions-item>
-        <el-descriptions-item label="价格">¥{{ formData.price }}</el-descriptions-item>
-        <el-descriptions-item label="格式">{{ getFormatName(formData.format) }}</el-descriptions-item>
-        <el-descriptions-item label="库存">{{ formData.stock }}本</el-descriptions-item>
-        <el-descriptions-item label="位置">{{ formData.location }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ getStatusName(formData.status) }}</el-descriptions-item>
-        <el-descriptions-item label="标签" :span="2">
-          <el-tag v-for="tag in formData.tags" :key="tag" size="small" style="margin-right: 8px">
-            {{ tag }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="内容简介" :span="2">
-          {{ formData.description || '-' }}
-        </el-descriptions-item>
-      </el-descriptions>
-
-      <template #footer>
-        <el-button @click="showPreview = false">关闭</el-button>
-      </template>
-    </el-dialog>
 
     <!-- 封面预览对话框 -->
     <el-dialog v-model="showCoverPreview" title="封面预览" width="400px">
@@ -471,7 +302,6 @@ const formRef = ref()
 const uploadRef = ref()
 
 // 对话框状态
-const showPreview = ref(false)
 const showCoverPreview = ref(false)
 
 // 分类和选项数据
@@ -694,46 +524,6 @@ const removeCover = () => {
   ElMessage.success('封面已删除')
 }
 
-const loadTemplate = () => {
-  ElMessage.info('模板加载功能开发中...')
-}
-
-const clearForm = async () => {
-  try {
-    await ElMessageBox.confirm('确定要清空表单吗？此操作不可撤销！', '清空表单', { type: 'warning' })
-
-    formRef.value.resetFields()
-    Object.assign(formData, {
-      title: '',
-      subtitle: '',
-      author: '',
-      isbn: '',
-      publisher: '',
-      publishDate: '',
-      categoryId: null,
-      language: 'zh',
-      edition: 1,
-      pages: null,
-      price: null,
-      format: 'paperback',
-      description: '',
-      tags: [],
-      stock: 1,
-      location: '',
-      status: 'available',
-      cover: ''
-    })
-
-    ElMessage.success('表单已清空')
-  } catch (error) {
-    // 用户取消
-  }
-}
-
-const previewData = () => {
-  showPreview.value = true
-}
-
 const handleSave = async () => {
   try {
     await formRef.value.validate()
@@ -839,7 +629,7 @@ onMounted(() => {
   margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -940,37 +730,6 @@ onMounted(() => {
 
   .isbn-fetch {
     margin-top: 16px;
-  }
-}
-
-.quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.field-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  .check-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-
-    .el-icon {
-      font-size: 16px;
-
-      &.check-success {
-        color: var(--el-color-success);
-      }
-
-      &.check-error {
-        color: var(--el-color-danger);
-      }
-    }
   }
 }
 

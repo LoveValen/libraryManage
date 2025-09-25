@@ -196,7 +196,7 @@ onMounted(() => {
     gap: 12px;
     padding: 16px;
     @apply bg-gray-50 border-2 border-primary-200;
-    border-radius: 12px;
+    border-radius: 8px;
 
     .theme-preview {
       width: 40px;
@@ -237,7 +237,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 16px 12px;
-  border-radius: 12px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -254,7 +254,7 @@ onMounted(() => {
   .theme-color {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;

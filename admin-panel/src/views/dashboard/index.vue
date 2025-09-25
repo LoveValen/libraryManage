@@ -612,7 +612,7 @@ onBeforeUnmount(() => {
 
 .stat-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -628,7 +628,7 @@ onBeforeUnmount(() => {
 .stat-icon {
   width: 64px;
   height: 64px;
-  border-radius: 12px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -716,7 +716,7 @@ onBeforeUnmount(() => {
 
 .chart-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
@@ -746,7 +746,7 @@ onBeforeUnmount(() => {
 
 .notification-section {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }

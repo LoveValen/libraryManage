@@ -442,7 +442,7 @@ defineExpose({
 <style lang="scss" scoped>
 .confirm-dialog {
   :deep(.el-dialog) {
-    border-radius: 12px;
+    border-radius: 8px;
 
     .el-dialog__header {
       padding: 20px 20px 0;

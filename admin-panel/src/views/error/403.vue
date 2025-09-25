@@ -279,7 +279,7 @@ document.title = '权限不足 - 图书管理系统'
   gap: 12px;
   background: var(--el-fill-color-lighter);
   padding: 16px 20px;
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--el-border-color-light);
 }
 
@@ -308,7 +308,7 @@ document.title = '权限不足 - 图书管理系统'
 
   .el-button {
     padding: 12px 20px;
-    border-radius: 12px;
+    border-radius: 8px;
     font-weight: 600;
     transition: all 0.3s ease;
 
@@ -344,7 +344,7 @@ document.title = '权限不足 - 图书管理系统'
   gap: 16px;
   padding: 16px;
   background: var(--el-fill-color-lighter);
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid var(--el-border-color-light);
   transition: all 0.3s ease;
 

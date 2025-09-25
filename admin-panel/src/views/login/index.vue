@@ -801,7 +801,7 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
   gap: 10px;
   padding: 15px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border-radius: 8px;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 
@@ -891,7 +891,7 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
     height: 48px;
 
     :deep(.el-input__wrapper) {
-      border-radius: 12px;
+      border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       border: 1px solid var(--color-primary-200, #bae6fd);
       background: rgba(255, 255, 255, 0.9);
@@ -946,7 +946,7 @@ watch(() => [loginForm.username, loginForm.rememberMe], saveRememberMe)
 .login-button {
   width: 100%;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   background: linear-gradient(135deg, var(--color-primary-500, #0ea5e9) 0%, var(--color-primary-700, #0369a1) 100%);

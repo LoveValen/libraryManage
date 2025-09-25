@@ -1159,7 +1159,7 @@ onMounted(() => {
   margin-bottom: 20px;
   padding: 16px 20px;
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
@@ -1185,7 +1185,7 @@ onMounted(() => {
     margin-bottom: 20px;
     padding: 20px;
     background: white;
-    border-radius: 12px;
+    border-radius: 8px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   }
 }
@@ -1410,7 +1410,7 @@ onMounted(() => {
 
 .book-tabs {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 
   :deep(.el-tabs__content) {
