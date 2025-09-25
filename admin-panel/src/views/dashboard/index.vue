@@ -78,83 +78,8 @@
             <el-icon><PieChart /></el-icon>
             图书分类统计
           </h3>
-          <el-dropdown @command="handleCategoryAction">
-            <el-button link>
-              更多操作
-              <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-            </el-button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="export">导出数据</el-dropdown-item>
-                <el-dropdown-item command="refresh">刷新</el-dropdown-item>
-                <el-dropdown-item command="detail">查看详情</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
         </div>
         <div class="chart-container" ref="categoryChartRef"></div>
-      </div>
-    </div>
-
-    <!-- 最新动态和待办事项 -->
-    <div class="activity-grid">
-      <!-- 最新动态 -->
-      <div class="activity-card">
-        <div class="card-header">
-          <h3 class="card-title">
-            <el-icon><Bell /></el-icon>
-            最新动态
-          </h3>
-          <el-button link @click="viewAllActivities">查看全部</el-button>
-        </div>
-        <div class="activity-list">
-          <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-            <div class="activity-avatar">
-              <el-avatar :size="32" :src="activity.userAvatar">
-                <el-icon><User /></el-icon>
-              </el-avatar>
-            </div>
-            <div class="activity-content">
-              <div class="activity-text">
-                <span class="activity-user">{{ activity.userName }}</span>
-                <span class="activity-action">{{ activity.action }}</span>
-                <span class="activity-target">《{{ activity.target }}》</span>
-              </div>
-              <div class="activity-time">{{ formatTime(activity.time) }}</div>
-            </div>
-            <div class="activity-status" :class="`status--${activity.status}`">
-              {{ getStatusText(activity.status) }}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 待办事项 -->
-      <div class="todo-card">
-        <div class="card-header">
-          <h3 class="card-title">
-            <el-icon><List /></el-icon>
-            待办事项
-          </h3>
-          <el-button link @click="addTodo">添加</el-button>
-        </div>
-        <div class="todo-list">
-          <div v-for="todo in todoList" :key="todo.id" class="todo-item" :class="{ completed: todo.completed }">
-            <el-checkbox v-model="todo.completed" @change="toggleTodo(todo.id)" />
-            <div class="todo-content">
-              <div class="todo-text">{{ todo.text }}</div>
-              <div class="todo-meta">
-                <span class="todo-priority" :class="`priority--${todo.priority}`">
-                  {{ getPriorityText(todo.priority) }}
-                </span>
-                <span class="todo-deadline">{{ formatDate(todo.deadline) }}</span>
-              </div>
-            </div>
-            <el-button link size="small" @click="removeTodo(todo.id)">
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -199,6 +124,12 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import * as echarts from 'echarts'
+import {
+  getDashboardStats,
+  getBorrowTrend,
+  getCategoryStats,
+  getSystemNotifications
+} from '@/api/dashboard'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -232,8 +163,8 @@ const statsData = ref([
   {
     key: 'totalBooks',
     label: '图书总数',
-    value: 15420,
-    change: 8.2,
+    value: 0,
+    change: 0,
     period: '较上月',
     type: 'primary',
     icon: 'Reading'
@@ -241,8 +172,8 @@ const statsData = ref([
   {
     key: 'activeUsers',
     label: '活跃用户',
-    value: 3248,
-    change: 12.5,
+    value: 0,
+    change: 0,
     period: '较上月',
     type: 'success',
     icon: 'User'
@@ -250,17 +181,17 @@ const statsData = ref([
   {
     key: 'borrowings',
     label: '当月借阅',
-    value: 892,
-    change: -3.2,
+    value: 0,
+    change: 0,
     period: '较上月',
     type: 'warning',
     icon: 'DocumentCopy'
   },
   {
     key: 'revenue',
-    label: '系统收入',
-    value: 28450,
-    change: 15.8,
+    label: '系统积分',
+    value: 0,
+    change: 0,
     period: '较上月',
     type: 'danger',
     icon: 'Money'
@@ -275,81 +206,10 @@ const trendPeriods = ref([
   { label: '本年', value: 'year' }
 ])
 
-// 最新动态数据
-const recentActivities = ref([
-  {
-    id: 1,
-    userName: '张三',
-    userAvatar: '',
-    action: '借阅了',
-    target: '深入理解计算机系统',
-    time: new Date(Date.now() - 5 * 60 * 1000),
-    status: 'success'
-  },
-  {
-    id: 2,
-    userName: '李四',
-    userAvatar: '',
-    action: '归还了',
-    target: 'JavaScript高级程序设计',
-    time: new Date(Date.now() - 15 * 60 * 1000),
-    status: 'success'
-  },
-  {
-    id: 3,
-    userName: '王五',
-    userAvatar: '',
-    action: '预约了',
-    target: 'Vue.js设计与实现',
-    time: new Date(Date.now() - 30 * 60 * 1000),
-    status: 'pending'
-  },
-  {
-    id: 4,
-    userName: '赵六',
-    userAvatar: '',
-    action: '超期未还',
-    target: 'Python编程：从入门到实践',
-    time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    status: 'warning'
-  }
-])
-
-// 待办事项
-const todoList = ref([
-  {
-    id: 1,
-    text: '处理超期图书归还',
-    completed: false,
-    priority: 'high',
-    deadline: new Date(Date.now() + 24 * 60 * 60 * 1000)
-  },
-  {
-    id: 2,
-    text: '更新图书分类信息',
-    completed: false,
-    priority: 'medium',
-    deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-  }
-])
 
 // 系统通知
-const systemNotifications = ref([
-  {
-    id: 1,
-    title: '系统维护通知',
-    description: '系统将于今晚22:00-次日2:00进行维护升级，请提前做好相关准备。',
-    type: 'warning',
-    time: new Date()
-  },
-  {
-    id: 2,
-    title: '新功能上线',
-    description: '图书推荐系统已上线，现在可以为用户提供个性化图书推荐服务。',
-    type: 'success',
-    time: new Date(Date.now() - 2 * 60 * 60 * 1000)
-  }
-])
+const systemNotifications = ref([])
+const loading = ref(true)
 
 // 方法
 const getGreeting = () => {
@@ -401,14 +261,6 @@ const getStatusText = status => {
   return statusMap[status] || status
 }
 
-const getPriorityText = priority => {
-  const priorityMap = {
-    high: '高',
-    medium: '中',
-    low: '低'
-  }
-  return priorityMap[priority] || priority
-}
 
 const handleQuickAction = actionKey => {
   const actionMap = {
@@ -426,76 +278,13 @@ const handleQuickAction = actionKey => {
   }
 }
 
-const changeTrendPeriod = period => {
+const changeTrendPeriod = async period => {
   currentTrendPeriod.value = period
+  await fetchBorrowTrendData()
   updateBorrowTrendChart()
 }
 
-const handleCategoryAction = command => {
-  switch (command) {
-    case 'export':
-      ElMessage.success('数据导出中...')
-      break
-    case 'refresh':
-      updateCategoryChart()
-      ElMessage.success('数据已刷新')
-      break
-    case 'detail':
-      router.push('/statistics/category')
-      break
-  }
-}
 
-const viewAllActivities = () => {
-  router.push('/activities')
-}
-
-const addTodo = async () => {
-  try {
-    const { value: text } = await ElMessageBox.prompt('请输入待办事项', '添加待办', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputPlaceholder: '请输入待办事项内容'
-    })
-
-    if (text?.trim()) {
-      const newTodo = {
-        id: Date.now(),
-        text: text.trim(),
-        completed: false,
-        priority: 'medium',
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-      }
-      todoList.value.unshift(newTodo)
-      ElMessage.success('待办事项已添加')
-    }
-  } catch (error) {
-    // 用户取消
-  }
-}
-
-const toggleTodo = id => {
-  const todo = todoList.value.find(t => t.id === id)
-  if (todo) {
-    ElMessage.success(todo.completed ? '任务已完成' : '任务已重新打开')
-  }
-}
-
-const removeTodo = async id => {
-  try {
-    await ElMessageBox.confirm('确定要删除这个待办事项吗？', '确认删除', {
-      type: 'warning'
-    })
-
-    const index = todoList.value.findIndex(t => t.id === id)
-    if (index > -1) {
-      todoList.value.splice(index, 1)
-      ElMessage.success('待办事项已删除')
-    }
-  } catch (error) {
-    // 用户取消
-  }
-}
 
 const dismissNotification = id => {
   const index = systemNotifications.value.findIndex(n => n.id === id)
@@ -517,26 +306,25 @@ const initBorrowTrendChart = () => {
   })
 }
 
+const borrowTrendData = ref({
+  categories: [],
+  borrowData: [],
+  returnData: []
+})
+
 const updateBorrowTrendChart = () => {
   if (!borrowTrendChart) return
 
-  // 模拟数据
-  const data = {
-    week: {
-      categories: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-      borrowData: [23, 45, 32, 54, 41, 67, 38],
-      returnData: [18, 42, 28, 48, 35, 59, 32]
-    },
-    month: {
-      categories: ['第1周', '第2周', '第3周', '第4周'],
-      borrowData: [203, 245, 232, 254],
-      returnData: [180, 220, 208, 235]
-    }
-  }
-
-  const currentData = data[currentTrendPeriod.value] || data.week
+  const currentData = borrowTrendData.value
 
   const option = {
+    grid: {
+      top: '12%',
+      left: '3%',
+      right: '4%',
+      bottom: '5%',
+      containLabel: true
+    },
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -548,10 +336,18 @@ const updateBorrowTrendChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: currentData.categories
+      data: currentData.categories,
+      boundaryGap: false,
+      axisLine: {
+        onZero: true
+      }
     },
     yAxis: {
-      type: 'value'
+      type: 'value',
+      min: 0,
+      axisLine: {
+        show: true
+      }
     },
     series: [
       {
@@ -589,17 +385,12 @@ const initCategoryChart = () => {
   })
 }
 
+const categoryData = ref([])
+
 const updateCategoryChart = () => {
   if (!categoryChart) return
 
-  const data = [
-    { value: 1048, name: '计算机' },
-    { value: 735, name: '文学' },
-    { value: 580, name: '历史' },
-    { value: 484, name: '科学' },
-    { value: 300, name: '艺术' },
-    { value: 235, name: '其他' }
-  ]
+  const data = categoryData.value
 
   const option = {
     tooltip: {
@@ -644,10 +435,82 @@ const updateCategoryChart = () => {
   categoryChart.setOption(option)
 }
 
+// API数据获取函数
+const fetchDashboardData = async () => {
+  try {
+    loading.value = true
+
+    // 获取统计数据
+    const statsRes = await getDashboardStats()
+    if (statsRes.code === 200 && statsRes.data?.stats) {
+      // 映射API返回的数据到现有结构，保留icon属性
+      statsData.value = statsRes.data.stats.map(item => ({
+        ...item,
+        icon: item.key === 'totalBooks' ? 'Reading' :
+              item.key === 'activeUsers' ? 'User' :
+              item.key === 'borrowings' ? 'DocumentCopy' : 'Money'
+      }))
+    }
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
+    ElMessage.error('获取统计数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchBorrowTrendData = async () => {
+  try {
+    const res = await getBorrowTrend(currentTrendPeriod.value)
+    if (res.code === 200 && res.data) {
+      borrowTrendData.value = res.data
+    }
+  } catch (error) {
+    console.error('获取借阅趋势失败:', error)
+    ElMessage.error('获取借阅趋势失败')
+  }
+}
+
+const fetchCategoryData = async () => {
+  try {
+    const res = await getCategoryStats()
+    if (res.code === 200 && res.data) {
+      categoryData.value = res.data
+    }
+  } catch (error) {
+    console.error('获取分类统计失败:', error)
+    ElMessage.error('获取分类统计失败')
+  }
+}
+
+
+const fetchNotifications = async () => {
+  try {
+    const res = await getSystemNotifications(5)
+    if (res.code === 200 && res.data) {
+      systemNotifications.value = res.data.map(item => ({
+        ...item,
+        time: new Date(item.time)
+      }))
+    }
+  } catch (error) {
+    console.error('获取系统通知失败:', error)
+    // 通知获取失败不显示错误消息，因为可能没有通知
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   // 设置页面标题
   document.title = '仪表板 - 图书管理系统'
+
+  // 并行获取所有数据
+  await Promise.all([
+    fetchDashboardData(),
+    fetchBorrowTrendData(),
+    fetchCategoryData(),
+    fetchNotifications()
+  ])
 
   // 等待DOM更新后初始化图表
   await nextTick()
@@ -664,9 +527,8 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .dashboard-container {
-  padding: 20px;
   background-color: var(--content-bg-color);
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 140px);
 }
 
 .welcome-section {
@@ -850,7 +712,6 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
-  margin-bottom: 24px;
 }
 
 .chart-card {
@@ -880,161 +741,7 @@ onBeforeUnmount(() => {
 
 .chart-container {
   height: 300px;
-  padding: 20px;
-}
-
-.activity-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.activity-card,
-.todo-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.activity-list,
-.todo-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: var(--el-fill-color-lighter);
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.activity-avatar {
-  margin-right: 12px;
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-text {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  margin-bottom: 4px;
-
-  .activity-user {
-    font-weight: 600;
-    color: var(--el-color-primary);
-  }
-
-  .activity-target {
-    font-weight: 500;
-  }
-}
-
-.activity-time {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.activity-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-
-  &.status--success {
-    background: var(--el-color-success-light-9);
-    color: var(--el-color-success);
-  }
-
-  &.status--warning {
-    background: var(--el-color-warning-light-9);
-    color: var(--el-color-warning);
-  }
-
-  &.status--pending {
-    background: var(--el-color-info-light-9);
-    color: var(--el-color-info);
-  }
-}
-
-.todo-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  transition: all 0.3s ease;
-
-  &:hover {
-    background-color: var(--el-fill-color-lighter);
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &.completed {
-    opacity: 0.6;
-
-    .todo-text {
-      text-decoration: line-through;
-    }
-  }
-}
-
-.todo-content {
-  flex: 1;
-  margin: 0 12px;
-}
-
-.todo-text {
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  margin-bottom: 6px;
-}
-
-.todo-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-}
-
-.todo-priority {
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-weight: 500;
-
-  &.priority--high {
-    background: var(--el-color-danger-light-9);
-    color: var(--el-color-danger);
-  }
-
-  &.priority--medium {
-    background: var(--el-color-warning-light-9);
-    color: var(--el-color-warning);
-  }
-
-  &.priority--low {
-    background: var(--el-color-info-light-9);
-    color: var(--el-color-info);
-  }
-}
-
-.todo-deadline {
-  color: var(--el-text-color-secondary);
+  padding: 20px 20px 10px 20px;
 }
 
 .notification-section {
@@ -1094,8 +801,7 @@ onBeforeUnmount(() => {
 
 // 响应式设计
 @include respond-to(tablet) {
-  .charts-grid,
-  .activity-grid {
+  .charts-grid {
     grid-template-columns: 1fr;
   }
 

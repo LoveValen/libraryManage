@@ -260,14 +260,12 @@ button {
 
 // 自定义组件样式
 .page-container {
-  padding: 20px;
   min-height: calc(100vh - 60px); // 减去头部高度
 }
 
 .card-container {
   background: white;
   border-radius: 8px;
-  padding: 20px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   margin-bottom: 20px;
 }
@@ -361,9 +359,7 @@ button {
 .chart-container {
   background: white;
   border-radius: 8px;
-  padding: 20px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
-  margin-bottom: 20px;
   
   .chart-title {
     font-size: 16px;

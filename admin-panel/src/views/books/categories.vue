@@ -84,21 +84,32 @@
                   </el-button>
                   
                   <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
-                  <el-button 
-                    type="danger" 
+                  <el-button
+                    type="danger"
                     :disabled="selectedRowKeys.length === 0"
                     @click="handleBatchDelete(selectedRows)"
                   >
                     批量删除
                   </el-button>
-                  
-                  <!-- 常规工具栏按钮 -->
-                  <el-button type="info" :icon="TrendCharts" @click="showStatistics">
-                    统计分析
+
+                  <!-- 批量启用按钮 -->
+                  <el-button
+                    type="success"
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchEnable(selectedRows)"
+                  >
+                    批量启用
                   </el-button>
-                  <el-button type="success" :icon="Download" @click="exportCategories">
-                    导出分类
+
+                  <!-- 批量禁用按钮 -->
+                  <el-button
+                    type="warning"
+                    :disabled="selectedRowKeys.length === 0"
+                    @click="handleBatchDisable(selectedRows)"
+                  >
+                    批量禁用
                   </el-button>
+
                   <el-button type="success" :icon="Upload" @click="handleImport">
                     导入分类
                   </el-button>
@@ -725,12 +736,66 @@ const handleBatchDelete = async (selectedRows) => {
   }
 }
 
-const showStatistics = () => {
-  ElMessage.info('统计分析功能开发中...')
+// 批量启用分类
+const handleBatchEnable = async (selectedRows) => {
+  if (!selectedRows || selectedRows.length === 0) {
+    ElMessage.warning('请选择要启用的分类')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要启用选中的 ${selectedRows.length} 个分类吗？`,
+      '批量启用',
+      { type: 'info' }
+    )
+
+    const categoryIds = selectedRows.map(cat => cat.id)
+    // 批量启用逻辑
+    for (const id of categoryIds) {
+      await updateBookCategory(id, { is_active: true })
+    }
+
+    ElMessage.success('批量启用成功')
+    proTableRef.value?.refresh()
+    loadCategories()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量启用失败:', error)
+      ElMessage.error('批量启用失败')
+    }
+  }
 }
 
-const exportCategories = () => {
-  ElMessage.info('导出分类功能开发中...')
+// 批量禁用分类
+const handleBatchDisable = async (selectedRows) => {
+  if (!selectedRows || selectedRows.length === 0) {
+    ElMessage.warning('请选择要禁用的分类')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要禁用选中的 ${selectedRows.length} 个分类吗？`,
+      '批量禁用',
+      { type: 'warning' }
+    )
+
+    const categoryIds = selectedRows.map(cat => cat.id)
+    // 批量禁用逻辑
+    for (const id of categoryIds) {
+      await updateBookCategory(id, { is_active: false })
+    }
+
+    ElMessage.success('批量禁用成功')
+    proTableRef.value?.refresh()
+    loadCategories()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量禁用失败:', error)
+      ElMessage.error('批量禁用失败')
+    }
+  }
 }
 
 // 列设置应用回调 - 添加ProTable刷新
@@ -740,20 +805,6 @@ const handleColumnSettingsApply = (data) => {
   if (proTableRef.value) {
     proTableRef.value.refresh()
   }
-}
-
-const getCategoryTagType = bookCount => {
-  if (bookCount >= 100) return 'success'
-  if (bookCount >= 50) return ''
-  if (bookCount >= 20) return 'warning'
-  return 'info'
-}
-
-const getCategoryLevel = bookCount => {
-  if (bookCount >= 100) return '大型分类'
-  if (bookCount >= 50) return '中型分类'
-  if (bookCount >= 20) return '小型分类'
-  return '微型分类'
 }
 
 // 获取层级文字
@@ -769,14 +820,6 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.categories-container {
-  background-color: var(--content-bg-color);
-  padding: 20px;
-  // Remove max-width constraint to use full viewport width
-  // max-width: 1400px;
-  // margin: 0 auto;
-}
-
 .categories-card {
   margin-top: 16px;
   margin-bottom: 0;
@@ -874,7 +917,6 @@ onMounted(() => {
 // 响应式设计
 @media (max-width: 768px) {
   .categories-container {
-    padding: 12px;
   }
 
   .categories-card {

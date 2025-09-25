@@ -279,7 +279,7 @@ model notification_templates {
 // 通知模型 - 管理用户通知消息
 model notifications {
   id            Int                     @id @default(autoincrement()) @db.UnsignedInt
-  user_id       Int                     @db.UnsignedInt
+  user_id       Int?                    @db.UnsignedInt
   type          notifications_type
   title         String                  @db.VarChar(255)
   content       String                  @db.Text

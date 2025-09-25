@@ -15,6 +15,7 @@ const pointsRoutes = require('../routes/points.routes');
 const notificationsRoutes = require('../routes/notifications.routes');
 const restoreRoutes = require('../routes/restore.routes');
 const adminRoutes = require('../routes/admin.routes');
+const dashboardRoutes = require('../routes/dashboard.routes');
 // const proxyRoutes = require('../routes/proxy.routes'); // Temporarily disabled
 
 /**
@@ -40,6 +41,7 @@ const setupApiInfo = (app) => {
         notifications: '/api/v1/notifications',
         restore: '/api/v1/restore',
         admin: '/api/v1/admin',
+        dashboard: '/api/v1/dashboard',
         docs: config.app.environment === 'development' ? '/api/docs' : null,
       }
     });
@@ -96,6 +98,7 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/v1/restore', restoreRoutes);
   app.use('/api/v1/admin', adminRoutes);
+  app.use('/api/v1/dashboard', dashboardRoutes);
   // app.use('/api/v1/proxy', proxyRoutes); // Temporarily disabled
 };
 

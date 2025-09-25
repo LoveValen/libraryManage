@@ -107,7 +107,9 @@
       "Bash(xargs kill:*)",
       "Bash(netstat:*)",
       "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\system\\settings.vue\")",
-      "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\system\\logs.vue\")"
+      "Bash(del \"D:\\code\\libraryManageSystem\\admin-panel\\src\\views\\system\\logs.vue\")",
+      "Bash(python:*)",
+      "Read(//d/**)"
     ],
     "deny": []
   }

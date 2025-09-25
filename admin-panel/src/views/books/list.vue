@@ -32,224 +32,216 @@
         </div>
       </div>
 
-      <!-- 图书列表内容 -->
-      <div class="books-content">
-        <!-- 图书列表 - 卡片视图 -->
-        <div v-if="viewMode === 'grid'" class="books-grid">
-          <el-row :gutter="20" v-loading="loading">
-            <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
-              <div class="book-card" @click="handleView(book)">
-                <div class="book-cover-container">
-                  <BookCover 
-                    :src="book.cover || book.coverUrl || book.cover_image" 
-                    :title="book.title"
-                    :alt="book.title"
-                    width="100%"
-                    height="240"
-                    :show-title="!book.cover && !book.coverUrl && !book.cover_image"
-                  />
-                  <div class="book-overlay">
-                    <div class="book-actions">
-                      <el-button type="primary" circle @click.stop="handleView(book)">
-                        <el-icon><View /></el-icon>
-                      </el-button>
-                      <el-button type="success" circle @click.stop="handleEdit(book)">
-                        <el-icon><Edit /></el-icon>
-                      </el-button>
-                      <el-button type="warning" circle @click.stop="handleBorrow(book)">
-                        <el-icon><Reading /></el-icon>
-                      </el-button>
-                    </div>
-                  </div>
-                  <StatusTag :status="book.status" :preset="'book'" size="small" class="book-status-tag" />
-                </div>
-
-                <div class="book-info">
-                  <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
-                  <p class="book-author">{{ book.author }}</p>
-                  <div class="book-meta">
-                    <div class="book-category">
-                      <StatusTag :status="book.categoryId" :text="getCategoryName(book.categoryId)" size="small" />
-                    </div>
-                    <div class="book-rating">
-                      <el-rate v-model="book.rating" disabled size="small" show-score />
-                    </div>
-                  </div>
-                  <div class="book-stats">
-                    <div class="stat-item">
+      <!-- 图书列表 - 卡片视图 -->
+      <div v-if="viewMode === 'grid'" class="books-grid">
+        <el-row :gutter="20" v-loading="loading">
+          <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
+            <div class="book-card" @click="handleView(book)">
+              <div class="book-cover-container">
+                <BookCover 
+                  :src="book.cover || book.coverUrl || book.cover_image" 
+                  :title="book.title"
+                  :alt="book.title"
+                  width="100%"
+                  height="240"
+                  :show-title="!book.cover && !book.coverUrl && !book.cover_image"
+                />
+                <div class="book-overlay">
+                  <div class="book-actions">
+                    <el-button type="primary" circle @click.stop="handleView(book)">
+                      <el-icon><View /></el-icon>
+                    </el-button>
+                    <el-button type="success" circle @click.stop="handleEdit(book)">
+                      <el-icon><Edit /></el-icon>
+                    </el-button>
+                    <el-button type="warning" circle @click.stop="handleBorrow(book)">
                       <el-icon><Reading /></el-icon>
-                      <span>{{ book.borrowCount || 0 }}次借阅</span>
-                    </div>
-                    <div class="stat-item" v-if="showStock">
-                      <el-icon><Box /></el-icon>
-                      <span>{{ book.stock || 0 }}本库存</span>
-                    </div>
+                    </el-button>
+                  </div>
+                </div>
+                <StatusTag :status="book.status" :preset="'book'" size="small" class="book-status-tag" />
+              </div>
+
+              <div class="book-info">
+                <h3 class="book-title" :title="book.title">{{ book.title }}</h3>
+                <p class="book-author">{{ book.author }}</p>
+                <div class="book-meta">
+                  <div class="book-category">
+                    <StatusTag :status="book.categoryId" :text="getCategoryName(book.categoryId)" size="small" />
+                  </div>
+                  <div class="book-rating">
+                    <el-rate v-model="book.rating" disabled size="small" show-score />
+                  </div>
+                </div>
+                <div class="book-stats">
+                  <div class="stat-item">
+                    <el-icon><Reading /></el-icon>
+                    <span>{{ book.borrowCount || 0 }}次借阅</span>
+                  </div>
+                  <div class="stat-item" v-if="showStock">
+                    <el-icon><Box /></el-icon>
+                    <span>{{ book.stock || 0 }}本库存</span>
                   </div>
                 </div>
               </div>
-            </el-col>
-          </el-row>
-        </div>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
 
-        <!-- 图书列表 - 表格视图 -->
-        <div v-else class="table-section">
-          <ProTable
-            ref="proTableRef"
-            :request="requestBooks"
-            :columns="bookTableColumns"
-            :batch-actions="batchActions"
-            :actions="rowActions"
-            :row-selection="{ type: 'checkbox' }"
-            :search="false"
-            :toolBar="toolBarConfig"
-            :params="searchParams"
-            :action-column="{ width: 200, fixed: 'right', align: 'center' }"
-            :max-height="finalTableHeight"
-            row-key="id"
-            stripe
-            border
-            @create="handleAdd"
-            @selection-change="handleProTableSelectionChange"
-          >
-            <!-- 图书信息插槽 -->
-            <template #bookInfo="{ record }">
-              <div class="book-info-cell">
-                <img v-if="showCover" :src="record.cover" :alt="record.title" class="book-cover-small" />
-                <div class="book-details">
-                  <div class="book-title-cell">{{ record.title }}</div>
-                  <div class="book-author-cell">{{ record.author }}</div>
-                  <div class="book-isbn-cell">ISBN: {{ record.isbn }}</div>
-                </div>
+      <!-- 图书列表 - 表格视图 -->
+      <div v-else>
+        <ProTable
+          ref="proTableRef"
+          :request="requestBooks"
+          :columns="bookTableColumns"
+          :batch-actions="batchActions"
+          :actions="rowActions"
+          :row-selection="{ type: 'checkbox' }"
+          :search="false"
+          :toolBar="toolBarConfig"
+          :params="searchParams"
+          :action-column="{ width: 200, fixed: 'right', align: 'center' }"
+          :max-height="finalTableHeight"
+          row-key="id"
+          stripe
+          border
+          @create="handleAdd"
+          @selection-change="handleProTableSelectionChange"
+        >
+          <!-- 图书信息插槽 -->
+          <template #bookInfo="{ record }">
+            <div class="book-info-cell">
+              <img v-if="showCover" :src="record.cover" :alt="record.title" class="book-cover-small" />
+              <div class="book-details">
+                <div class="book-title-cell">{{ record.title }}</div>
+                <div class="book-author-cell">{{ record.author }}</div>
+                <div class="book-isbn-cell">ISBN: {{ record.isbn }}</div>
               </div>
-            </template>
+            </div>
+          </template>
 
-            <!-- 分类插槽 -->
-            <template #category="{ record }">
-              <StatusTag :status="record.categoryId" :text="getCategoryName(record.categoryId)" size="small" />
-            </template>
+          <!-- 分类插槽 -->
+          <template #category="{ record }">
+            <StatusTag :status="record.categoryId" :text="getCategoryName(record.categoryId)" size="small" />
+          </template>
 
-            <!-- 状态插槽 -->
-            <template #status="{ record }">
-              <StatusTag :status="record.status" :preset="'book'" size="small" />
-            </template>
+          <!-- 状态插槽 -->
+          <template #status="{ record }">
+            <StatusTag :status="record.status" :preset="'book'" size="small" />
+          </template>
 
-            <!-- 位置插槽 -->
-            <template #location="{ record }">
-              <div class="location-info">
-                <el-icon><Position /></el-icon>
-                <span>{{ record.location }}</span>
+          <!-- 位置插槽 -->
+          <template #location="{ record }">
+            <div class="location-info">
+              <el-icon><Position /></el-icon>
+              <span>{{ record.location }}</span>
+            </div>
+          </template>
+
+          <!-- 库存信息插槽 -->
+          <template #stock="{ record }">
+            <div class="stock-info">
+              <div class="stock-item">
+                <span class="stock-label">库存:</span>
+                <span class="stock-value">{{ record.stock || 0 }}</span>
               </div>
-            </template>
-
-            <!-- 库存信息插槽 -->
-            <template #stock="{ record }">
-              <div class="stock-info">
-                <div class="stock-item">
-                  <span class="stock-label">库存:</span>
-                  <span class="stock-value">{{ record.stock || 0 }}</span>
-                </div>
-                <div class="stock-item">
-                  <span class="stock-label">在借:</span>
-                  <span class="borrowed-value">{{ record.borrowedCount || 0 }}</span>
-                </div>
+              <div class="stock-item">
+                <span class="stock-label">在借:</span>
+                <span class="borrowed-value">{{ record.borrowedCount || 0 }}</span>
               </div>
-            </template>
+            </div>
+          </template>
 
-            <!-- 出版信息插槽 -->
-            <template #publishInfo="{ record }">
-              <div class="publish-info">
-                <div class="publisher">{{ record.publisher || '-' }}</div>
-                <div class="publish-date">{{ record.publishDate ? formatDate(record.publishDate) : '-' }}</div>
-              </div>
-            </template>
+          <!-- 出版信息插槽 -->
+          <template #publishInfo="{ record }">
+            <div class="publish-info">
+              <div class="publisher">{{ record.publisher || '-' }}</div>
+              <div class="publish-date">{{ record.publishDate ? formatDate(record.publishDate) : '-' }}</div>
+            </div>
+          </template>
 
-            <!-- 借阅次数插槽 -->
-            <template #borrowCount="{ record }">
-              <div class="borrow-count-info">
-                <el-icon><Reading /></el-icon>
-                <span>{{ record.borrowCount || 0 }}</span>
-              </div>
-            </template>
+          <!-- 借阅次数插槽 -->
+          <template #borrowCount="{ record }">
+            <div class="borrow-count-info">
+              <el-icon><Reading /></el-icon>
+              <span>{{ record.borrowCount || 0 }}</span>
+            </div>
+          </template>
 
-            <!-- 评分插槽 -->
-            <template #rating="{ record }">
-              <div class="rating-info">
-                <el-rate v-model="record.rating" disabled size="small" />
-                <span class="rating-count">({{ record.reviewCount || 0 }})</span>
-              </div>
-            </template>
+          <!-- 评分插槽 -->
+          <template #rating="{ record }">
+            <div class="rating-info">
+              <el-rate v-model="record.rating" disabled size="small" />
+              <span class="rating-count">({{ record.reviewCount || 0 }})</span>
+            </div>
+          </template>
 
-            <!-- 时间插槽 -->
-            <template #createTime="{ record }">
-              <div class="time-info">
-                <div>{{ formatDate(record.createdAt) }}</div>
-                <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
-              </div>
-            </template>
+          <!-- 时间插槽 -->
+          <template #createTime="{ record }">
+            <div class="time-info">
+              <div>{{ formatDate(record.createdAt) }}</div>
+              <div class="time-ago">{{ formatTimeAgo(record.createdAt) }}</div>
+            </div>
+          </template>
 
-            <!-- 工具栏插槽 -->
-            <template #toolBarRender="{ selectedRowKeys, selectedRows }">
-              <div style="display: flex; justify-content: space-between; width: 100%;">
-                <!-- 左侧操作按钮 -->
-                <div style="display: flex; gap: 8px;">
-                  <!-- 新增图书按钮 -->
-                  <el-dropdown split-button type="primary" @click="handleAdd">
-                    新增图书
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item @click="handleAdd">
-                          <el-icon><Document /></el-icon>
-                          手动添加
-                        </el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                  
-                  <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
-                  <el-button 
-                    type="danger" 
-                    :disabled="selectedRowKeys.length === 0"
-                    @click="handleBatchDeleteFromTable(selectedRows)"
-                  >
-                    批量删除
-                  </el-button>
-                  <el-button 
-                    type="warning" 
-                    :disabled="selectedRowKeys.length === 0"
-                    @click="handleBatchUpdateStatusFromTable(selectedRows)"
-                  >
-                    批量状态更新
-                  </el-button>
-                  <el-button 
-                    type="info" 
-                    :disabled="selectedRowKeys.length === 0"
-                    @click="handleBatchMoveFromTable(selectedRows)"
-                  >
-                    批量移动
-                  </el-button>
-                  
-                  <!-- 常规工具栏按钮 -->
-                  <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
-                    导出数据
-                  </el-button>
-                  <el-button type="success" :icon="Upload" @click="handleImport">
-                    导入图书
-                  </el-button>
-                </div>
+          <!-- 工具栏插槽 -->
+          <template #toolBarRender="{ selectedRowKeys, selectedRows }">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+              <!-- 左侧操作按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <!-- 新增图书按钮 -->
+                <el-button 
+                  type="primary" 
+                  @click="handleAdd"
+                >
+                新增图书
+                </el-button>
                 
-                <!-- 右侧工具按钮 -->
-                <div style="display: flex; gap: 8px;">
-                  <el-tooltip content="刷新数据" placement="top">
-                    <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
-                  </el-tooltip>
-                  <el-tooltip content="列设置" placement="top">
-                    <el-button :icon="Setting" @click="openColumnSettings" />
-                  </el-tooltip>
-                </div>
+                <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                <el-button 
+                  type="danger" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchDeleteFromTable(selectedRows)"
+                >
+                  批量删除
+                </el-button>
+                <el-button 
+                  type="warning" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchUpdateStatusFromTable(selectedRows)"
+                >
+                  批量状态更新
+                </el-button>
+                <el-button 
+                  type="info" 
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="handleBatchMoveFromTable(selectedRows)"
+                >
+                  批量移动
+                </el-button>
+                
+                <!-- 常规工具栏按钮 -->
+                <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
+                  导出数据
+                </el-button>
+                <el-button type="success" :icon="Upload" @click="handleImport">
+                  导入图书
+                </el-button>
               </div>
-            </template>
-          </ProTable>
-        </div>
+              
+              <!-- 右侧工具按钮 -->
+              <div style="display: flex; gap: 8px;">
+                <el-tooltip content="刷新数据" placement="top">
+                  <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
+                </el-tooltip>
+                <el-tooltip content="列设置" placement="top">
+                  <el-button :icon="Setting" @click="openColumnSettings" />
+                </el-tooltip>
+              </div>
+            </div>
+          </template>
+        </ProTable>
       </div>
     </el-card>
 
@@ -464,7 +456,7 @@ const allTableColumns = [
     key: 'borrowCount',
     title: '借阅次数',
     slot: 'borrowCount',
-    minWidth: 100,
+    minWidth: 130,
     sorter: true,
     align: 'center'
   },
@@ -894,8 +886,6 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
   margin-bottom: 20px;
 }
 
@@ -904,15 +894,10 @@ onMounted(() => {
   align-items: center;
 }
 
-.view-controls-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .view-label {
   margin-left: 6px;
   font-size: 13px;
+  vertical-align: text-top;
 }
 
 .control-group {
@@ -932,11 +917,6 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
 }
-
-.books-content {
-  padding: 0 20px 20px;
-}
-
 .books-grid {
   .book-card-col {
     margin-bottom: 20px;
