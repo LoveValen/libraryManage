@@ -219,7 +219,7 @@ import {
   Refresh,
   InfoFilled,
   Edit,
-  Gift,
+  Present,
   Coin,
   Star
 } from '@element-plus/icons-vue'
@@ -333,7 +333,7 @@ const getTransactionIcon = type => {
     RETURN_ON_TIME: 'Check',
     WRITE_REVIEW: 'EditPen',
     ADMIN_ADJUSTMENT: 'Setting',
-    BONUS_REWARD: 'Gift',
+    BONUS_REWARD: 'Present',
     PENALTY_DEDUCTION: 'Warning'
   }
   return iconMap[type] || 'Coin'
