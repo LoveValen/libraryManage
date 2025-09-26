@@ -205,10 +205,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
 import {
-  Medal,
   Lightning,
   Plus,
   Minus,
@@ -221,7 +220,11 @@ import {
   Edit,
   Present,
   Coin,
-  Star
+  Reading,
+  Check,
+  EditPen,
+  Setting,
+  Warning
 } from '@element-plus/icons-vue'
 import PointsOperationDialog from './components/PointsOperationDialog.vue'
 import PointsTransferDialog from './components/PointsTransferDialog.vue'
@@ -329,14 +332,14 @@ const getRankClass = rank => {
 
 const getTransactionIcon = type => {
   const iconMap = {
-    BORROW_BOOK: 'Reading',
-    RETURN_ON_TIME: 'Check',
-    WRITE_REVIEW: 'EditPen',
-    ADMIN_ADJUSTMENT: 'Setting',
-    BONUS_REWARD: 'Present',
-    PENALTY_DEDUCTION: 'Warning'
+    BORROW_BOOK: Reading,
+    RETURN_ON_TIME: Check,
+    WRITE_REVIEW: EditPen,
+    ADMIN_ADJUSTMENT: Setting,
+    BONUS_REWARD: Present,
+    PENALTY_DEDUCTION: Warning
   }
-  return iconMap[type] || 'Coin'
+  return iconMap[type] || Coin
 }
 
 const getTransactionIconClass = type => {
