@@ -193,7 +193,7 @@ export const bookApi = {
    */
   createCategory(categoryData) {
     return request({
-      url: '/categories',
+      url: '/books/categories',
       method: 'post',
       data: categoryData
     })
@@ -206,7 +206,7 @@ export const bookApi = {
    */
   updateCategory(id, categoryData) {
     return request({
-      url: `/categories/${id}`,
+      url: `/books/categories/${id}`,
       method: 'put',
       data: categoryData
     })
@@ -218,7 +218,7 @@ export const bookApi = {
    */
   deleteCategory(id) {
     return request({
-      url: `/categories/${id}`,
+      url: `/books/categories/${id}`,
       method: 'delete'
     })
   },
@@ -228,7 +228,7 @@ export const bookApi = {
    */
   getCategoryTree() {
     return request({
-      url: '/categories/tree',
+      url: '/books/categories/tree',
       method: 'get'
     })
   },
