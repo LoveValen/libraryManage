@@ -3,13 +3,13 @@
 @use './mixins.scss' as *;
 
 // 导入滚动表格样式
-@import './scrollable-table.scss';
+@use './scrollable-table.scss' as *;
 
 // 导入 ProTable 样式
-@import './protable.scss';
+@use './protable.scss' as *;
 
 // 导入列宽拖拽样式
-@import './column-resize.scss';
+@use './column-resize.scss' as *;
 
 // NProgress 样式覆盖 - 更微妙的进度条
 #nprogress {
