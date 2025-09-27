@@ -142,10 +142,6 @@ const handleMenuSelect = index => {
     width: 100%;
     transition: all 0.3s ease;
 
-    &:hover {
-      color: var(--el-color-primary);
-    }
-
     .logo-content {
       display: flex;
       align-items: center;
@@ -172,13 +168,6 @@ const handleMenuSelect = index => {
       font-weight: 600;
       white-space: nowrap;
       transition: opacity 0.3s ease;
-    }
-
-    &:hover {
-      .logo-icon,
-      .logo-icon-mini {
-        color: var(--el-color-primary);
-      }
     }
   }
 }
