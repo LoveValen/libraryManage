@@ -400,13 +400,15 @@ class UserService {
       const skip = (Number(page) - 1) * Number(limit);
       const where = { is_deleted: false };
 
+      const normalizedSearch = typeof search === 'string' ? normalizedSearch : '';
+
       // 搜索条件
-      if (search?.trim()) {
+      if (normalizedSearch) {
         where.OR = [
-          { username: { contains: search.trim(), mode: 'insensitive' } },
-          { email: { contains: search.trim(), mode: 'insensitive' } },
-          { real_name: { contains: search.trim(), mode: 'insensitive' } },
-          { phone: { contains: search.trim(), mode: 'insensitive' } }
+          { username: { contains: normalizedSearch } },
+          { email: { contains: normalizedSearch } },
+          { real_name: { contains: normalizedSearch } },
+          { phone: { contains: normalizedSearch } }
         ];
       }
 

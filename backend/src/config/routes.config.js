@@ -8,6 +8,8 @@ const config = require('./index');
 const authRoutes = require('../routes/auth.routes');
 const booksRoutes = require('../routes/books.routes');
 const bookCategoriesRoutes = require('../routes/bookCategories.routes');
+const bookTagsRoutes = require('../routes/bookTags.routes');
+const bookLocationsRoutes = require('../routes/bookLocations.routes');
 const usersRoutes = require('../routes/users.routes');
 const borrowsRoutes = require('../routes/borrows.routes');
 const reviewsRoutes = require('../routes/reviews.routes');
@@ -34,6 +36,8 @@ const setupApiInfo = (app) => {
         auth: '/api/v1/auth',
         books: '/api/v1/books',
         bookCategories: '/api/v1/books/categories',
+        bookTags: '/api/v1/book-tags',
+        bookLocations: '/api/v1/book-locations',
         users: '/api/v1/users',
         borrows: '/api/v1/borrows',
         reviews: '/api/v1/reviews',
@@ -60,6 +64,9 @@ const setupApiInfo = (app) => {
         endpoints: {
           auth: '/api/v1/auth',
           books: '/api/v1/books',
+          bookCategories: '/api/v1/books/categories',
+          bookTags: '/api/v1/book-tags',
+          bookLocations: '/api/v1/book-locations',
           users: '/api/v1/users',
           borrows: '/api/v1/borrows',
           reviews: '/api/v1/reviews',
@@ -90,6 +97,8 @@ const setupApiRoutes = (app) => {
   // API版本路由
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/books/categories', bookCategoriesRoutes);
+  app.use('/api/v1/book-tags', bookTagsRoutes);
+  app.use('/api/v1/book-locations', bookLocationsRoutes);
   app.use('/api/v1/books', booksRoutes);
   app.use('/api/v1/users', usersRoutes);
   app.use('/api/v1/borrows', borrowsRoutes);

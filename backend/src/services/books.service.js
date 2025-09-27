@@ -1,5 +1,7 @@
 const BookService = require('./book.service');
 const BookCategoryService = require('./bookCategory.service');
+const BookTagService = require('./bookTag.service');
+const BookLocationService = require('./bookLocation.service');
 const prisma = require('../utils/prisma');
 const { 
   NotFoundError, 
@@ -27,6 +29,18 @@ class BooksService {
     }
 
     // Prepare clean data for creation - remove any duplicate fields
+    const rawTagIds = Array.isArray(bookData.tagIds) ? bookData.tagIds
+      : Array.isArray(bookData.tag_ids) ? bookData.tag_ids
+      : [];
+    const tagIds = rawTagIds
+      .map(tag => Number(tag))
+      .filter(id => !Number.isNaN(id));
+
+    const locationIdCandidate = typeof bookData.locationId === 'number' ? bookData.locationId
+      : (typeof bookData.locationId === 'string' && bookData.locationId.trim() !== '' ? Number(bookData.locationId) : null);
+    const locationId = typeof bookData.location_id === 'number' ? bookData.location_id
+      : (locationIdCandidate !== null && !Number.isNaN(locationIdCandidate) ? Number(locationIdCandidate) : null);
+
     const bookToCreate = {
       title: bookData.title,
       isbn: bookData.isbn,
@@ -38,6 +52,7 @@ class BooksService {
       categoryId: typeof bookData.categoryId === 'number' ? bookData.categoryId : 
                   typeof bookData.category_id === 'number' ? bookData.category_id : null,
       category: bookData.category,
+      locationId,
       tags: bookData.tags || [],
       summary: bookData.summary,
       description: bookData.description,
@@ -57,6 +72,19 @@ class BooksService {
 
     const book = await BookService.create(bookToCreate);
 
+    const syncedTags = tagIds.length > 0 ? await BookTagService.syncBookTags(book.id, tagIds) : [];
+    if (tagIds.length > 0) {
+      await prisma.books.update({
+        where: { id: book.id },
+        data: { tags: syncedTags.map(tag => tag.name) }
+      });
+    } else if (Array.isArray(bookToCreate.tags)) {
+      await prisma.books.update({
+        where: { id: book.id },
+        data: { tags: bookToCreate.tags }
+      });
+    }
+
     logBusinessOperation({
       operation: 'book_created',
       userId: user.id,
@@ -67,7 +95,8 @@ class BooksService {
       },
     });
 
-    return this.formatBookResponse(book);
+    const createdBook = await BookService.findById(book.id);
+    return this.formatBookResponse(createdBook);
   }
 
   /**
@@ -89,6 +118,7 @@ class BooksService {
       sortOrder = 'desc',
       minYear,
       maxYear,
+      locationId,
     } = filters;
 
     const result = await BookService.findWithPagination({
@@ -98,6 +128,7 @@ class BooksService {
       categoryId: categoryId || category,
       status,
       hasEbook: hasEbook,
+      locationId,
       orderBy: sortBy,
       order: sortOrder.toLowerCase()
     });
@@ -133,7 +164,43 @@ class BooksService {
       });
     }
 
-    return this.formatBookResponse(book);
+    const enrichedBook = { ...book };
+
+    const hasLocationId = enrichedBook.location_id !== undefined && enrichedBook.location_id !== null;
+    const hasLocationIdCamel = enrichedBook.locationId !== undefined && enrichedBook.locationId !== null;
+    if ((!hasLocationId && !hasLocationIdCamel) && typeof enrichedBook.location === 'string') {
+      const locationName = enrichedBook.location.trim();
+      if (locationName) {
+        const locationRecord = await BookLocationService.findByName(locationName);
+        if (locationRecord) {
+          enrichedBook.location_id = locationRecord.id;
+          enrichedBook.locationId = locationRecord.id;
+          enrichedBook.location = locationRecord.name;
+          enrichedBook.bookLocation = enrichedBook.bookLocation || locationRecord;
+        }
+      }
+    }
+
+    const hasTagRelations = Array.isArray(enrichedBook.bookTagRelations) && enrichedBook.bookTagRelations.length > 0;
+    if (!hasTagRelations) {
+      let tagNameList = [];
+      if (Array.isArray(enrichedBook.tags)) {
+        tagNameList = enrichedBook.tags.filter(name => typeof name === 'string' && name.trim().length > 0);
+      } else if (typeof enrichedBook.tags === 'string' && enrichedBook.tags.trim().length > 0) {
+        tagNameList = [enrichedBook.tags.trim()];
+      }
+
+      if (tagNameList.length > 0) {
+        const fallbackTags = await BookTagService.findManyByNames(tagNameList);
+        if (fallbackTags.length > 0) {
+          enrichedBook.bookTagRelations = fallbackTags.map(tag => ({ tag }));
+          enrichedBook.tagIds = fallbackTags.map(tag => tag.id);
+          enrichedBook.tags = fallbackTags.map(tag => tag.name);
+        }
+      }
+    }
+
+    return this.formatBookResponse(enrichedBook);
   }
 
   /**
@@ -145,6 +212,15 @@ class BooksService {
     if (!book || book.is_deleted) {
       throw new NotFoundError('Book not found');
     }
+
+    const tagIdsProvided = Object.prototype.hasOwnProperty.call(updateData, 'tagIds') || Object.prototype.hasOwnProperty.call(updateData, 'tag_ids');
+    const rawTagIds = tagIdsProvided ? (Array.isArray(updateData.tagIds) ? updateData.tagIds : Array.isArray(updateData.tag_ids) ? updateData.tag_ids : []) : [];
+    const tagIds = rawTagIds.map(tag => Number(tag)).filter(id => !Number.isNaN(id));
+
+    const locationIdCandidate = typeof updateData.locationId === 'number' ? updateData.locationId
+      : (typeof updateData.locationId === 'string' && updateData.locationId.trim() !== '' ? Number(updateData.locationId) : null);
+    const locationId = Object.prototype.hasOwnProperty.call(updateData, 'location_id') ? updateData.location_id
+      : (locationIdCandidate !== null && !Number.isNaN(locationIdCandidate) ? Number(locationIdCandidate) : undefined);
 
     // Check ISBN conflict
     if (updateData.isbn && updateData.isbn !== book.isbn) {
@@ -170,6 +246,8 @@ class BooksService {
     if (updateData.category_id !== undefined) formattedData.categoryId = updateData.category_id;
     if (updateData.category !== undefined && !formattedData.categoryId) formattedData.category = updateData.category;
     if (updateData.tags !== undefined) formattedData.tags = updateData.tags;
+    if (locationId !== undefined) formattedData.locationId = locationId;
+    if (updateData.location_id !== undefined) formattedData.locationId = updateData.location_id;
     if (updateData.summary !== undefined) formattedData.summary = updateData.summary;
     if (updateData.description !== undefined) formattedData.description = updateData.description;
     if (updateData.coverUrl !== undefined) formattedData.coverUrl = updateData.coverUrl;
@@ -193,6 +271,19 @@ class BooksService {
 
     const updatedBook = await BookService.update(book.id, formattedData);
 
+    if (tagIdsProvided) {
+      const syncedTags = await BookTagService.syncBookTags(updatedBook.id, tagIds);
+      await prisma.books.update({
+        where: { id: updatedBook.id },
+        data: { tags: syncedTags.map(tag => tag.name) }
+      });
+    } else if (updateData.tags !== undefined) {
+      await prisma.books.update({
+        where: { id: updatedBook.id },
+        data: { tags: Array.isArray(updateData.tags) ? updateData.tags : [] }
+      });
+    }
+
     logBusinessOperation({
       operation: 'book_updated',
       userId: user.id,
@@ -203,7 +294,8 @@ class BooksService {
       },
     });
 
-    return this.formatBookResponse(updatedBook);
+    const refreshedBook = await BookService.findById(updatedBook.id);
+    return this.formatBookResponse(refreshedBook);
   }
 
   /**
@@ -347,19 +439,85 @@ class BooksService {
   /**
    * Format book response to match existing API
    */
+  async getBookTags() {
+    const result = await BookTagService.listActive();
+    return result.map(tag => ({
+      id: tag.id,
+      name: tag.name,
+      code: tag.code,
+      color: tag.color,
+      isActive: tag.isActive
+    }));
+  }
+
+  async getBookLocations() {
+    const locations = await BookLocationService.listActive();
+    return locations.map(location => ({
+      id: location.id,
+      name: location.name,
+      code: location.code,
+      area: location.area,
+      floor: location.floor,
+      shelf: location.shelf,
+      description: location.description
+    }));
+  }
+
   formatBookResponse(book) {
     if (!book) return null;
+
+    const rawPublishDate = book.publish_date || book.publishDate || null;
+    const publishDate = rawPublishDate
+      ? (rawPublishDate instanceof Date ? rawPublishDate.toISOString() : rawPublishDate)
+      : (book.publication_year || book.publicationYear
+        ? `${book.publication_year || book.publicationYear}-01-01`
+        : null);
+    const categoryId = book.category_id ?? book.categoryId ?? null;
+    const categoryName = book.bookCategory?.name || book.category || null;
+
+    const tagRelations = Array.isArray(book.bookTagRelations) ? book.bookTagRelations : [];
+    const normalizedTags = tagRelations
+      .map(relation => {
+        if (!relation || !relation.tag) return null;
+        return {
+          id: relation.tag.id,
+          name: relation.tag.name,
+          code: relation.tag.code,
+          color: relation.tag.color,
+          isActive: relation.tag.is_active
+        };
+      })
+      .filter(Boolean);
+    const tagNames = normalizedTags.map(item => item.name);
+    const tagIds = normalizedTags.map(item => item.id);
+
+    const locationInfo = book.bookLocation
+      ? {
+          id: book.bookLocation.id,
+          name: book.bookLocation.name,
+          code: book.bookLocation.code,
+          area: book.bookLocation.area,
+          floor: book.bookLocation.floor,
+          shelf: book.bookLocation.shelf,
+          description: book.bookLocation.description
+        }
+      : null;
+    const locationId = book.location_id ?? book.locationId ?? locationInfo?.id ?? null;
+    const locationName = locationInfo?.name || book.location || null;
 
     return {
       id: book.id,
       title: book.title,
       authors: book.authors,
       isbn: book.isbn,
-      category: book.category_id || book.categoryId,
-      categoryName: book.bookCategory?.name || book.category,
+      categoryId,
+      category: categoryId,
+      categoryName,
+      locationId,
+      locationName,
       publisher: book.publisher,
       publicationYear: book.publication_year || book.publicationYear,
-      publishDate: book.publish_date,
+      publishDate,
       price: book.price,
       totalStock: book.total_stock || book.totalStock,
       availableStock: book.available_stock || book.availableStock,
@@ -373,8 +531,11 @@ class BooksService {
       cover: book.cover_image || book.coverUrl || book.cover || null,
       coverUrl: book.cover_image || book.coverUrl || book.cover || null,
       cover_image: book.cover_image || book.coverUrl || book.cover || null,
-      location: book.location,
-      tags: book.tags || [],
+      location: locationName,
+      locationInfo,
+      tags: tagNames.length > 0 ? tagNames : Array.isArray(book.tags) ? book.tags : [],
+      tagIds,
+      tagItems: normalizedTags,
       hasEbook: book.has_ebook || book.hasEbook || false,
       ebookUrl: book.ebook_url || book.ebookUrl,
       ebookFormat: book.ebook_format || book.ebookFormat,

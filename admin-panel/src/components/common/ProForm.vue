@@ -261,6 +261,7 @@ const emit = defineEmits([
 const formRef = ref()
 const formData = reactive({})
 const submitLoading = ref(false)
+const hasInitialized = ref(false)
 
 // 计算属性
 const computedRules = computed(() => {
@@ -454,7 +455,12 @@ const getValues = () => {
 }
 
 const setValues = (values) => {
-  Object.assign(formData, values)
+  if (!values) return
+  for (const [key, value] of Object.entries(values)) {
+    if (formData[key] !== value) {
+      formData[key] = value
+    }
+  }
 }
 
 const getFieldValue = (field) => {
@@ -486,18 +492,42 @@ const initFormData = () => {
       formData[field.name] = initialValue
     }
   })
+
+  hasInitialized.value = true
 }
 
 // 监听器
-watch(() => props.fields, () => {
-  initFormData()
-}, { immediate: true })
-
-watch(() => props.initialValues, (newValues) => {
-  Object.assign(formData, newValues)
-}, { deep: true })
 
 // 生命周期
+// 数据监听
+watch(
+  () => props.fields,
+  (newFields, oldFields) => {
+    if (!hasInitialized.value) return
+    if (!oldFields) return
+    const newNames = Array.isArray(newFields) ? newFields.map(field => field?.name).join('|') : ''
+    const oldNames = Array.isArray(oldFields) ? oldFields.map(field => field?.name).join('|') : ''
+
+    if (!props.preserve && newNames !== oldNames) {
+      initFormData()
+    }
+  },
+  { deep: false }
+)
+
+watch(
+  () => props.initialValues,
+  newValues => {
+    if (!newValues) return
+    for (const [key, incoming] of Object.entries(newValues)) {
+      if (formData[key] !== incoming) {
+        formData[key] = incoming
+      }
+    }
+  },
+  { deep: true }
+)
+
 onMounted(() => {
   initFormData()
 })
@@ -602,4 +632,35 @@ defineExpose({
     }
   }
 }
+  :deep(.el-card) {
+    margin-bottom: 20px;
+    border-radius: 8px;
+
+    .el-card__header {
+      background: var(--el-fill-color-lighter);
+      border-bottom: 1px solid var(--el-border-color-light);
+      padding: 12px 20px;
+
+      .card-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+
+        .el-icon {
+          font-size: 16px;
+        }
+      }
+    }
+
+    .el-card__body {
+      padding: 20px;
+    }
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+
 </style>

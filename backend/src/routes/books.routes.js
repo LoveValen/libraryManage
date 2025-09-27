@@ -80,6 +80,14 @@ router.get('/categories',
   booksController.getCategories
 );
 
+router.get('/tags',
+  booksController.getBookTags
+);
+
+router.get('/locations',
+  booksController.getBookLocations
+);
+
 /**
  * @route   GET /api/v1/books/statistics
  * @desc    获取图书统计信息

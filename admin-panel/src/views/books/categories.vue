@@ -226,8 +226,8 @@ const { finalTableHeight } = useTableHeight(tableHeightConfig)
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  sortBy: '',
-  sortOrder: ''
+  sortBy: 'bookCount',
+  sortOrder: 'desc'
 })
 
 
@@ -371,6 +371,10 @@ const categoryToolBarConfig = {
 
 // ProTable数据请求函数
 const requestCategories = async (params) => {
+  const keyword = (params.keyword ?? searchForm.keyword ?? '').trim().toLowerCase()
+  const sortBy = params.sortBy || searchForm.sortBy || 'bookCount'
+  const sortOrder = (params.sortOrder || searchForm.sortOrder || 'desc').toLowerCase()
+
   try {
     console.log('ProTable请求参数:', params)
     
@@ -404,105 +408,71 @@ const requestCategories = async (params) => {
     // 构建树形结构
     categoryMap.forEach(category => {
       if (category.parentId) {
-        // 如果有父分类，将其添加到父分类的children中
         const parent = categoryMap.get(category.parentId)
         if (parent) {
           parent.children.push(category)
           parent.hasChildren = true
         }
       } else {
-        // 如果没有父分类，则为根分类
         rootCategories.push(category)
       }
     })
-    
-    // 对每个层级的分类进行排序
-    const sortCategories = (categories) => {
-      categories.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-      categories.forEach(category => {
-        if (category.children && category.children.length > 0) {
-          sortCategories(category.children)
+
+    const applyKeywordFilter = (nodes) => {
+      if (!keyword) return nodes.map(node => ({ ...node, children: applyKeywordFilter(node.children || []) }))
+
+      return nodes
+        .map(node => {
+          const children = Array.isArray(node.children) ? applyKeywordFilter(node.children) : []
+          const matchKeyword = node.name.toLowerCase().includes(keyword) || (node.description || '').toLowerCase().includes(keyword)
+          if (matchKeyword || children.length) {
+            return {
+              ...node,
+              children
+            }
+          }
+          return null
+        })
+        .filter(Boolean)
+    }
+
+    const cloneTree = (nodes) => nodes.map(node => ({
+      ...node,
+      children: Array.isArray(node.children) ? cloneTree(node.children) : []
+    }))
+
+    let filteredCategories = keyword ? applyKeywordFilter(rootCategories) : cloneTree(rootCategories)
+
+    const sortTree = (nodes) => {
+      nodes.sort((a, b) => {
+        let result = 0
+        switch (sortBy) {
+          case 'name':
+            result = a.name.localeCompare(b.name, 'zh-CN')
+            break
+          case 'lastUpdated':
+            result = new Date(a.lastUpdated || 0).getTime() - new Date(b.lastUpdated || 0).getTime()
+            break
+          case 'bookCount':
+          default:
+            result = (a.bookCount || 0) - (b.bookCount || 0)
+            break
+        }
+        if (result === 0) {
+          result = a.name.localeCompare(b.name, 'zh-CN')
+        }
+        return sortOrder === 'asc' ? result : -result
+      })
+
+      nodes.forEach(node => {
+        if (Array.isArray(node.children) && node.children.length) {
+          sortTree(node.children)
         }
       })
     }
-    
-    sortCategories(rootCategories)
 
-    return {
-      success: true,
-      data: rootCategories,
-      total: rootCategories.length
-    }
-  } catch (error) {
-    console.error('获取分类列表失败:', error)
-    return {
-      success: false,
-      data: [],
-      total: 0,
-      message: error.message || '数据加载失败'
-    }
-  }
-}
+    sortTree(filteredCategories)
 
-// 方法
-const loadCategories = async () => {
-  loading.value = true
-  try {
-    // 获取分类列表（后端已经包含统计信息）
-    const categoriesResponse = await getBookCategories()
-    const backendCategories = categoriesResponse.data.categories
-
-    console.log('后端返回的分类数据:', backendCategories)
-
-    // 构建分类的父子关系映射
-    const categoryMap = new Map()
-    const rootCategories = []
-    
-    // 首先将所有分类放入map中
-    backendCategories.forEach(category => {
-      const categoryData = {
-        id: category.id,
-        parentId: category.parent_id,
-        name: category.name,
-        description: category.description || '',
-        bookCount: category.stats?.total || category._count?.books || 0,
-        availableCount: category.stats?.available || 0,
-        borrowedCount: category.stats?.borrowed || 0,
-        lastUpdated: new Date(category.updated_at || Date.now()),
-        level: category.level || 1,
-        children: []
-      }
-      categoryMap.set(category.id, categoryData)
-    })
-    
-    // 构建树形结构
-    categoryMap.forEach(category => {
-      if (category.parentId) {
-        // 如果有父分类，将其添加到父分类的children中
-        const parent = categoryMap.get(category.parentId)
-        if (parent) {
-          parent.children.push(category)
-          parent.hasChildren = true
-        }
-      } else {
-        // 如果没有父分类，则为根分类
-        rootCategories.push(category)
-      }
-    })
-    
-    // 对每个层级的分类进行排序
-    const sortCategories = (categories) => {
-      categories.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
-      categories.forEach(category => {
-        if (category.children && category.children.length > 0) {
-          sortCategories(category.children)
-        }
-      })
-    }
-    
-    sortCategories(rootCategories)
-    
-    // 计算树形结构的统计数据
     const calculateTreeStats = (category) => {
       let totalBooks = category.bookCount
       let totalAvailable = category.availableCount
@@ -521,14 +491,14 @@ const loadCategories = async () => {
     }
     
     // 更新根分类的统计数据（包含子分类）
-    rootCategories.forEach(category => {
+    filteredCategories.forEach(category => {
       const stats = calculateTreeStats(category)
       category.totalBooks = stats.totalBooks
       category.totalAvailable = stats.totalAvailable
       category.totalBorrowed = stats.totalBorrowed
     })
 
-    categories.value = rootCategories
+    categories.value = filteredCategories
 
     console.log('处理后的树形分类数据:', rootCategories)
   } catch (error) {
@@ -540,16 +510,19 @@ const loadCategories = async () => {
 }
 
 
-const handleSearch = () => {
-  // 搜索逻辑已在计算属性中实现
+const handleSearch = (criteria = {}) => {
+  Object.assign(searchForm, criteria)
+  proTableRef.value?.refresh()
 }
 
-const handleReset = () => {
+const handleReset = (criteria = {}) => {
   Object.assign(searchForm, {
     keyword: '',
     sortBy: 'bookCount',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    ...criteria
   })
+  proTableRef.value?.refresh()
 }
 
 

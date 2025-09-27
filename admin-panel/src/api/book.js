@@ -275,7 +275,7 @@ export const bookApi = {
    */
   getBookTags() {
     return request({
-      url: '/books/tags',
+      url: '/book-tags/active',
       method: 'get'
     })
   },
@@ -381,7 +381,7 @@ export const bookApi = {
    */
   getBookLocations() {
     return request({
-      url: '/books/locations',
+      url: '/book-locations/active',
       method: 'get'
     })
   },

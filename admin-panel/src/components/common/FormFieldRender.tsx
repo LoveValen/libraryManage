@@ -15,7 +15,8 @@ import {
   ElSlider,
   ElUpload,
   ElButton,
-  ElIcon
+  ElIcon,
+  ElTreeSelect
 } from 'element-plus'
 import { Upload } from '@element-plus/icons-vue'
 import type { ProFormTypes } from './ProForm.types'
@@ -218,6 +219,36 @@ export default defineComponent({
       )
     }
 
+    const treeSelectData = computed(() => {
+      if (props.field.fieldProps?.data) {
+        return props.field.fieldProps.data
+      }
+      if (Array.isArray(props.field.options)) {
+        return props.field.options
+      }
+      return []
+    })
+
+    const renderTreeSelect = () => {
+      const fieldProps = { ...(props.field.fieldProps || {}) }
+      const dataFromProps = fieldProps.data
+      delete fieldProps.data
+
+      return (
+        <ElTreeSelect
+          modelValue={props.value}
+          onUpdate:modelValue={handleChange}
+          data={dataFromProps ?? treeSelectData.value}
+          placeholder={props.field.placeholder}
+          disabled={props.field.disabled}
+          clearable={props.field.clearable !== false}
+          filterable={props.field.filterable}
+          onChange={handleChange}
+          {...fieldProps}
+        />
+      )
+    }
+
     const renderRate = () => {
       return (
         <ElRate
@@ -345,6 +376,8 @@ export default defineComponent({
           return renderRate()
         case 'slider':
           return renderSlider()
+        case 'treeSelect':
+          return renderTreeSelect()
         case 'upload':
         case 'uploadImage':
           return renderUpload()

@@ -3,6 +3,7 @@
 
     <!-- 搜索筛选区域 -->
     <SearchFilterSimple
+      ref="searchFilterRef"
       v-model="searchForm"
       :fields="searchFields"
       :loading="loading"
@@ -100,7 +101,6 @@
           :row-selection="{ type: 'checkbox' }"
           :search="false"
           :toolBar="toolBarConfig"
-          :params="searchParams"
           :action-column="{ width: 200, fixed: 'right', align: 'center' }"
           :max-height="finalTableHeight"
           row-key="id"
@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -291,6 +291,7 @@ import {
   Document
 } from '@element-plus/icons-vue'
 import { bookApi } from '@/api/book'
+import { bookLocationApi } from '@/api/bookLocation'
 import { formatDate, formatTimeAgo } from '@/utils/date'
 import { StatusTag, ProTable, ColumnSettings } from '@/components/common'
 import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
@@ -308,7 +309,7 @@ const loading = ref(false)
 const exportLoading = ref(false)
 const bookList = ref([])
 const categories = ref([])
-const locations = ref(['A区', 'B区', 'C区', 'D区', '阅览室', '特藏室'])
+const locations = ref([])
 const selectedBooks = ref([])
 const viewMode = ref('table')
 const showCover = ref(false)
@@ -320,13 +321,14 @@ const showBorrowDialog = ref(false)
 const showQRCodeDialog = ref(false)
 const selectedBook = ref(null)
 const proTableRef = ref()
+const searchFilterRef = ref()
 
 // 搜索表单
 const searchForm = reactive({
   keyword: '',
-  category: '',
+  categoryId: null,
   status: '',
-  location: '',
+  locationId: null,
   dateRange: null
 })
 
@@ -336,10 +338,63 @@ const categoryOptions = computed(() =>
     .map(cat => ({ label: cat.name, value: cat.id })) || []
 )
 
-const locationOptions = computed(() => 
-  locations.value?.filter(loc => loc && typeof loc === 'string')
-    .map(loc => ({ label: loc, value: loc })) || []
+const locationOptions = computed(() =>
+  (locations.value || []).map(item => ({
+    label: item.name,
+    value: item.id,
+    raw: item
+  }))
 )
+const ensureLocationOption = location => {
+  if (!location || location.id === undefined || location.id === null) return
+  const numericId = Number(location.id)
+  if (Number.isNaN(numericId)) return
+  if (!locations.value.some(item => item.id === numericId)) {
+    locations.value = [...locations.value, { id: numericId, name: location.name }]
+  }
+}
+
+const mergeLocationsFromBooks = books => {
+  if (!Array.isArray(books)) return
+  books.forEach(book => {
+    const locationId = book.locationId ?? book.location_id ?? null
+    const locationName = book.locationName || book.location || ''
+    if (locationId !== null && locationName) {
+      ensureLocationOption({ id: locationId, name: locationName })
+    }
+  })
+}
+
+const loadCategories = async () => {
+  try {
+    const { data } = await bookApi.getCategories()
+    const list = Array.isArray(data?.categories) ? data.categories : []
+    categories.value = list.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description || ''
+    }))
+
+    await nextTick()
+    searchFilterRef.value?.setFieldProps?.('categoryId', { options: categoryOptions.value })
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+}
+
+const loadLocationOptions = async () => {
+  try {
+    const { data } = await bookLocationApi.getLocations({ page: 1, size: 200, isActive: true })
+    const fetched = Array.isArray(data?.locations) ? data.locations : []
+    locations.value = fetched.map(item => ({ id: item.id, name: item.name }))
+
+    await nextTick()
+    searchFilterRef.value?.setFieldProps?.('locationId', { options: locationOptions.value })
+  } catch (error) {
+    console.error('获取位置选项失败:', error)
+  }
+}
+
 
 // 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
@@ -351,7 +406,7 @@ const searchFields = [
     clearable: true
   },
   {
-    name: 'category',
+    name: 'categoryId',
     valueType: 'select',
     label: '图书分类',
     placeholder: '选择图书分类',
@@ -369,8 +424,8 @@ const searchFields = [
       { label: '已下架', value: 'offline' }
     ]
   },
-  {
-    name: 'location',
+    {
+    name: 'locationId',
     valueType: 'select',
     label: '存放位置',
     placeholder: '选择存放位置',
@@ -390,13 +445,6 @@ const pagination = reactive({
   size: 24,
   total: 0
 })
-
-// ProTable配置
-const searchParams = computed(() => ({
-  ...searchForm,
-  sortBy: sortBy.value,
-  sortOrder: sortOrder.value
-}))
 
 // 所有可用的列配置
 const allTableColumns = [
@@ -602,6 +650,26 @@ const fetchBooks = async () => {
       ...searchForm
     }
 
+    if (params.categoryId !== null && params.categoryId !== undefined && params.categoryId !== '') {
+      params.categoryId = Number(params.categoryId)
+    } else {
+      delete params.categoryId
+    }
+
+    if (params.locationId !== null && params.locationId !== undefined && params.locationId !== '') {
+      params.locationId = Number(params.locationId)
+    } else {
+      delete params.locationId
+    }
+
+    if (!params.status) {
+      delete params.status
+    }
+
+    if (!params.keyword) {
+      delete params.keyword
+    }
+
     // 处理日期范围
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       params.startDate = searchForm.dateRange[0]
@@ -609,7 +677,9 @@ const fetchBooks = async () => {
     }
 
     const response = await bookApi.getBooks(params)
-    bookList.value = response.data || []
+    const list = response.data || []
+    mergeLocationsFromBooks(list)
+    bookList.value = list
     pagination.total = response.pagination?.total || 0
 
   } catch (error) {
@@ -633,6 +703,26 @@ const requestBooks = async (params) => {
       ...searchForm
     }
 
+    if (requestParams.categoryId !== null && requestParams.categoryId !== undefined && requestParams.categoryId !== '') {
+      requestParams.categoryId = Number(requestParams.categoryId)
+    } else {
+      delete requestParams.categoryId
+    }
+
+    if (requestParams.locationId !== null && requestParams.locationId !== undefined && requestParams.locationId !== '') {
+      requestParams.locationId = Number(requestParams.locationId)
+    } else {
+      delete requestParams.locationId
+    }
+
+    if (!requestParams.status) {
+      delete requestParams.status
+    }
+
+    if (!requestParams.keyword) {
+      delete requestParams.keyword
+    }
+
     // 处理日期范围
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       requestParams.startDate = searchForm.dateRange[0]
@@ -640,10 +730,12 @@ const requestBooks = async (params) => {
     }
 
     const response = await bookApi.getBooks(requestParams)
-    
+    const list = response.data || []
+    mergeLocationsFromBooks(list)
+
     return {
       success: true,
-      data: response.data || [],
+      data: list,
       total: response.pagination?.total || 0
     }
   } catch (error) {
@@ -658,41 +750,48 @@ const requestBooks = async (params) => {
 }
 
 const fetchCategories = async () => {
-  try {
-    const { data } = await bookApi.getCategories()
-    categories.value = data.categories
-  } catch (error) {
-    console.error('获取分类失败:', error)
+  await loadCategories()
+}
+
+
+const handleSearch = (criteria = {}) => {
+  Object.assign(searchForm, criteria)
+  pagination.page = 1
+  if (viewMode.value === 'table') {
+    proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
+  } else {
+    fetchBooks()
   }
 }
 
-
-const handleSearch = () => {
-  pagination.page = 1
-  fetchBooks()
-}
-
-const handleReset = () => {
+const handleReset = (criteria = {}) => {
   Object.assign(searchForm, {
     keyword: '',
-    category: '',
+    categoryId: null,
     status: '',
-    location: '',
-    dateRange: null
+    locationId: null,
+    dateRange: null,
+    ...criteria
   })
   pagination.page = 1
-  fetchBooks()
+  if (viewMode.value === 'table') {
+    proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
+  } else {
+    fetchBooks()
+  }
 }
 
 const handleViewModeChange = mode => {
   viewMode.value = mode
   if (mode === 'grid') {
     pagination.size = 24
+    pagination.page = 1
+    fetchBooks()
   } else {
     pagination.size = 20
+    pagination.page = 1
+    proTableRef.value?.reload?.(true)
   }
-  pagination.page = 1
-  fetchBooks()
 }
 
 
@@ -826,6 +925,12 @@ const handleExport = async () => {
     exportLoading.value = true
     const params = { ...searchForm }
 
+    if (params.locationId !== null && params.locationId !== undefined && params.locationId !== '') {
+      params.locationId = Number(params.locationId)
+    } else {
+      delete params.locationId
+    }
+
     if (searchForm.dateRange && searchForm.dateRange.length === 2) {
       params.startDate = searchForm.dateRange[0]
       params.endDate = searchForm.dateRange[1]
@@ -867,8 +972,9 @@ const handleColumnSettingsApply = (data) => {
 
 // 生命周期
 onMounted(() => {
-  fetchBooks()
-  fetchCategories()
+  Promise.all([loadCategories(), loadLocationOptions()]).finally(() => {
+    fetchBooks()
+  })
 })
 </script>
 

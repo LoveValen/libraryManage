@@ -81,12 +81,21 @@ const SearchFilterSimple = defineComponent({
     search: (data: FormData) => true,
     reset: (data: FormData) => true,
     'update:modelValue': (data: FormData) => true,
-    'field-change': (fieldName: string, value: any, oldValue: any) => true
+
   },
-  setup(props, { emit }) {
+  setup(props, { emit, expose }) {
     // Refs
     const formRef = ref<FormInstance>()
     const collapsed = ref<boolean>(props.defaultCollapsed)
+
+    // 本地字段配置，支持运行时更新
+    const internalFields = ref<SearchField[]>([])
+
+    const syncFields = (fields: SearchField[]) => {
+      internalFields.value = (fields || []).map(field => ({ ...field }))
+    }
+
+    syncFields(props.fields)
 
     // Reactive data
     const formData = reactive<FormData>({ ...props.modelValue })
@@ -98,18 +107,18 @@ const SearchFilterSimple = defineComponent({
 
     const visibleFields = computed((): SearchField[] => {
       if (!props.collapsible || !collapsed.value) {
-        return props.fields
+        return internalFields.value
       }
-      return props.fields.slice(0, collapsedFieldCount.value)
+      return internalFields.value.slice(0, collapsedFieldCount.value)
     })
 
     const hiddenFieldsCount = computed((): number => {
       if (!props.collapsible || !collapsed.value) return 0
-      return Math.max(0, props.fields.length - collapsedFieldCount.value)
+      return Math.max(0, internalFields.value.length - collapsedFieldCount.value)
     })
 
     const hasAdvancedFields = computed((): boolean => {
-      return props.collapsible && props.fields.length > collapsedFieldCount.value
+      return props.collapsible && internalFields.value.length > collapsedFieldCount.value
     })
 
     const showCollapseButton = computed((): boolean => {
@@ -160,19 +169,13 @@ const SearchFilterSimple = defineComponent({
     })
 
     // Methods
-    const handleFieldChange = (fieldName: string, value: any, oldValue?: any): void => {
-      formData[fieldName] = value
-      emit('field-change', fieldName, value, oldValue)
-      emit('update:modelValue', { ...formData })
-    }
-
-    // FormFieldRender onChange 适配器
     const createFieldChangeHandler = (fieldName: string) => (value: any): void => {
-      const oldValue = formData[fieldName]
-      handleFieldChange(fieldName, value, oldValue)
+      formData[fieldName] = value
     }
 
     const handleSearch = (): void => {
+      emit('update:modelValue', { ...formData })
+
       // 清理空值
       const searchData: FormData = Object.keys(formData).reduce((acc, key) => {
         const value = formData[key]
@@ -191,15 +194,18 @@ const SearchFilterSimple = defineComponent({
     }
 
     const handleReset = (): void => {
-      // 重置所有字段
+      const fieldNames = new Set(internalFields.value.map(field => field.name))
       Object.keys(formData).forEach(key => {
-        const field = props.fields.find(f => f.name === key)
-        formData[key] = field?.initialValue || ''
+        if (!fieldNames.has(key)) {
+          delete formData[key]
+          return
+        }
+        const field = internalFields.value.find(f => f.name === key)
+        formData[key] = field?.initialValue ?? ''
       })
-      
-      // 重置表单验证
+
       formRef.value?.resetFields()
-      
+
       const resetData: FormData = { ...formData }
       emit('reset', resetData)
       emit('update:modelValue', resetData)
@@ -211,12 +217,41 @@ const SearchFilterSimple = defineComponent({
 
     // 初始化表单数据
     const initFormData = (): void => {
-      // 确保所有字段都有初始值
-      props.fields.forEach(field => {
-        if (formData[field.name] === undefined) {
-          formData[field.name] = field.initialValue || ''
+      const fieldNames = new Set(internalFields.value.map(field => field.name))
+
+      Object.keys(formData).forEach(key => {
+        if (!fieldNames.has(key)) {
+          delete formData[key]
         }
       })
+
+      internalFields.value.forEach(field => {
+        if (formData[field.name] === undefined) {
+          formData[field.name] = field.initialValue ?? ''
+        }
+      })
+    }
+
+    const setFieldProps = (fieldName: string, updater: Partial<SearchField> | ((field: SearchField) => SearchField)) => {
+      const index = internalFields.value.findIndex(field => field.name === fieldName)
+      if (index === -1) return
+      const currentField = internalFields.value[index]
+      const nextField = typeof updater === 'function'
+        ? (updater as (field: SearchField) => SearchField)({ ...currentField })
+        : { ...currentField, ...updater }
+      internalFields.value.splice(index, 1, nextField)
+      initFormData()
+    }
+
+    const setFields = (fieldsOrUpdater: SearchField[] | ((fields: SearchField[]) => SearchField[])) => {
+      const next = typeof fieldsOrUpdater === 'function'
+        ? (fieldsOrUpdater as (fields: SearchField[]) => SearchField[])(internalFields.value.map(field => ({ ...field })))
+        : fieldsOrUpdater
+
+      if (Array.isArray(next)) {
+        syncFields(next)
+        initFormData()
+      }
     }
 
     // 监听外部数据变化
@@ -226,13 +261,19 @@ const SearchFilterSimple = defineComponent({
       }
     }, { deep: true })
 
-    watch(() => props.fields, () => {
+    watch(() => props.fields, (newFields) => {
+      syncFields(newFields)
       initFormData()
-    }, { immediate: true })
+    }, { immediate: true, deep: true })
 
     // 生命周期
     onMounted(() => {
       initFormData()
+    })
+
+    expose({
+      setFieldProps,
+      setFields
     })
 
     return {
@@ -248,7 +289,6 @@ const SearchFilterSimple = defineComponent({
       actionSpan,
       shouldActionNewRow,
       isSingleRow,
-      handleFieldChange,
       createFieldChangeHandler,
       handleSearch,
       handleReset,
@@ -304,6 +344,7 @@ const SearchFilterSimple = defineComponent({
                           type="primary" 
                           icon={Search} 
                           loading={this.loading}
+                          nativeType="button"
                           onClick={this.handleSearch}
                         >
                           {this.actions.search?.text || '搜索'}
@@ -311,6 +352,7 @@ const SearchFilterSimple = defineComponent({
                         
                         <ElButton 
                           icon={Refresh} 
+                          nativeType="button"
                           onClick={this.handleReset}
                           disabled={this.loading}
                         >
@@ -323,6 +365,7 @@ const SearchFilterSimple = defineComponent({
                             text
                             type="primary"
                             icon={this.collapsed ? ArrowDown : ArrowUp}
+                            nativeType="button"
                             onClick={this.toggleCollapse}
                             class={styles.collapseBtn}
                           >
@@ -345,6 +388,7 @@ const SearchFilterSimple = defineComponent({
                           type="primary" 
                           icon={Search} 
                           loading={this.loading}
+                          nativeType="button"
                           onClick={this.handleSearch}
                         >
                           {this.actions.search?.text || '搜索'}
@@ -352,6 +396,7 @@ const SearchFilterSimple = defineComponent({
                         
                         <ElButton 
                           icon={Refresh} 
+                          nativeType="button"
                           onClick={this.handleReset}
                           disabled={this.loading}
                         >
@@ -364,6 +409,7 @@ const SearchFilterSimple = defineComponent({
                             text
                             type="primary"
                             icon={this.collapsed ? ArrowDown : ArrowUp}
+                            nativeType="button"
                             onClick={this.toggleCollapse}
                             class={styles.collapseBtn}
                           >

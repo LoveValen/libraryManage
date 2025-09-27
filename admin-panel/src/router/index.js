@@ -119,6 +119,24 @@ export const asyncRoutes = [
           title: '图书分类',
           icon: 'Menu'
         }
+      },
+      {
+        path: 'tags',
+        name: 'BookTags',
+        component: () => import('@/views/books/tags.vue'),
+        meta: {
+          title: '图书标签',
+          icon: 'PriceTag'
+        }
+      },
+      {
+        path: 'locations',
+        name: 'BookLocations',
+        component: () => import('@/views/books/locations.vue'),
+        meta: {
+          title: '图书存放位置',
+          icon: 'Location'
+        }
       }
     ]
   },

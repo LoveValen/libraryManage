@@ -1,3 +1,8 @@
+export const getUploadAction = () => `${import.meta.env.VITE_API_BASE_URL}/upload/image`
+
+export const getAuthHeaders = token => ({
+  Authorization: `Bearer ${token || localStorage.getItem('token') || ''}`
+})
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '@/api/auth'

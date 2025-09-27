@@ -182,6 +182,22 @@ class BooksController {
    * 搜索图书
    * GET /api/v1/books/search
    */
+  /**
+   * 获取图书标签
+   */
+  getBookTags = asyncHandler(async (req, res) => {
+    const tags = await booksService.getBookTags();
+    success(res, { tags }, '获取图书标签成功');
+  });
+
+  /**
+   * 获取图书存放位置列表
+   */
+  getBookLocations = asyncHandler(async (req, res) => {
+    const locations = await booksService.getBookLocations();
+    success(res, { locations }, '获取图书存放位置成功');
+  });
+
   searchBooks = asyncHandler(async (req, res) => {
     // Accept multiple query parameter names to bypass validation issues
     const { q, query, search, keyword, ...options } = req.query;

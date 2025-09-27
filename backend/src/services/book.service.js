@@ -21,6 +21,7 @@ class BookService {
         categoryId = null,
         status = null,
         hasEbook = null,
+        locationId = null,
         orderBy = 'createdAt',
         order = 'desc'
       } = options;
@@ -58,6 +59,10 @@ class BookService {
           orderBy: { [mappedOrderBy]: order },
           include: {
             bookCategory: true,
+            bookLocation: true,
+            bookTagRelations: {
+              include: { tag: true }
+            },
             _count: {
               select: {
                 borrows: { where: { is_deleted: false } },
@@ -87,19 +92,20 @@ class BookService {
    * 构建查询条件
    * @private
    */
-  static _buildWhereCondition({ search, categoryId, status, hasEbook }) {
+  static _buildWhereCondition({ search, categoryId, status, hasEbook, locationId }) {
     const where = { is_deleted: false };
 
     // 搜索条件
-    if (search?.trim()) {
+    const normalizedSearch = typeof search === 'string' ? search.trim() : '';
+    if (normalizedSearch) {
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { isbn: { contains: search, mode: 'insensitive' } },
-        { publisher: { contains: search, mode: 'insensitive' } },
+        { title: { contains: normalizedSearch } },
+        { isbn: { contains: normalizedSearch } },
+        { publisher: { contains: normalizedSearch } },
         {
           authors: {
             path: '$[*]',
-            string_contains: search
+            string_contains: normalizedSearch
           }
         }
       ];
@@ -120,6 +126,10 @@ class BookService {
       where.hasEbook = Boolean(hasEbook);
     }
 
+    if (locationId) {
+      where.location_id = Number(locationId);
+    }
+
     return where;
   }
 
@@ -137,6 +147,10 @@ class BookService {
 
       const include = includeRelations ? {
         bookCategory: true,
+        bookLocation: true,
+        bookTagRelations: {
+          include: { tag: true }
+        },
         reviews: {
           where: { 
             status: 'published'
@@ -220,7 +234,20 @@ class BookService {
         throw new Error('该 ISBN 已存在');
       }
 
-      // Map camelCase to snake_case for Prisma schema
+      const locationIdCandidate = typeof bookData.locationId === 'number' ? bookData.locationId
+      : (typeof bookData.locationId === 'string' && bookData.locationId.trim() !== '' ? Number(bookData.locationId) : null);
+    const locationId = typeof bookData.location_id === 'number' ? bookData.location_id
+      : (locationIdCandidate !== null && !Number.isNaN(locationIdCandidate) ? Number(locationIdCandidate) : null);
+    let resolvedLocation = bookData.location || null;
+    if (locationId) {
+      const locationRecord = await prisma.book_locations.findUnique({ where: { id: Number(locationId) } });
+      if (!locationRecord) {
+        throw new Error('指定的存放位置不存在');
+      }
+      resolvedLocation = locationRecord.name;
+    }
+
+    // Map camelCase to snake_case for Prisma schema
       const prismaData = {
         title: bookData.title,
         isbn: bookData.isbn,
@@ -240,7 +267,8 @@ class BookService {
         available_stock: bookData.availableStock || bookData.available_stock || bookData.totalStock || bookData.total_stock || 1,
         reserved_stock: bookData.reservedStock || bookData.reserved_stock || 0,
         status: bookData.status || BOOK_STATUS.AVAILABLE,
-        location: bookData.location,
+        location_id: locationId ? Number(locationId) : undefined,
+        location: resolvedLocation,
         price: bookData.price,
         pages: bookData.pages,
         format: bookData.format || 'BOOK',
@@ -327,7 +355,6 @@ class BookService {
       if (updateData.reservedStock !== undefined) prismaData.reserved_stock = updateData.reservedStock;
       if (updateData.reserved_stock !== undefined) prismaData.reserved_stock = updateData.reserved_stock;
       if (updateData.status !== undefined) prismaData.status = updateData.status;
-      if (updateData.location !== undefined) prismaData.location = updateData.location;
       if (updateData.price !== undefined) prismaData.price = updateData.price;
       if (updateData.pages !== undefined) prismaData.pages = updateData.pages;
       if (updateData.format !== undefined) prismaData.format = updateData.format;
@@ -335,6 +362,35 @@ class BookService {
       if (updateData.has_ebook !== undefined) prismaData.has_ebook = updateData.has_ebook;
       if (updateData.condition !== undefined) prismaData.condition = updateData.condition;
       if (updateData.notes !== undefined) prismaData.notes = updateData.notes;
+
+    const hasLocationIdUpdate = Object.prototype.hasOwnProperty.call(updateData, 'locationId') || Object.prototype.hasOwnProperty.call(updateData, 'location_id');
+    if (hasLocationIdUpdate) {
+      const rawLocationId = updateData.locationId ?? updateData.location_id;
+      if (rawLocationId === null || rawLocationId === '' || rawLocationId === undefined) {
+        prismaData.location_id = null;
+        if (updateData.location !== undefined) {
+          prismaData.location = updateData.location;
+        } else {
+          prismaData.location = null;
+        }
+      } else {
+        const parsedLocationId = Number(rawLocationId);
+        if (Number.isNaN(parsedLocationId)) {
+          throw new Error('无效的存放位置标识');
+        }
+        const locationRecord = await prisma.book_locations.findUnique({ where: { id: parsedLocationId } });
+        if (!locationRecord) {
+          throw new Error('指定的存放位置不存在');
+        }
+        prismaData.location_id = parsedLocationId;
+        prismaData.location = locationRecord.name;
+      }
+    } else if (updateData.location !== undefined) {
+      prismaData.location = updateData.location;
+      if (updateData.location === null || updateData.location === '') {
+        prismaData.location_id = null;
+      }
+    }
       
       prismaData.updated_at = new Date();
 
@@ -519,7 +575,8 @@ class BookService {
     try {
       const { limit = 10, categoryId = null } = options;
 
-      if (!query?.trim()) {
+      const normalizedQuery = typeof query === 'string' ? query.trim() : '';
+      if (!normalizedQuery) {
         return [];
       }
 
@@ -527,13 +584,13 @@ class BookService {
         is_deleted: false,
         status: BOOK_STATUS.AVAILABLE,
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { isbn: { contains: query, mode: 'insensitive' } },
-          { publisher: { contains: query, mode: 'insensitive' } },
+          { title: { contains: normalizedQuery } },
+          { isbn: { contains: normalizedQuery } },
+          { publisher: { contains: normalizedQuery } },
           {
             authors: {
               path: '$[*]',
-              string_contains: query
+              string_contains: normalizedQuery
             }
           }
         ]

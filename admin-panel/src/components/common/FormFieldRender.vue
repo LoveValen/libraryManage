@@ -87,20 +87,23 @@
     />
 
     <!-- 数字输入框 -->
-    <el-input-number
+    <InputNumber
       v-else-if="field.valueType === 'number'"
       :model-value="value"
       :placeholder="field.placeholder || `请输入${field.label}`"
       :disabled="disabled"
-      :readonly="readonly"
       :min="field.min"
       :max="field.max"
       :step="field.step || 1"
       :precision="field.fieldProps?.precision || 0"
-      controls-position="right"
+      :controls="field.fieldProps?.controls || false"
+      :unit="field.fieldProps?.unit || ''"
+      :thousands="field.fieldProps?.thousands || false"
+      :text-align="field.fieldProps?.textAlign || 'left'"
+      :size="field.fieldProps?.size || 'default'"
+      :status="field.fieldProps?.status || ''"
       style="width: 100%"
-      v-bind="field.fieldProps"
-      @input="handleChange"
+      @update:modelValue="handleChange"
       @blur="handleBlur"
       @focus="handleFocus"
     />
@@ -309,7 +312,7 @@
     <el-tree-select
       v-else-if="field.valueType === 'treeSelect'"
       :model-value="value"
-      :data="fieldOptions"
+      :data="treeSelectData"
       :placeholder="field.placeholder || `请选择${field.label}`"
       :disabled="disabled"
       :clearable="true"
@@ -406,8 +409,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, unref } from 'vue'
 import { QuestionFilled, Upload, Plus } from '@element-plus/icons-vue'
+import InputNumber from '../InputNumber.vue'
 
 // Props定义
 const props = defineProps({
@@ -439,6 +443,27 @@ const emit = defineEmits(['change', 'blur', 'focus'])
 // 响应式数据
 const fieldOptions = ref([])
 const fileList = ref([])
+const treeSelectData = computed(() => {
+  if (props.field.valueType !== 'treeSelect') {
+    return fieldOptions.value
+  }
+
+  if (Array.isArray(fieldOptions.value) && fieldOptions.value.length) {
+    return fieldOptions.value
+  }
+
+  const directOptions = unref(props.field.options)
+  if (Array.isArray(directOptions) && directOptions.length) {
+    return directOptions
+  }
+
+  const fieldPropData = unref(props.field.fieldProps?.data)
+  if (Array.isArray(fieldPropData) && fieldPropData.length) {
+    return fieldPropData
+  }
+
+  return []
+})
 
 // 计算属性
 const finalDisabled = computed(() => {
@@ -479,11 +504,9 @@ const loadOptions = async () => {
   try {
     if (typeof props.field.options === 'function') {
       fieldOptions.value = await props.field.options()
-    } else if (props.field.options && typeof props.field.options === 'object' && 'value' in props.field.options) {
-      // 处理computed对象
-      fieldOptions.value = props.field.options.value || []
     } else {
-      fieldOptions.value = props.field.options
+      const resolvedOptions = unref(props.field.options)
+      fieldOptions.value = resolvedOptions ?? []
     }
   } catch (error) {
     console.error('加载选项数据失败:', error)
@@ -515,13 +538,13 @@ const initFileList = () => {
 }
 
 // 监听器
-watch(() => {
-  // 如果是computed对象，监听其value属性
-  if (props.field.options && typeof props.field.options === 'object' && 'value' in props.field.options) {
-    return props.field.options.value
-  }
-  return props.field.options
-}, loadOptions, { immediate: true })
+watch(
+  () => unref(props.field.options),
+  () => {
+    loadOptions()
+  },
+  { immediate: true, deep: true }
+)
 watch(() => props.value, initFileList, { immediate: true })
 </script>
 

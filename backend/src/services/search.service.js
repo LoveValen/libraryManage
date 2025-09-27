@@ -757,11 +757,12 @@ class SearchService {
       if (type === 'books' || type === 'all') {
         let where = { is_deleted: false };
         
-        if (query) {
+        const normalizedQuery = typeof query === 'string' ? query.trim() : '';
+        if (normalizedQuery) {
           where.OR = [
-            { title: { contains: query, mode: 'insensitive' } },
-            { authors: { has: query } },
-            { summary: { contains: query, mode: 'insensitive' } }
+            { title: { contains: normalizedQuery } },
+            { authors: { has: normalizedQuery } },
+            { summary: { contains: normalizedQuery } }
           ];
         }
 
