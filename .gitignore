@@ -48,9 +48,6 @@ temp/
 .cache/
 .parcel-cache/
 
-# Docker
-.dockerignore
-
 # 数据库
 *.sqlite
 *.db
