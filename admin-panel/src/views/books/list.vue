@@ -314,7 +314,6 @@ const selectedBooks = ref([])
 const viewMode = ref('table')
 const showCover = ref(false)
 const showStock = ref(false)
-const sortBy = ref('createdAt')
 const sortOrder = ref('desc')
 const showCategoryManager = ref(false)
 const showBorrowDialog = ref(false)
@@ -324,13 +323,14 @@ const proTableRef = ref()
 const searchFilterRef = ref()
 
 // 搜索表单
-const searchForm = reactive({
+const defaultSearchCriteria = Object.freeze({
   keyword: '',
   categoryId: null,
   status: '',
   locationId: null,
   dateRange: null
 })
+const searchForm = reactive({ ...defaultSearchCriteria })
 
 // 计算属性 - 选项数据
 const categoryOptions = computed(() => 
@@ -435,9 +435,23 @@ const searchFields = [
     name: 'dateRange',
     valueType: 'dateRange',
     label: '添加时间',
-    placeholder: ['开始日期', '结束日期']
+    placeholder: '请选择时间范围'
   }
 ]
+
+// 合并搜索条件时补齐缺失字段，确保请求参数与界面同步
+const applySearchCriteria = (criteria = {}) => {
+  const merged = { ...defaultSearchCriteria, ...criteria }
+  Object.keys(searchForm).forEach(key => {
+    if (!(key in merged)) {
+      delete searchForm[key]
+    }
+  })
+  Object.entries(merged).forEach(([key, value]) => {
+    searchForm[key] = value
+  })
+  return merged
+}
 
 // 分页信息
 const pagination = reactive({
@@ -642,38 +656,17 @@ const getCategoryName = categoryId => {
 const fetchBooks = async () => {
   try {
     loading.value = true
+
     const params = {
       page: pagination.page,
       size: pagination.size,
-      sortBy: sortBy.value,
       sortOrder: sortOrder.value,
-      ...searchForm
-    }
-
-    if (params.categoryId !== null && params.categoryId !== undefined && params.categoryId !== '') {
-      params.categoryId = Number(params.categoryId)
-    } else {
-      delete params.categoryId
-    }
-
-    if (params.locationId !== null && params.locationId !== undefined && params.locationId !== '') {
-      params.locationId = Number(params.locationId)
-    } else {
-      delete params.locationId
-    }
-
-    if (!params.status) {
-      delete params.status
-    }
-
-    if (!params.keyword) {
-      delete params.keyword
-    }
-
-    // 处理日期范围
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startDate = searchForm.dateRange[0]
-      params.endDate = searchForm.dateRange[1]
+      ...searchForm,
+      // 处理日期范围
+      ...(searchForm.dateRange?.length === 2 && {
+        startDate: searchForm.dateRange[0],
+        endDate: searchForm.dateRange[1]
+      })
     }
 
     const response = await bookApi.getBooks(params)
@@ -690,45 +683,23 @@ const fetchBooks = async () => {
   }
 }
 
+
 // ProTable数据请求函数
 const requestBooks = async (params) => {
   try {
-    console.log('ProTable请求参数:', params)
-    
+    const { current = 1, pageSize = 20 } = params
+
+    // 构建请求参数
     const requestParams = {
-      page: params.current || 1,
-      size: params.pageSize || 20,
-      sortBy: params.sorter || 'createdAt',
-      sortOrder: params.order === 'ascend' ? 'asc' : 'desc',
-      ...searchForm
+      page: current,
+      size: pageSize,
+      ...searchForm,
+      // 处理日期范围
+      ...(searchForm.dateRange?.length === 2 && {
+        startDate: searchForm.dateRange[0],
+        endDate: searchForm.dateRange[1]
+      })
     }
-
-    if (requestParams.categoryId !== null && requestParams.categoryId !== undefined && requestParams.categoryId !== '') {
-      requestParams.categoryId = Number(requestParams.categoryId)
-    } else {
-      delete requestParams.categoryId
-    }
-
-    if (requestParams.locationId !== null && requestParams.locationId !== undefined && requestParams.locationId !== '') {
-      requestParams.locationId = Number(requestParams.locationId)
-    } else {
-      delete requestParams.locationId
-    }
-
-    if (!requestParams.status) {
-      delete requestParams.status
-    }
-
-    if (!requestParams.keyword) {
-      delete requestParams.keyword
-    }
-
-    // 处理日期范围
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      requestParams.startDate = searchForm.dateRange[0]
-      requestParams.endDate = searchForm.dateRange[1]
-    }
-
     const response = await bookApi.getBooks(requestParams)
     const list = response.data || []
     mergeLocationsFromBooks(list)
@@ -755,7 +726,7 @@ const fetchCategories = async () => {
 
 
 const handleSearch = (criteria = {}) => {
-  Object.assign(searchForm, criteria)
+  applySearchCriteria(criteria)
   pagination.page = 1
   if (viewMode.value === 'table') {
     proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
@@ -765,14 +736,7 @@ const handleSearch = (criteria = {}) => {
 }
 
 const handleReset = (criteria = {}) => {
-  Object.assign(searchForm, {
-    keyword: '',
-    categoryId: null,
-    status: '',
-    locationId: null,
-    dateRange: null,
-    ...criteria
-  })
+  applySearchCriteria(criteria)
   pagination.page = 1
   if (viewMode.value === 'table') {
     proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
@@ -923,18 +887,20 @@ const handleRefresh = () => {
 const handleExport = async () => {
   try {
     exportLoading.value = true
-    const params = { ...searchForm }
 
-    if (params.locationId !== null && params.locationId !== undefined && params.locationId !== '') {
-      params.locationId = Number(params.locationId)
-    } else {
-      delete params.locationId
+    const params = {
+      ...searchForm,
+      // 处理日期范围
+      ...(searchForm.dateRange?.length === 2 && {
+        startDate: searchForm.dateRange[0],
+        endDate: searchForm.dateRange[1]
+      })
     }
 
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startDate = searchForm.dateRange[0]
-      params.endDate = searchForm.dateRange[1]
-    }
+    // 转换数字类型
+    if (params.categoryId) params.categoryId = Number(params.categoryId)
+    if (params.locationId) params.locationId = Number(params.locationId)
+    delete params.dateRange
 
     const blob = await bookApi.exportBooks(params)
 

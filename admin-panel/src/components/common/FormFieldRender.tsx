@@ -164,23 +164,48 @@ export default defineComponent({
                    props.field.valueType === 'dateRange' ? 'daterange' :
                    props.field.valueType === 'dateTimeRange' ? 'datetimerange' : 'date'
 
-      // 处理placeholder - 如果是数组，转换为字符串
-      const placeholder = Array.isArray(props.field.placeholder) 
-        ? props.field.placeholder.join(' - ') 
-        : props.field.placeholder || '选择日期'
+      const isRangeType = type.includes('range')
+      const placeholderConfig = props.field.placeholder
+      const fieldProps = props.field.fieldProps || {}
+
+      const singlePlaceholder = !isRangeType
+        ? (Array.isArray(placeholderConfig) ? placeholderConfig[0] : placeholderConfig) ?? '选择日期'
+        : undefined
+
+      const resolveRangePlaceholder = (index: number, fallback: string) => {
+        if (!isRangeType) return undefined
+        if (Array.isArray(placeholderConfig)) {
+          const direct = placeholderConfig[index]
+          if (direct !== undefined && direct !== null && direct !== '') {
+            return direct
+          }
+          const first = placeholderConfig[0]
+          if (first !== undefined && first !== null && first !== '') {
+            return first
+          }
+        } else if (typeof placeholderConfig === 'string' && placeholderConfig !== '') {
+          return placeholderConfig
+        }
+        return fallback
+      }
+
+      const startPlaceholder = fieldProps['start-placeholder'] ?? fieldProps.startPlaceholder ?? resolveRangePlaceholder(0, '开始日期')
+      const endPlaceholder = fieldProps['end-placeholder'] ?? fieldProps.endPlaceholder ?? resolveRangePlaceholder(1, '结束日期')
 
       return (
         <ElDatePicker
           modelValue={props.value}
           onUpdate:modelValue={handleChange}
           type={type}
-          placeholder={placeholder}
+          placeholder={singlePlaceholder}
+          start-placeholder={startPlaceholder}
+          end-placeholder={endPlaceholder}
           disabled={props.field.disabled}
           clearable={props.field.clearable !== false}
           format={props.field.format}
           value-format={props.field.valueFormat}
           onChange={handleChange}
-          {...props.field.fieldProps}
+          {...fieldProps}
         />
       )
     }

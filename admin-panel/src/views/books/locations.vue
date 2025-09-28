@@ -127,10 +127,11 @@ import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeig
 const loading = ref(false)
 const proTableRef = ref()
 
-const searchForm = ref({
+const defaultSearchCriteria = Object.freeze({
   keyword: '',
   isActive: ''
 })
+const searchForm = reactive({ ...defaultSearchCriteria })
 
 const searchFields = [
   {
@@ -152,6 +153,32 @@ const searchFields = [
     ]
   }
 ]
+
+// 合并搜索条件时补齐缺失字段，确保请求参数与界面同步
+const applySearchCriteria = (criteria = {}) => {
+  const merged = { ...defaultSearchCriteria, ...criteria }
+  Object.keys(searchForm).forEach(key => {
+    if (!(key in merged)) {
+      delete searchForm[key]
+    }
+  })
+  Object.entries(merged).forEach(([key, value]) => {
+    searchForm[key] = value
+  })
+  return merged
+}
+
+const buildSearchParams = () => {
+  const params = {}
+  const keyword = typeof searchForm.keyword === 'string' ? searchForm.keyword.trim() : ''
+  if (keyword) {
+    params.keyword = keyword
+  }
+  if (searchForm.isActive !== '' && searchForm.isActive !== null && searchForm.isActive !== undefined) {
+    params.isActive = searchForm.isActive
+  }
+  return params
+}
 
 const defaultVisibleColumns = [
   'name',
@@ -297,7 +324,7 @@ const requestLocations = async (params) => {
   const requestParams = {
     page: current,
     size: pageSize,
-    ...searchParams.value
+    ...buildSearchParams()
   }
 
   try {
@@ -323,20 +350,18 @@ const requestLocations = async (params) => {
   }
 }
 
-const handleSearch = () => {
-  proTableRef.value?.refresh({ current: 1 })
+const handleSearch = (criteria = {}) => {
+  applySearchCriteria(criteria)
+  proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
 }
 
-const handleReset = () => {
-  searchForm.value = {
-    keyword: '',
-    isActive: ''
-  }
-  proTableRef.value?.refresh({ current: 1 })
+const handleReset = (criteria = {}) => {
+  applySearchCriteria(criteria)
+  proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
 }
 
 const refreshTable = () => {
-  proTableRef.value?.refresh()
+  proTableRef.value?.reload?.() ?? proTableRef.value?.refresh?.()
 }
 
 const dialog = reactive({
