@@ -1,5 +1,6 @@
 const prisma = require('./prisma');
 const bcrypt = require('bcryptjs');
+const { formatDateTime } = require('./date');
 
 /**
  * 数据库工具 - 遵循优秀源码的简洁设计
@@ -11,9 +12,9 @@ const bcrypt = require('bcryptjs');
 async function healthCheck() {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return { status: 'healthy', timestamp: new Date().toISOString() };
+    return { status: 'healthy', timestamp: formatDateTime(new Date()) };
   } catch (error) {
-    return { status: 'unhealthy', error: error.message, timestamp: new Date().toISOString() };
+    return { status: 'unhealthy', error: error.message, timestamp: formatDateTime(new Date()) };
   }
 }
 
@@ -90,7 +91,7 @@ async function getDatabaseStats() {
       },
       reviews: totalReviews,
       points: totalPoints._sum.balance || 0,
-      timestamp: new Date().toISOString()
+      timestamp: formatDateTime(new Date())
     };
   } catch (error) {
     console.error('❌ 获取数据库统计失败:', error.message);

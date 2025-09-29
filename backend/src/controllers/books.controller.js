@@ -2,6 +2,7 @@ const booksService = require('../services/books.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
 const { success, successWithPagination } = require('../utils/response');
 const prisma = require('../utils/prisma');
+const { formatDate, formatDateTime } = require('../utils/date');
 
 /**
  * 图书控制器 - 处理图书的增删改查、搜索等操作
@@ -145,10 +146,63 @@ class BooksController {
         borrow_date: 'desc'
       }
     });
-    
+
+    const formattedBorrows = borrows.map(record => {
+      const formatted = { ...record };
+
+      const borrowDateValue = record.borrow_date ?? record.borrowDate;
+      const dueDateValue = record.due_date ?? record.dueDate;
+      const returnDateValue = record.return_date ?? record.returnDate;
+      const createdAtValue = record.created_at ?? record.createdAt;
+      const updatedAtValue = record.updated_at ?? record.updatedAt;
+
+      const borrowDateStr = borrowDateValue ? formatDateTime(borrowDateValue) : null;
+      const dueDateStr = dueDateValue ? formatDate(dueDateValue) : null;
+      const returnDateStr = returnDateValue ? formatDateTime(returnDateValue) : null;
+      const createdAtStr = createdAtValue ? formatDateTime(createdAtValue) : null;
+      const updatedAtStr = updatedAtValue ? formatDateTime(updatedAtValue) : null;
+
+      if (Object.prototype.hasOwnProperty.call(formatted, 'borrow_date')) {
+        formatted.borrow_date = borrowDateStr;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'borrowDate')) {
+        formatted.borrowDate = borrowDateStr;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(formatted, 'due_date')) {
+        formatted.due_date = dueDateStr;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'dueDate')) {
+        formatted.dueDate = dueDateStr;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(formatted, 'return_date')) {
+        formatted.return_date = returnDateStr;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'returnDate')) {
+        formatted.returnDate = returnDateStr;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(formatted, 'created_at')) {
+        formatted.created_at = createdAtStr;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'createdAt')) {
+        formatted.createdAt = createdAtStr;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(formatted, 'updated_at')) {
+        formatted.updated_at = updatedAtStr;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'updatedAt')) {
+        formatted.updatedAt = updatedAtStr;
+      }
+
+      return formatted;
+    });
+
     successWithPagination(
       res,
-      { borrows },
+      { borrows: formattedBorrows },
       { page: parseInt(page), limit: parseInt(size), total },
       '获取借阅记录成功'
     );
@@ -209,7 +263,7 @@ class BooksController {
         status: 'error',
         statusCode: 400,
         message: 'Search query is required (use q, query, search, or keyword parameter)',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -225,7 +279,7 @@ class BooksController {
         pagination: result.pagination,
         query: searchQuery,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -249,7 +303,7 @@ class BooksController {
           days: parseInt(days),
         },
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -270,7 +324,7 @@ class BooksController {
         books,
         limit: parseInt(limit),
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -289,7 +343,7 @@ class BooksController {
       data: {
         statistics,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -308,7 +362,7 @@ class BooksController {
       data: {
         book,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -327,7 +381,7 @@ class BooksController {
         status: 'error',
         statusCode: 404,
         message: 'E-book not available for this book',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -350,7 +404,7 @@ class BooksController {
           authors: book.authors,
         },
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 

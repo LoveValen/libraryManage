@@ -2,6 +2,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import duration from 'dayjs/plugin/duration'
+import { formatDate as basicFormatDate, formatDateTime as basicFormatDateTime, formatTime as basicFormatTime } from './date'
 
 // 扩展dayjs插件
 dayjs.extend(relativeTime)
@@ -37,9 +38,10 @@ export function setupGlobalProperties(app) {
  * @param {string|Date} date - 日期
  * @param {string} format - 格式
  */
-export function formatDate(date, format = 'YYYY-MM-DD') {
+export function formatDate(date, format = 'yyyy-MM-dd') {
   if (!date) return '-'
-  return dayjs(date).format(format)
+  const result = basicFormatDate(date, format)
+  return result || '-'
 }
 
 /**
@@ -47,9 +49,10 @@ export function formatDate(date, format = 'YYYY-MM-DD') {
  * @param {string|Date} date - 日期时间
  * @param {string} format - 格式
  */
-export function formatDateTime(date, format = 'YYYY-MM-DD HH:mm:ss') {
+export function formatDateTime(date, format = 'yyyy-MM-dd hh:mm:ss') {
   if (!date) return '-'
-  return dayjs(date).format(format)
+  const result = basicFormatDateTime(date, format)
+  return result || '-'
 }
 
 /**
@@ -59,7 +62,8 @@ export function formatDateTime(date, format = 'YYYY-MM-DD HH:mm:ss') {
  */
 export function formatTime(date, format = 'HH:mm:ss') {
   if (!date) return '-'
-  return dayjs(date).format(format)
+  const result = basicFormatTime(date, format)
+  return result || '-'
 }
 
 /**

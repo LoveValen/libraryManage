@@ -300,21 +300,19 @@ import CategoryManager from './components/CategoryManager.vue'
 import BorrowForm from './components/BorrowForm.vue'
 import QRCodeGenerator from './components/QRCodeGenerator.vue'
 import { useColumnSettings } from '@/composables/useColumnSettings'
+import { useTableRequest } from '@/composables/useTableRequest'
 import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
 
 const router = useRouter()
 
 // 响应式数据
-const loading = ref(false)
 const exportLoading = ref(false)
-const bookList = ref([])
 const categories = ref([])
 const locations = ref([])
 const selectedBooks = ref([])
 const viewMode = ref('table')
 const showCover = ref(false)
 const showStock = ref(false)
-const sortOrder = ref('desc')
 const showCategoryManager = ref(false)
 const showBorrowDialog = ref(false)
 const showQRCodeDialog = ref(false)
@@ -323,75 +321,78 @@ const proTableRef = ref()
 const searchFilterRef = ref()
 
 // 搜索表单
-const defaultSearchCriteria = Object.freeze({
+const defaultSearchForm = Object.freeze({
   keyword: '',
   categoryId: null,
   status: '',
   locationId: null,
   dateRange: null
 })
-const searchForm = reactive({ ...defaultSearchCriteria })
-
-// 计算属性 - 选项数据
-const categoryOptions = computed(() => 
-  categories.value?.filter(cat => cat && cat.name && cat.id)
-    .map(cat => ({ label: cat.name, value: cat.id })) || []
+// 计算属性 - 下拉选项
+const categoryOptions = computed(() =>
+  categories.value.map(cat => ({ label: cat.name, value: cat.id }))
 )
 
 const locationOptions = computed(() =>
-  (locations.value || []).map(item => ({
-    label: item.name,
-    value: item.id,
-    raw: item
-  }))
+  locations.value.map(loc => ({ label: loc.name, value: loc.id }))
 )
-const ensureLocationOption = location => {
-  if (!location || location.id === undefined || location.id === null) return
-  const numericId = Number(location.id)
-  if (Number.isNaN(numericId)) return
-  if (!locations.value.some(item => item.id === numericId)) {
-    locations.value = [...locations.value, { id: numericId, name: location.name }]
-  }
-}
 
-const mergeLocationsFromBooks = books => {
-  if (!Array.isArray(books)) return
-  books.forEach(book => {
-    const locationId = book.locationId ?? book.location_id ?? null
-    const locationName = book.locationName || book.location || ''
-    if (locationId !== null && locationName) {
-      ensureLocationOption({ id: locationId, name: locationName })
+const defaultPageSizeTable = 20
+const defaultPageSizeGrid = 24
+
+const {
+  searchForm,
+  loading,
+  dataSource: tableDataSource,
+  pagination: tableState,
+  request: requestBooks,
+  reload: reloadBooks
+} = useTableRequest((params) => bookApi.getBooks(params), {
+  defaultSearch: defaultSearchForm,
+  defaultPageSize: defaultPageSizeTable,
+  manual: true,
+  immediate: false,
+  transform: (response) => ({
+    list: response?.data || [],
+    total: response?.pagination?.total || 0
+  }),
+  formatParams: ({ search, page, pageSize, sorter }) => {
+    const filters = buildBookFilters(search)
+    const query = {
+      page,
+      size: pageSize,
+      ...filters
     }
-  })
-}
+    if (sorter?.field) {
+      query.sortBy = sorter.field
+      query.sortOrder = sorter.order && String(sorter.order).includes('asc') ? 'asc' : 'desc'
+    }
+    return query
+  }
+})
 
+const bookList = computed(() => tableDataSource.value)
+
+// 加载基础数据 - 简化版
 const loadCategories = async () => {
   try {
     const { data } = await bookApi.getCategories()
-    const list = Array.isArray(data?.categories) ? data.categories : []
-    categories.value = list.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || ''
-    }))
-
-    await nextTick()
-    searchFilterRef.value?.setFieldProps?.('categoryId', { options: categoryOptions.value })
+    categories.value = data?.categories || []
   } catch (error) {
     console.error('获取分类失败:', error)
   }
 }
 
-const loadLocationOptions = async () => {
+const loadLocations = async () => {
   try {
-    const { data } = await bookLocationApi.getLocations({ page: 1, size: 200, isActive: true })
-    const fetched = Array.isArray(data?.locations) ? data.locations : []
-    locations.value = fetched.map(item => ({ id: item.id, name: item.name }))
-
-    await nextTick()
-    searchFilterRef.value?.setFieldProps?.('locationId', { options: locationOptions.value })
+    const { data } = await bookLocationApi.getLocations({
+      page: 1,
+      size: 200,
+      isActive: true
+    })
+    locations.value = data?.locations || []
   } catch (error) {
-    console.error('获取位置选项失败:', error)
+    console.error('获取位置失败:', error)
   }
 }
 
@@ -439,26 +440,35 @@ const searchFields = [
   }
 ]
 
-// 合并搜索条件时补齐缺失字段，确保请求参数与界面同步
-const applySearchCriteria = (criteria = {}) => {
-  const merged = { ...defaultSearchCriteria, ...criteria }
-  Object.keys(searchForm).forEach(key => {
-    if (!(key in merged)) {
-      delete searchForm[key]
+const buildBookFilters = (form = searchForm) => {
+  const filters = {}
+  const keyword = typeof form.keyword === 'string' ? form.keyword.trim() : ''
+  if (keyword) {
+    filters.keyword = keyword
+  }
+  if (form.categoryId) {
+    filters.categoryId = Number(form.categoryId)
+  }
+  if (form.status) {
+    filters.status = form.status
+  }
+  if (form.locationId) {
+    filters.locationId = Number(form.locationId)
+  }
+  if (Array.isArray(form.dateRange) && form.dateRange.length === 2) {
+    const [start, end] = form.dateRange
+    const startFormatted = formatDate(start)
+    const endFormatted = formatDate(end)
+    if (startFormatted) {
+      filters.startDate = startFormatted
     }
-  })
-  Object.entries(merged).forEach(([key, value]) => {
-    searchForm[key] = value
-  })
-  return merged
+    if (endFormatted) {
+      filters.endDate = endFormatted
+    }
+  }
+  return filters
 }
 
-// 分页信息
-const pagination = reactive({
-  page: 1,
-  size: 24,
-  total: 0
-})
 
 // 所有可用的列配置
 const allTableColumns = [
@@ -653,111 +663,62 @@ const getCategoryName = categoryId => {
   return category ? category.name : '未分类'
 }
 
-const fetchBooks = async () => {
-  try {
-    loading.value = true
-
-    const params = {
-      page: pagination.page,
-      size: pagination.size,
-      sortOrder: sortOrder.value,
-      ...searchForm,
-      // 处理日期范围
-      ...(searchForm.dateRange?.length === 2 && {
-        startDate: searchForm.dateRange[0],
-        endDate: searchForm.dateRange[1]
-      })
+// 获取图书列表 - 统一处理
+const fetchBooks = async (page = tableState.current, size) => {
+  if (viewMode.value === 'table') {
+    if (proTableRef.value?.reload) {
+      proTableRef.value.reload(true)
+      return
     }
-
-    const response = await bookApi.getBooks(params)
-    const list = response.data || []
-    mergeLocationsFromBooks(list)
-    bookList.value = list
-    pagination.total = response.pagination?.total || 0
-
-  } catch (error) {
-    console.error('获取图书列表失败:', error)
-    ElMessage.error('获取图书列表失败')
-  } finally {
-    loading.value = false
+    await reloadBooks({ page: page ?? 1, pageSize: tableState.pageSize || defaultPageSizeTable })
+    return
   }
+  const targetSize = size ?? defaultPageSizeGrid
+  await reloadBooks({ page, pageSize: targetSize })
 }
 
+// 分类更新回调
+const fetchCategories = () => loadCategories()
 
-// ProTable数据请求函数
-const requestBooks = async (params) => {
-  try {
-    const { current = 1, pageSize = 20 } = params
-
-    // 构建请求参数
-    const requestParams = {
-      page: current,
-      size: pageSize,
-      ...searchForm,
-      // 处理日期范围
-      ...(searchForm.dateRange?.length === 2 && {
-        startDate: searchForm.dateRange[0],
-        endDate: searchForm.dateRange[1]
-      })
-    }
-    const response = await bookApi.getBooks(requestParams)
-    const list = response.data || []
-    mergeLocationsFromBooks(list)
-
-    return {
-      success: true,
-      data: list,
-      total: response.pagination?.total || 0
-    }
-  } catch (error) {
-    console.error('获取图书列表失败:', error)
-    return {
-      success: false,
-      data: [],
-      total: 0,
-      message: error.message || '数据加载失败'
-    }
-  }
-}
-
-const fetchCategories = async () => {
-  await loadCategories()
-}
-
-
+// 搜索处理 - 统一化
 const handleSearch = (criteria = {}) => {
-  applySearchCriteria(criteria)
-  pagination.page = 1
+  Object.assign(searchForm, criteria)
   if (viewMode.value === 'table') {
-    proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
-  } else {
-    fetchBooks()
+    if (proTableRef.value?.reload) {
+      proTableRef.value.reload(true)
+      return
+    }
+    reloadBooks({ page: 1, pageSize: tableState.pageSize || defaultPageSizeTable })
+    return
   }
+  reloadBooks({ page: 1, pageSize: defaultPageSizeGrid })
 }
 
-const handleReset = (criteria = {}) => {
-  applySearchCriteria(criteria)
-  pagination.page = 1
+const handleReset = () => {
+  Object.assign(searchForm, { ...defaultSearchForm })
   if (viewMode.value === 'table') {
-    proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
-  } else {
-    fetchBooks()
+    if (proTableRef.value?.reload) {
+      proTableRef.value.reload(true)
+      return
+    }
+    reloadBooks({ page: 1, pageSize: defaultPageSizeTable })
+    return
   }
+  reloadBooks({ page: 1, pageSize: defaultPageSizeGrid })
 }
 
 const handleViewModeChange = mode => {
   viewMode.value = mode
-  if (mode === 'grid') {
-    pagination.size = 24
-    pagination.page = 1
-    fetchBooks()
-  } else {
-    pagination.size = 20
-    pagination.page = 1
-    proTableRef.value?.reload?.(true)
+  if (mode === 'table') {
+    if (proTableRef.value?.reload) {
+      proTableRef.value.reload(true)
+      return
+    }
+    reloadBooks({ page: 1, pageSize: defaultPageSizeTable })
+    return
   }
+  reloadBooks({ page: 1, pageSize: defaultPageSizeGrid })
 }
-
 
 
 // ProTable选择变化处理
@@ -891,10 +852,19 @@ const handleExport = async () => {
     const params = {
       ...searchForm,
       // 处理日期范围
-      ...(searchForm.dateRange?.length === 2 && {
-        startDate: searchForm.dateRange[0],
-        endDate: searchForm.dateRange[1]
-      })
+      ...(searchForm.dateRange?.length === 2 && (() => {
+        const [start, end] = searchForm.dateRange
+        const startFormatted = formatDate(start)
+        const endFormatted = formatDate(end)
+        const rangeParams = {}
+        if (startFormatted) {
+          rangeParams.startDate = startFormatted
+        }
+        if (endFormatted) {
+          rangeParams.endDate = endFormatted
+        }
+        return rangeParams
+      })())
     }
 
     // 转换数字类型
@@ -938,9 +908,7 @@ const handleColumnSettingsApply = (data) => {
 
 // 生命周期
 onMounted(() => {
-  Promise.all([loadCategories(), loadLocationOptions()]).finally(() => {
-    fetchBooks()
-  })
+  Promise.all([loadCategories(), loadLocations()])
 })
 </script>
 

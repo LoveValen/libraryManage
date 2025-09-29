@@ -39,6 +39,7 @@ import {
   ArrowUp,
   ArrowDown
 } from '@element-plus/icons-vue'
+import { formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/utils/date'
 import type {
   ProTableColumn,
   ActionItem,
@@ -1280,13 +1281,13 @@ export default defineComponent({
 
     // 格式化方法
     const formatDate = (date: any) => {
-      if (!date) return '-'
-      return new Date(date).toLocaleDateString()
+      const formatted = formatDateUtil(date)
+      return formatted || '-'
     }
 
     const formatDateTime = (date: any) => {
-      if (!date) return '-'
-      return new Date(date).toLocaleString()
+      const formatted = formatDateTimeUtil(date)
+      return formatted || '-'
     }
 
     const formatMoney = (amount: any) => {

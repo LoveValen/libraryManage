@@ -6,6 +6,7 @@ const {
   ForbiddenError,
   InsufficientPointsError 
 } = require('../utils/apiError');
+const { formatDateTime } = require('../utils/date');
 const { 
   POINTS_TRANSACTION_TYPES, 
   POINTS_RULES, 
@@ -361,7 +362,7 @@ class PointsServiceAdapter {
       },
       transactionsByType: stats.transactionsByType,
       levelDistribution: stats.levelDistribution,
-      timestamp: new Date().toISOString()
+      timestamp: formatDateTime(new Date())
     };
   }
 
@@ -407,7 +408,7 @@ class PointsServiceAdapter {
         } : undefined
       })),
       period,
-      updatedAt: new Date().toISOString()
+      updatedAt: formatDateTime(new Date())
     };
   }
 

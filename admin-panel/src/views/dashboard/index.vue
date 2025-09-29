@@ -123,6 +123,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
+import { formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/utils/date'
 import * as echarts from 'echarts'
 import {
   getDashboardStats,
@@ -145,9 +146,8 @@ let categoryChart = null
 // 计算属性
 const userInfo = computed(() => authStore.userInfo || {})
 const currentDate = computed(() => {
-  const date = new Date()
-  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
-  return date.toLocaleDateString('zh-CN', options)
+  const now = new Date()
+  return formatDateTimeUtil(now)
 })
 
 // 快捷操作
@@ -241,14 +241,12 @@ const formatTime = time => {
   if (minutes < 60) return `${minutes}分钟前`
   if (hours < 24) return `${hours}小时前`
   if (days < 7) return `${days}天前`
-  return time.toLocaleDateString('zh-CN')
+  return formatDateTimeUtil(time)
 }
 
 const formatDate = date => {
-  return date.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric'
-  })
+  const formatted = formatDateUtil(date)
+  return formatted || ''
 }
 
 const getStatusText = status => {

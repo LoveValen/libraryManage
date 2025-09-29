@@ -1,5 +1,6 @@
 import { ref, computed, reactive } from 'vue'
 import { debounce, throttle } from '@/utils/performance'
+import { formatDate as formatDateUtil } from '@/utils/date'
 
 /**
  * 搜索过滤器组合式函数
@@ -386,11 +387,9 @@ export function useSearchFilter(formData, fields, options = {}) {
 
   // 工具函数
   const formatDate = (date) => {
-    if (!date) return ''
-    try {
-      const d = new Date(date)
-      return d.toLocaleDateString('zh-CN')
-    } catch {
+    const formatted = formatDateUtil(date)
+    return formatted || ''
+  } catch {
       return String(date)
     }
   }

@@ -8,7 +8,7 @@
  * @param {string} format - 格式化字符串
  * @returns {string} 格式化后的日期字符串
  */
-export function formatDate(date, format = 'YYYY-MM-DD') {
+export function formatDate(date, format = 'yyyy-MM-dd') {
   if (!date) return ''
 
   const d = new Date(date)
@@ -18,7 +18,12 @@ export function formatDate(date, format = 'YYYY-MM-DD') {
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
 
-  return format.replace('YYYY', year).replace('MM', month).replace('DD', day)
+  let formatted = format
+  formatted = formatted.replace(/YYYY|yyyy/g, year)
+  formatted = formatted.replace(/MM/g, month)
+  formatted = formatted.replace(/DD|dd/g, day)
+
+  return formatted
 }
 
 /**
@@ -27,7 +32,7 @@ export function formatDate(date, format = 'YYYY-MM-DD') {
  * @param {string} format - 格式化字符串
  * @returns {string} 格式化后的日期时间字符串
  */
-export function formatDateTime(date, format = 'YYYY-MM-DD HH:mm:ss') {
+export function formatDateTime(date, format = 'yyyy-MM-dd hh:mm:ss') {
   if (!date) return ''
 
   const d = new Date(date)
@@ -40,13 +45,15 @@ export function formatDateTime(date, format = 'YYYY-MM-DD HH:mm:ss') {
   const minute = String(d.getMinutes()).padStart(2, '0')
   const second = String(d.getSeconds()).padStart(2, '0')
 
-  return format
-    .replace('YYYY', year)
-    .replace('MM', month)
-    .replace('DD', day)
-    .replace('HH', hour)
-    .replace('mm', minute)
-    .replace('ss', second)
+  let formatted = format
+  formatted = formatted.replace(/YYYY|yyyy/g, year)
+  formatted = formatted.replace(/MM/g, month)
+  formatted = formatted.replace(/DD|dd/g, day)
+  formatted = formatted.replace(/HH|hh/g, hour)
+  formatted = formatted.replace(/mm/g, minute)
+  formatted = formatted.replace(/ss/g, second)
+
+  return formatted
 }
 
 /**
@@ -65,7 +72,12 @@ export function formatTime(date, format = 'HH:mm:ss') {
   const minute = String(d.getMinutes()).padStart(2, '0')
   const second = String(d.getSeconds()).padStart(2, '0')
 
-  return format.replace('HH', hour).replace('mm', minute).replace('ss', second)
+  let formatted = format
+  formatted = formatted.replace(/HH|hh/g, hour)
+  formatted = formatted.replace(/mm/g, minute)
+  formatted = formatted.replace(/ss/g, second)
+
+  return formatted
 }
 
 /**
@@ -353,12 +365,13 @@ export function getMonthName(month) {
  * @param {string} format - 格式
  * @returns {Date|null} 解析后的日期
  */
-export function parseDate(dateString, format = 'YYYY-MM-DD') {
+export function parseDate(dateString, format = 'yyyy-MM-dd') {
   if (!dateString) return null
 
   try {
-    // 简单的日期解析，实际项目中可能需要更复杂的逻辑
-    if (format === 'YYYY-MM-DD') {
+    const normalizedFormat = format.toUpperCase()
+
+    if (normalizedFormat === 'YYYY-MM-DD') {
       const parts = dateString.split('-')
       if (parts.length === 3) {
         const year = parseInt(parts[0])
@@ -381,7 +394,7 @@ export function parseDate(dateString, format = 'YYYY-MM-DD') {
  * @param {string} format - 格式
  * @returns {boolean} 是否有效
  */
-export function isValidDate(dateString, format = 'YYYY-MM-DD') {
+export function isValidDate(dateString, format = 'yyyy-MM-dd') {
   const date = parseDate(dateString, format)
   return date !== null && !isNaN(date.getTime())
 }

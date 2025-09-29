@@ -1,5 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const { ValidationError } = require('../utils/apiError');
+const { formatDateTime } = require('../utils/date');
 
 /**
  * 验证中间件 - 简化版本
@@ -82,7 +83,7 @@ const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100, message = '请求
       success: false,
       message,
       statusCode: 429,
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     },
     standardHeaders: true,
     legacyHeaders: false,

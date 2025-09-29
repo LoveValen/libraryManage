@@ -33,6 +33,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Bell, Warning, InfoFilled } from '@element-plus/icons-vue'
+import { formatDateTime as formatDateTimeUtil } from '@/utils/date'
 
 const emit = defineEmits(['close'])
 
@@ -54,7 +55,8 @@ const getNotificationIcon = type => {
 }
 
 const formatDate = date => {
-  return new Date(date).toLocaleString('zh-CN')
+  const formatted = formatDateTimeUtil(date)
+  return formatted || ''
 }
 
 const markAsRead = id => {

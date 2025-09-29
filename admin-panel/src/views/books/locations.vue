@@ -123,15 +123,14 @@ import SearchFilterSimple from '@/components/common/SearchFilterSimple.tsx'
 import { ProTable, ColumnSettings } from '@/components/common'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
+import { useTableRequest } from '@/composables/useTableRequest'
 
-const loading = ref(false)
 const proTableRef = ref()
 
-const defaultSearchCriteria = Object.freeze({
+const defaultSearchForm = Object.freeze({
   keyword: '',
   isActive: ''
 })
-const searchForm = reactive({ ...defaultSearchCriteria })
 
 const searchFields = [
   {
@@ -154,31 +153,44 @@ const searchFields = [
   }
 ]
 
-// 合并搜索条件时补齐缺失字段，确保请求参数与界面同步
-const applySearchCriteria = (criteria = {}) => {
-  const merged = { ...defaultSearchCriteria, ...criteria }
-  Object.keys(searchForm).forEach(key => {
-    if (!(key in merged)) {
-      delete searchForm[key]
+const {
+  searchForm,
+  loading,
+  request: requestLocations,
+  reload: reloadLocations
+} = useTableRequest((params) => bookLocationApi.getLocations(params), {
+  defaultSearch: defaultSearchForm,
+  defaultPageSize: 10,
+  manual: true,
+  immediate: false,
+  transform: (response) => {
+    const data = response?.data || {}
+    return {
+      list: data.locations || [],
+      total: data.total || 0
     }
-  })
-  Object.entries(merged).forEach(([key, value]) => {
-    searchForm[key] = value
-  })
-  return merged
-}
-
-const buildSearchParams = () => {
-  const params = {}
-  const keyword = typeof searchForm.keyword === 'string' ? searchForm.keyword.trim() : ''
-  if (keyword) {
-    params.keyword = keyword
+  },
+  formatParams: ({ search, page, pageSize, sorter }) => {
+    const filters = {}
+    const keyword = typeof search.keyword === 'string' ? search.keyword.trim() : ''
+    if (keyword) {
+      filters.keyword = keyword
+    }
+    if (search.isActive !== '' && search.isActive !== null && search.isActive !== undefined) {
+      filters.isActive = search.isActive
+    }
+    const query = {
+      page,
+      size: pageSize,
+      ...filters
+    }
+    if (sorter?.field) {
+      query.sortBy = sorter.field
+      query.sortOrder = sorter.order && String(sorter.order).includes('asc') ? 'asc' : 'desc'
+    }
+    return query
   }
-  if (searchForm.isActive !== '' && searchForm.isActive !== null && searchForm.isActive !== undefined) {
-    params.isActive = searchForm.isActive
-  }
-  return params
-}
+})
 
 const defaultVisibleColumns = [
   'name',
@@ -319,49 +331,30 @@ const tableHeightPreset = getTableHeightPreset('standard', {
 })
 const { finalTableHeight } = useTableHeight(tableHeightPreset)
 
-const requestLocations = async (params) => {
-  const { current = 1, pageSize = 10 } = params
-  const requestParams = {
-    page: current,
-    size: pageSize,
-    ...buildSearchParams()
-  }
-
-  try {
-    loading.value = true
-    const { data } = await bookLocationApi.getLocations(requestParams)
-    const list = data?.locations || []
-    const total = data?.total || 0
-    return {
-      success: true,
-      data: list,
-      total
-    }
-  } catch (error) {
-    console.error('获取存放位置失败:', error)
-    return {
-      success: false,
-      data: [],
-      total: 0,
-      message: error.message || '数据加载失败'
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
 const handleSearch = (criteria = {}) => {
-  applySearchCriteria(criteria)
-  proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
+  Object.assign(searchForm, criteria)
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload(true)
+    return
+  }
+  reloadLocations({ page: 1 })
 }
 
-const handleReset = (criteria = {}) => {
-  applySearchCriteria(criteria)
-  proTableRef.value?.reload?.(true) ?? proTableRef.value?.refresh?.({ current: 1 })
+const handleReset = () => {
+  Object.assign(searchForm, { ...defaultSearchForm })
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload(true)
+    return
+  }
+  reloadLocations({ page: 1 })
 }
 
 const refreshTable = () => {
-  proTableRef.value?.reload?.() ?? proTableRef.value?.refresh?.()
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload()
+    return
+  }
+  reloadLocations()
 }
 
 const dialog = reactive({

@@ -177,11 +177,11 @@ import { getBookCategories, createBookCategory, updateBookCategory, deleteBookCa
 import { formatDate } from '@/utils/date'
 import { useColumnSettings } from '@/composables/useColumnSettings'
 import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeight'
+import { useTableRequest } from '@/composables/useTableRequest'
 
 // 响应式数据
-const loading = ref(false)
 const saving = ref(false)
-const categories = ref([])
+const categoryTree = ref([])
 const editDialogVisible = ref(false)
 const editCategoryData = ref(null)
 const proTableRef = ref()
@@ -224,17 +224,11 @@ const tableHeightConfig = getTableHeightPreset('compact', {
 const { finalTableHeight } = useTableHeight(tableHeightConfig)
 
 // 搜索表单
-const searchForm = reactive({
+const defaultSearchForm = Object.freeze({
   keyword: '',
-  sortBy: 'bookCount',
-  sortOrder: 'desc'
+  sortBy: 'bookCount'
 })
 
-
-
-
-
-// 搜索字段配置（基于 ProForm 设计）
 const searchFields = [
   {
     name: 'keyword',
@@ -253,20 +247,161 @@ const searchFields = [
       { label: '按分类名称', value: 'name' },
       { label: '按更新时间', value: 'lastUpdated' }
     ]
-  },
-  {
-    name: 'sortOrder',
-    valueType: 'select',
-    label: '排序顺序',
-    placeholder: '选择排序顺序',
-    options: [
-      { label: '降序', value: 'desc' },
-      { label: '升序', value: 'asc' }
-    ]
   }
 ]
 
+const {
+  searchForm,
+  loading,
+  request: requestCategories,
+  reload: reloadCategories
+} = useTableRequest(async (params) => {
+  const response = await getBookCategories()
+  return {
+    raw: response?.data?.categories || [],
+    query: params
+  }
+}, {
+  defaultSearch: defaultSearchForm,
+  defaultPageSize: 50,
+  manual: true,
+  immediate: false,
+  formatParams: ({ search, sorter }) => ({
+    keyword: (search.keyword || '').trim().toLowerCase(),
+    sortBy: search.sortBy || 'bookCount',
+    sortOrder: sorter?.order && String(sorter.order).includes('asc') ? 'asc' : 'desc'
+  }),
+  transform: (response) => {
+    const rawList = Array.isArray(response?.raw) ? response.raw : []
+    const query = response?.query || {}
+    const tree = buildCategoryTree(rawList, query)
+    return {
+      list: tree,
+      total: tree.length
+    }
+  },
+  onSuccess: ({ list }) => {
+    categoryTree.value = list
+  }
+})
+
+const buildCategoryTree = (source = [], options = {}) => {
+  const { keyword = '', sortBy = 'bookCount', sortOrder = 'desc' } = options
+
+  const normalizedKeyword = typeof keyword === 'string' ? keyword.trim().toLowerCase() : ''
+  const activeSortBy = sortBy || 'bookCount'
+  const activeSortOrder = sortOrder === 'asc' ? 'asc' : 'desc'
+
+  const categoryMap = new Map()
+  const rootNodes = []
+
+  source.forEach(item => {
+    const node = {
+      id: item.id,
+      parentId: item.parent_id,
+      name: item.name,
+      description: item.description || '',
+      bookCount: item.stats?.total ?? item._count?.books ?? 0,
+      availableCount: item.stats?.available ?? 0,
+      borrowedCount: item.stats?.borrowed ?? 0,
+      lastUpdated: item.updated_at ? new Date(item.updated_at) : null,
+      level: item.level || 1,
+      children: []
+    }
+    categoryMap.set(item.id, node)
+  })
+
+  categoryMap.forEach(node => {
+    if (node.parentId) {
+      const parent = categoryMap.get(node.parentId)
+      if (parent) {
+        parent.children.push(node)
+        parent.hasChildren = true
+      } else {
+        rootNodes.push(node)
+      }
+    } else {
+      rootNodes.push(node)
+    }
+  })
+
+  const cloneTree = (nodes = []) => nodes.map(node => ({
+    ...node,
+    children: Array.isArray(node.children) ? cloneTree(node.children) : []
+  }))
+
+  const filterByKeyword = (nodes = []) => nodes
+    .map(node => {
+      const children = Array.isArray(node.children) ? filterByKeyword(node.children) : []
+      const match = normalizedKeyword
+        ? (node.name || '').toLowerCase().includes(normalizedKeyword) || (node.description || '').toLowerCase().includes(normalizedKeyword)
+        : true
+      if (match || children.length) {
+        return { ...node, children }
+      }
+      return null
+    })
+    .filter(Boolean)
+
+  const workingTree = normalizedKeyword ? filterByKeyword(rootNodes) : cloneTree(rootNodes)
+
+  const sortTree = (nodes = []) => {
+    nodes.sort((a, b) => {
+      let result = 0
+      switch (activeSortBy) {
+        case 'name':
+          result = a.name.localeCompare(b.name, 'zh-CN')
+          break
+        case 'lastUpdated':
+          result = (a.lastUpdated ? a.lastUpdated.getTime() : 0) - (b.lastUpdated ? b.lastUpdated.getTime() : 0)
+          break
+        case 'bookCount':
+        default:
+          result = (a.bookCount || 0) - (b.bookCount || 0)
+          break
+      }
+      if (result === 0) {
+        result = a.name.localeCompare(b.name, 'zh-CN')
+      }
+      return activeSortOrder === 'asc' ? result : -result
+    })
+    nodes.forEach(child => {
+      if (Array.isArray(child.children) && child.children.length) {
+        sortTree(child.children)
+      }
+    })
+  }
+
+  sortTree(workingTree)
+
+  const calculateStats = (node) => {
+    let totalBooks = node.bookCount || 0
+    let totalAvailable = node.availableCount || 0
+    let totalBorrowed = node.borrowedCount || 0
+
+    if (Array.isArray(node.children) && node.children.length) {
+      node.children.forEach(child => {
+        const childStats = calculateStats(child)
+        totalBooks += childStats.totalBooks
+        totalAvailable += childStats.totalAvailable
+        totalBorrowed += childStats.totalBorrowed
+      })
+    }
+
+    node.totalBooks = totalBooks
+    node.totalAvailable = totalAvailable
+    node.totalBorrowed = totalBorrowed
+
+    return { totalBooks, totalAvailable, totalBorrowed }
+  }
+
+  workingTree.forEach(node => calculateStats(node))
+
+  return workingTree
+}
+
 // ProTable配置
+// 所有可用的表格列配置
 // 所有可用的表格列配置
 const allCategoryTableColumns = [
   {
@@ -370,161 +505,31 @@ const categoryToolBarConfig = {
 
 
 // ProTable数据请求函数
-const requestCategories = async (params) => {
-  const keyword = (params.keyword ?? searchForm.keyword ?? '').trim().toLowerCase()
-  const sortBy = params.sortBy || searchForm.sortBy || 'bookCount'
-  const sortOrder = (params.sortOrder || searchForm.sortOrder || 'desc').toLowerCase()
-
-  try {
-    console.log('ProTable请求参数:', params)
-    
-    // 获取分类列表（后端已经包含统计信息）
-    const categoriesResponse = await getBookCategories()
-    const backendCategories = categoriesResponse.data.categories
-
-    console.log('后端返回的分类数据:', backendCategories)
-
-    // 构建分类的父子关系映射
-    const categoryMap = new Map()
-    const rootCategories = []
-    
-    // 首先将所有分类放入map中
-    backendCategories.forEach(category => {
-      const categoryData = {
-        id: category.id,
-        parentId: category.parent_id,
-        name: category.name,
-        description: category.description || '',
-        bookCount: category.stats?.total || category._count?.books || 0,
-        availableCount: category.stats?.available || 0,
-        borrowedCount: category.stats?.borrowed || 0,
-        lastUpdated: new Date(category.updated_at || Date.now()),
-        level: category.level || 1,
-        children: []
-      }
-      categoryMap.set(category.id, categoryData)
-    })
-    
-    // 构建树形结构
-    categoryMap.forEach(category => {
-      if (category.parentId) {
-        const parent = categoryMap.get(category.parentId)
-        if (parent) {
-          parent.children.push(category)
-          parent.hasChildren = true
-        }
-      } else {
-        rootCategories.push(category)
-      }
-    })
-
-    const applyKeywordFilter = (nodes) => {
-      if (!keyword) return nodes.map(node => ({ ...node, children: applyKeywordFilter(node.children || []) }))
-
-      return nodes
-        .map(node => {
-          const children = Array.isArray(node.children) ? applyKeywordFilter(node.children) : []
-          const matchKeyword = node.name.toLowerCase().includes(keyword) || (node.description || '').toLowerCase().includes(keyword)
-          if (matchKeyword || children.length) {
-            return {
-              ...node,
-              children
-            }
-          }
-          return null
-        })
-        .filter(Boolean)
-    }
-
-    const cloneTree = (nodes) => nodes.map(node => ({
-      ...node,
-      children: Array.isArray(node.children) ? cloneTree(node.children) : []
-    }))
-
-    let filteredCategories = keyword ? applyKeywordFilter(rootCategories) : cloneTree(rootCategories)
-
-    const sortTree = (nodes) => {
-      nodes.sort((a, b) => {
-        let result = 0
-        switch (sortBy) {
-          case 'name':
-            result = a.name.localeCompare(b.name, 'zh-CN')
-            break
-          case 'lastUpdated':
-            result = new Date(a.lastUpdated || 0).getTime() - new Date(b.lastUpdated || 0).getTime()
-            break
-          case 'bookCount':
-          default:
-            result = (a.bookCount || 0) - (b.bookCount || 0)
-            break
-        }
-        if (result === 0) {
-          result = a.name.localeCompare(b.name, 'zh-CN')
-        }
-        return sortOrder === 'asc' ? result : -result
-      })
-
-      nodes.forEach(node => {
-        if (Array.isArray(node.children) && node.children.length) {
-          sortTree(node.children)
-        }
-      })
-    }
-
-    sortTree(filteredCategories)
-
-    const calculateTreeStats = (category) => {
-      let totalBooks = category.bookCount
-      let totalAvailable = category.availableCount
-      let totalBorrowed = category.borrowedCount
-      
-      if (category.children && category.children.length > 0) {
-        category.children.forEach(child => {
-          const childStats = calculateTreeStats(child)
-          totalBooks += childStats.totalBooks
-          totalAvailable += childStats.totalAvailable
-          totalBorrowed += childStats.totalBorrowed
-        })
-      }
-      
-      return { totalBooks, totalAvailable, totalBorrowed }
-    }
-    
-    // 更新根分类的统计数据（包含子分类）
-    filteredCategories.forEach(category => {
-      const stats = calculateTreeStats(category)
-      category.totalBooks = stats.totalBooks
-      category.totalAvailable = stats.totalAvailable
-      category.totalBorrowed = stats.totalBorrowed
-    })
-
-    categories.value = filteredCategories
-
-    console.log('处理后的树形分类数据:', rootCategories)
-  } catch (error) {
-    console.error('加载分类数据失败:', error)
-    ElMessage.error('加载分类数据失败: ' + (error.message || '未知错误'))
-  } finally {
-    loading.value = false
+const loadCategories = () => {
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload(true)
+    return
   }
+  reloadCategories({ page: 1 })
 }
-
 
 const handleSearch = (criteria = {}) => {
   Object.assign(searchForm, criteria)
-  proTableRef.value?.refresh()
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload(true)
+    return
+  }
+  reloadCategories({ page: 1 })
 }
 
-const handleReset = (criteria = {}) => {
-  Object.assign(searchForm, {
-    keyword: '',
-    sortBy: 'bookCount',
-    sortOrder: 'desc',
-    ...criteria
-  })
-  proTableRef.value?.refresh()
+const handleReset = () => {
+  Object.assign(searchForm, { ...defaultSearchForm })
+  if (proTableRef.value?.reload) {
+    proTableRef.value.reload(true)
+    return
+  }
+  reloadCategories({ page: 1 })
 }
-
 
 const handleAddCategory = () => {
   editCategoryData.value = null
@@ -532,7 +537,7 @@ const handleAddCategory = () => {
 }
 
 const handleAddSubCategory = (parentCategoryName) => {
-  const parentCategory = findCategoryData(parentCategoryName, categories.value)
+  const parentCategory = findCategoryData(parentCategoryName, categoryTree.value)
   editCategoryData.value = {
     parentCategory,
     isSubCategory: true
@@ -552,7 +557,7 @@ const handleCategoryAction = ({ action, category }) => {
       handleAddSubCategory(category)
       break
     case 'editCategory': {
-      const categoryData = findCategoryData(category, categories.value)
+      const categoryData = findCategoryData(category, categoryTree.value)
       editCategoryData.value = categoryData
       editDialogVisible.value = true
       break
@@ -606,7 +611,6 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
-      proTableRef.value?.refresh()
       ElMessage.success('分类编辑成功')
     } else if (formData.isSubCategory) {
       // 新增子分类
@@ -624,7 +628,6 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
-      proTableRef.value?.refresh()
       ElMessage.success('子分类创建成功')
     } else {
       // 新增分类
@@ -639,7 +642,6 @@ const handleSaveCategory = async (formData) => {
       })
       
       await loadCategories()
-      proTableRef.value?.refresh()
       ElMessage.success('分类创建成功')
     }
 
@@ -700,7 +702,7 @@ const handleBatchDelete = async (selectedRows) => {
     }
 
     ElMessage.success('批量删除成功')
-    proTableRef.value?.refresh()
+    await loadCategories()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量删除失败:', error)
@@ -730,8 +732,7 @@ const handleBatchEnable = async (selectedRows) => {
     }
 
     ElMessage.success('批量启用成功')
-    proTableRef.value?.refresh()
-    loadCategories()
+    await loadCategories()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量启用失败:', error)
@@ -761,8 +762,7 @@ const handleBatchDisable = async (selectedRows) => {
     }
 
     ElMessage.success('批量禁用成功')
-    proTableRef.value?.refresh()
-    loadCategories()
+    await loadCategories()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量禁用失败:', error)

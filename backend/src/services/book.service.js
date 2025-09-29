@@ -27,7 +27,7 @@ const _buildWhereCondition = ({ search, categoryId, status, hasEbook, locationId
 
   // 分类过滤
   if (categoryId) {
-    where.categoryId = Number(categoryId);
+    where.category_id = Number(categoryId);
   }
 
   // 状态过滤
@@ -608,7 +608,7 @@ const search = async (query, options = {}) => {
     };
 
     if (categoryId) {
-      where.categoryId = Number(categoryId);
+      where.category_id = Number(categoryId);
     }
 
     return await prisma.books.findMany({
@@ -674,7 +674,7 @@ const getNewArrivals = async (days = 30, limit = 10) => {
 const getByCategory = async (categoryId, limit = 20) => {
   return prisma.books.findMany({
     where: {
-      categoryId: categoryId,
+      category_id: categoryId,
       is_deleted: false,
       status: { not: BOOK_STATUS.RETIRED }
     },

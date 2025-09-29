@@ -242,6 +242,7 @@
 <script setup>
 import { ref, reactive, computed, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatDateTime as formatDateTimeUtil } from '@/utils/date'
 import {
   Plus,
   Check,
@@ -340,15 +341,9 @@ const currentFilterCount = computed(() => {
 
 // 工具方法
 const formatDate = (dateString) => {
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatted = formatDateTimeUtil(dateString)
+  return formatted || '未知时间'
+})
   } catch {
     return '未知时间'
   }

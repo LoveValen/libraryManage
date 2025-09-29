@@ -12,6 +12,7 @@ const { setupGracefulShutdown } = require('./config/graceful-shutdown.config');
 const { initializeDatabase } = require('./utils/database');
 const config = require('./config');
 const { logger } = require('./utils/logger');
+const { formatDateTime } = require('./utils/date');
 
 /**
  * 启动服务器 - 企业级启动流程
@@ -262,7 +263,7 @@ const main = async () => {
     logger.error('System startup failed', {
       error: error.message,
       stack: error.stack,
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
     
     process.exit(1);

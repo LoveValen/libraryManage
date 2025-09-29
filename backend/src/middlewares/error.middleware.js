@@ -1,6 +1,7 @@
 const { ApiError, fromError, ValidationError } = require('../utils/apiError');
 const { logError } = require('../utils/logger');
 const config = require('../config');
+const { formatDateTime } = require('../utils/date');
 
 /**
  * 统一错误处理中间件 - 使用流行的错误处理模式
@@ -25,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
     success: false,
     message: apiError.message,
     statusCode: apiError.statusCode,
-    timestamp: new Date().toISOString(),
+    timestamp: formatDateTime(new Date()),
   };
 
   // 生产环境隐藏敏感信息

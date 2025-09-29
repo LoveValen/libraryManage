@@ -1,6 +1,7 @@
 const borrowsService = require('../services/borrows.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
 const { success, successWithPagination } = require('../utils/response');
+const { formatDateTime } = require('../utils/date');
 
 /**
  * 借阅控制器 - 处理图书借阅、归还、续借等操作
@@ -45,7 +46,7 @@ class BorrowsController {
       data: {
         borrow,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -64,7 +65,7 @@ class BorrowsController {
       data: {
         borrow,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -83,7 +84,7 @@ class BorrowsController {
       data: {
         borrow,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -103,7 +104,7 @@ class BorrowsController {
         overdueRecords: records,
         total: records.length,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -124,7 +125,7 @@ class BorrowsController {
         pagination: result.pagination,
         statistics: result.statistics,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -144,7 +145,7 @@ class BorrowsController {
         dueSoonRecords: records,
         total: records.length,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -163,7 +164,7 @@ class BorrowsController {
       data: {
         statistics,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -180,7 +181,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 400,
         message: 'Borrow IDs array is required and cannot be empty',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -190,7 +191,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 400,
         message: 'Action is required',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -204,7 +205,7 @@ class BorrowsController {
       data: {
         batchResult: result,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -228,7 +229,7 @@ class BorrowsController {
         borrows: result.borrows,
         pagination: result.pagination,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -252,7 +253,7 @@ class BorrowsController {
         borrows: result.borrows,
         pagination: result.pagination,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -271,7 +272,7 @@ class BorrowsController {
       data: {
         limits,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -290,7 +291,7 @@ class BorrowsController {
       data: {
         limits,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -307,7 +308,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 400,
         message: 'User identifier and book identifier are required',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -322,7 +323,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 404,
         message: 'User not found',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -340,7 +341,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 404,
         message: 'Book not found',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -357,7 +358,7 @@ class BorrowsController {
       data: {
         borrow,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -374,7 +375,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 400,
         message: 'Book identifier is required',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -395,7 +396,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 404,
         message: 'Book not found',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -423,7 +424,7 @@ class BorrowsController {
         status: 'error',
         statusCode: 404,
         message: 'No active borrow record found for this book',
-        timestamp: new Date().toISOString(),
+        timestamp: formatDateTime(new Date()),
       });
     }
 
@@ -440,7 +441,7 @@ class BorrowsController {
       data: {
         borrow,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 
@@ -526,7 +527,7 @@ class BorrowsController {
         period,
         type,
       },
-      timestamp: new Date().toISOString(),
+      timestamp: formatDateTime(new Date()),
     });
   });
 }

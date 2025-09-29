@@ -541,11 +541,19 @@ const fetchUsers = async () => {
       sortOrder: sortInfo.order
     }
 
-    // 处理日期范围
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startDate = searchForm.dateRange[0]
-      params.endDate = searchForm.dateRange[1]
+    if (Array.isArray(params.dateRange) && params.dateRange.length === 2) {
+      const [start, end] = params.dateRange
+      const startFormatted = formatDate(start)
+      const endFormatted = formatDate(end)
+      if (startFormatted) {
+        params.startDate = startFormatted
+      }
+      if (endFormatted) {
+        params.endDate = endFormatted
+      }
     }
+
+    delete params.dateRange
 
     const response = await userApi.getUsers(params)
 
@@ -587,10 +595,19 @@ const requestUsers = async (params) => {
       ...searchForm
     }
 
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      requestParams.startDate = searchForm.dateRange[0]
-      requestParams.endDate = searchForm.dateRange[1]
+    if (Array.isArray(requestParams.dateRange) && requestParams.dateRange.length === 2) {
+      const [start, end] = requestParams.dateRange
+      const startFormatted = formatDate(start)
+      const endFormatted = formatDate(end)
+      if (startFormatted) {
+        requestParams.startDate = startFormatted
+      }
+      if (endFormatted) {
+        requestParams.endDate = endFormatted
+      }
     }
+
+    delete requestParams.dateRange
 
     const response = await userApi.getUsers(requestParams)
     
@@ -818,10 +835,19 @@ const handleExport = async () => {
     exportLoading.value = true
     const params = { ...searchForm }
 
-    if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-      params.startDate = searchForm.dateRange[0]
-      params.endDate = searchForm.dateRange[1]
+    if (Array.isArray(params.dateRange) && params.dateRange.length === 2) {
+      const [start, end] = params.dateRange
+      const startFormatted = formatDate(start)
+      const endFormatted = formatDate(end)
+      if (startFormatted) {
+        params.startDate = startFormatted
+      }
+      if (endFormatted) {
+        params.endDate = endFormatted
+      }
     }
+
+    delete params.dateRange
 
     const blob = await userApi.exportUsers(params)
 

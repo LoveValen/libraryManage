@@ -527,13 +527,23 @@ const requestBorrows = async (params) => {
 
 
 const handleSearch = (searchData) => {
-  // Update search params with new data
-  borrowSearchParams.value = {
-    ...searchData,
-    startDate: searchData.dateRange?.[0] || '',
-    endDate: searchData.dateRange?.[1] || ''
+  const params = { ...searchData }
+
+  if (Array.isArray(params.dateRange) && params.dateRange.length === 2) {
+    const [start, end] = params.dateRange
+    const startFormatted = formatDate(start)
+    const endFormatted = formatDate(end)
+    if (startFormatted) {
+      params.startDate = startFormatted
+    }
+    if (endFormatted) {
+      params.endDate = endFormatted
+    }
   }
-  // Refresh ProTable
+
+  delete params.dateRange
+
+  borrowSearchParams.value = params
   proTableRef.value?.refresh()
 }
 

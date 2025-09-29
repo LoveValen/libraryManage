@@ -12,6 +12,7 @@ const {
 } = require('../utils/apiError');
 const { logBusinessOperation } = require('../utils/logger');
 const { BOOK_STATUS } = require('../utils/constants');
+const { formatDate, formatDateTime } = require('../utils/date');
 
 /**
  * Format book response to match existing API
@@ -20,11 +21,11 @@ const formatBookResponse = (book) => {
   if (!book) return null;
 
   const rawPublishDate = book.publish_date || book.publishDate || null;
-  const publishDate = rawPublishDate
-    ? (rawPublishDate instanceof Date ? rawPublishDate.toISOString() : rawPublishDate)
-    : (book.publication_year || book.publicationYear
-      ? `${book.publication_year || book.publicationYear}-01-01`
-      : null);
+  const inferredPublishDate = book.publication_year || book.publicationYear
+    ? `${book.publication_year || book.publicationYear}-01-01`
+    : null;
+  const publishDateValue = rawPublishDate || inferredPublishDate;
+
   const categoryId = book.category_id ?? book.categoryId ?? null;
   const categoryName = book.bookCategory?.name || book.category || null;
 
@@ -44,7 +45,7 @@ const formatBookResponse = (book) => {
   const tagNames = normalizedTags.map(item => item.name);
   const tagIds = normalizedTags.map(item => item.id);
 
-  const locationInfo = book.bookLocation
+  const locationInfoRaw = book.bookLocation
     ? {
         id: book.bookLocation.id,
         name: book.bookLocation.name,
@@ -52,13 +53,19 @@ const formatBookResponse = (book) => {
         area: book.bookLocation.area,
         floor: book.bookLocation.floor,
         shelf: book.bookLocation.shelf,
-        description: book.bookLocation.description
+        description: book.bookLocation.description,
+        createdAt: book.bookLocation.created_at || book.bookLocation.createdAt || null,
+        updatedAt: book.bookLocation.updated_at || book.bookLocation.updatedAt || null
       }
     : null;
-  const locationId = book.location_id ?? book.locationId ?? locationInfo?.id ?? null;
-  const locationName = locationInfo?.name || book.location || null;
+  const locationId = book.location_id ?? book.locationId ?? locationInfoRaw?.id ?? null;
+  const locationName = locationInfoRaw?.name || book.location || null;
 
-  return {
+  const createdAtValue = book.created_at || book.createdAt || null;
+  const updatedAtValue = book.updated_at || book.updatedAt || null;
+  const deletedAtValue = book.deleted_at || book.deletedAt || null;
+
+  const response = {
     id: book.id,
     title: book.title,
     authors: book.authors,
@@ -70,7 +77,7 @@ const formatBookResponse = (book) => {
     locationName,
     publisher: book.publisher,
     publicationYear: book.publication_year || book.publicationYear,
-    publishDate,
+    publishDate: publishDateValue ? formatDate(publishDateValue) : null,
     price: book.price,
     totalStock: book.total_stock || book.totalStock,
     availableStock: book.available_stock || book.availableStock,
@@ -80,12 +87,11 @@ const formatBookResponse = (book) => {
     pages: book.pages,
     summary: book.summary,
     description: book.description,
-    // Fix cover field mapping - support multiple field names
     cover: book.cover_image || book.coverUrl || book.cover || null,
     coverUrl: book.cover_image || book.coverUrl || book.cover || null,
     cover_image: book.cover_image || book.coverUrl || book.cover || null,
     location: locationName,
-    locationInfo,
+    locationInfo: locationInfoRaw,
     tags: tagNames.length > 0 ? tagNames : Array.isArray(book.tags) ? book.tags : [],
     tagIds,
     tagItems: normalizedTags,
@@ -102,12 +108,20 @@ const formatBookResponse = (book) => {
     notes: book.notes,
     format: book.format,
     is_deleted: book.is_deleted,
-    createdAt: book.created_at || book.createdAt,
-    updatedAt: book.updated_at || book.updatedAt,
-    deletedAt: book.deleted_at || book.deletedAt,
-    // Add safe JSON conversion
+    createdAt: createdAtValue ? formatDateTime(createdAtValue) : null,
+    updatedAt: updatedAtValue ? formatDateTime(updatedAtValue) : null,
+    deletedAt: deletedAtValue ? formatDateTime(deletedAtValue) : null,
     toSafeJSON: () => formatBookResponse(book)
   };
+
+  if (response.locationInfo) {
+    const info = { ...response.locationInfo };
+    info.createdAt = info.createdAt ? formatDateTime(info.createdAt) : null;
+    info.updatedAt = info.updatedAt ? formatDateTime(info.updatedAt) : null;
+    response.locationInfo = info;
+  }
+
+  return response;
 };
 
 /**

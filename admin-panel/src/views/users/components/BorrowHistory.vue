@@ -300,13 +300,20 @@ const fetchBorrowHistory = async () => {
       userId: props.userId,
       page: pagination.page,
       size: pagination.size,
-      ...filterForm
+      status: filterForm.status || undefined,
+      category: filterForm.category || undefined
     }
 
-    // 处理日期范围
-    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
-      params.startDate = filterForm.dateRange[0]
-      params.endDate = filterForm.dateRange[1]
+    if (Array.isArray(filterForm.dateRange) && filterForm.dateRange.length === 2) {
+      const [start, end] = filterForm.dateRange
+      const startFormatted = formatDate(start)
+      const endFormatted = formatDate(end)
+      if (startFormatted) {
+        params.startDate = startFormatted
+      }
+      if (endFormatted) {
+        params.endDate = endFormatted
+      }
     }
 
     const { data } = await borrowApi.getUserBorrowHistory(params)

@@ -331,26 +331,30 @@ const pointsToolBarConfig = {
 // ProTable数据请求函数
 const requestPointsHistory = async (params) => {
   try {
-    console.log('ProTable请求参数:', params)
-    
     const requestParams = {
       userId: props.userId,
       page: params.current || pagination.page,
       size: params.pageSize || pagination.size,
-      ...filterForm
+      type: filterForm.type || undefined,
+      source: filterForm.source || undefined
     }
 
-    // 处理日期范围
-    if (filterForm.dateRange && filterForm.dateRange.length === 2) {
-      requestParams.startDate = filterForm.dateRange[0]
-      requestParams.endDate = filterForm.dateRange[1]
+    if (Array.isArray(filterForm.dateRange) && filterForm.dateRange.length === 2) {
+      const [start, end] = filterForm.dateRange
+      const startFormatted = formatDate(start)
+      const endFormatted = formatDate(end)
+      if (startFormatted) {
+        requestParams.startDate = startFormatted
+      }
+      if (endFormatted) {
+        requestParams.endDate = endFormatted
+      }
     }
 
     const { data } = await pointsApi.getUserPointsHistory(requestParams)
-    
-    // 更新统计信息
+
     pointsStats.value = data.stats || {}
-    
+
     return {
       success: true,
       data: data.records || [],

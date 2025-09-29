@@ -366,16 +366,28 @@ const handleSearch = (searchData) => {
   // 处理逾期天数范围
   const rangeData = searchData.overdueDaysRange || [null, null]
 
-  overdueSearchParams.value = {
+  const params = {
     ...searchData,
     minOverdueDays: rangeData[0],
-    maxOverdueDays: rangeData[1],
-    startDate: searchData.dateRange?.[0] || '',
-    endDate: searchData.dateRange?.[1] || ''
+    maxOverdueDays: rangeData[1]
   }
 
-  // 移除原始的范围数组，避免传递给后端
-  delete overdueSearchParams.value.overdueDaysRange
+  if (Array.isArray(params.dateRange) && params.dateRange.length === 2) {
+    const [start, end] = params.dateRange
+    const startFormatted = formatDate(start)
+    const endFormatted = formatDate(end)
+    if (startFormatted) {
+      params.startDate = startFormatted
+    }
+    if (endFormatted) {
+      params.endDate = endFormatted
+    }
+  }
+
+  delete params.overdueDaysRange
+  delete params.dateRange
+
+  overdueSearchParams.value = params
 
   proTableRef.value?.refresh()
 }

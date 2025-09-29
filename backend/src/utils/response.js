@@ -2,6 +2,8 @@
  * 统一API响应工具 - 遵循优秀源码的简洁设计
  */
 
+const { formatDateTime } = require('./date');
+
 /**
  * 成功响应
  */
@@ -10,7 +12,7 @@ const success = (res, data = null, message = '成功', statusCode = 200) => {
     success: true,
     message,
     data,
-    timestamp: new Date().toISOString(),
+    timestamp: formatDateTime(new Date()),
   });
 };
 
@@ -28,7 +30,7 @@ const successWithPagination = (res, data, pagination, message = '获取成功') 
       total: pagination.total || 0,
       pages: Math.ceil((pagination.total || 0) / (pagination.limit || 20)),
     },
-    timestamp: new Date().toISOString(),
+    timestamp: formatDateTime(new Date()),
   });
 };
 
@@ -40,7 +42,7 @@ const error = (res, message = '服务器错误', statusCode = 500, errors = null
     success: false,
     message,
     errors,
-    timestamp: new Date().toISOString(),
+    timestamp: formatDateTime(new Date()),
   });
 };
 
@@ -52,7 +54,7 @@ const validationError = (res, errors, message = '参数验证失败') => {
     success: false,
     message,
     errors: Array.isArray(errors) ? errors : [errors],
-    timestamp: new Date().toISOString(),
+    timestamp: formatDateTime(new Date()),
   });
 };
 

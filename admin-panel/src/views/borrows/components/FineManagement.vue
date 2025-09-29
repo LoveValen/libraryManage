@@ -77,6 +77,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { formatDate as formatDateUtil } from '@/utils/date'
 
 const props = defineProps({
   borrowRecord: {
@@ -107,8 +108,8 @@ const totalFine = computed(() => {
 })
 
 const formatDate = date => {
-  if (!date) return ''
-  return new Date(date).toLocaleDateString('zh-CN')
+  const formatted = formatDateUtil(date)
+  return formatted || ''
 }
 
 const getStatusType = status => {
