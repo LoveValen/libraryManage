@@ -2,7 +2,7 @@ const express = require('express');
 const usersController = require('../controllers/users.controller');
 const reviewsController = require('../controllers/reviews.controller');
 const { authenticateToken } = require('../middlewares/auth.middleware');
-const { requireRole } = require('../middlewares/rbac.middleware');
+const { requireRole, requirePermission } = require('../middlewares/rbac.middleware');
 const { 
   validate, 
   validateId,
@@ -91,6 +91,7 @@ router.get('/search',
  */
 router.get('/statistics',
   requireRole(['admin', 'librarian']),
+  requirePermission('users.read'),
   usersController.getUserStatistics
 );
 
@@ -101,6 +102,7 @@ router.get('/statistics',
  */
 router.get('/',
   requireRole(['admin', 'librarian']),
+  requirePermission('users.read'),
   validate(schemas.getUserList, 'query'),
   usersController.getUserList
 );
@@ -112,6 +114,7 @@ router.get('/',
  */
 router.post('/',
   requireRole(['admin', 'librarian']),
+  requirePermission('users.update'),
   validate(schemas.register),
   usersController.createUser
 );
@@ -123,6 +126,7 @@ router.post('/',
  */
 router.post('/batch',
   requireRole(['admin']),
+  requirePermission('users.update'),
   validate(require('joi').object({
     userIds: require('joi').array().items(require('joi').number().integer().positive()).min(1).required(),
     action: require('joi').string().valid('activate', 'suspend', 'deactivate', 'delete', 'changeRole').required(),
@@ -161,6 +165,7 @@ router.put('/:id',
  */
 router.delete('/:id',
   requireRole(['admin']),
+  requirePermission('users.update'),
   validateId(),
   usersController.deleteUser
 );
@@ -213,6 +218,7 @@ router.get('/:userId/reviews',
  */
 router.put('/:id/activate',
   requireRole(['admin']),
+  requirePermission('users.update'),
   validateId(),
   usersController.activateUser
 );
@@ -224,6 +230,7 @@ router.put('/:id/activate',
  */
 router.put('/:id/suspend',
   requireRole(['admin']),
+  requirePermission('users.update'),
   validateId(),
   usersController.suspendUser
 );

@@ -69,7 +69,7 @@ class UsersController {
    */
   createUser = asyncHandler(async (req, res) => {
     const user = await usersService.createUser(req.body, req.user);
-    success(res, { user }, '用户创建成功', 201);
+    success(res, user, '用户创建成功', 201);
   });
 
   /**
@@ -82,7 +82,61 @@ class UsersController {
     console.log('映射后查询参数:', mappedQuery);
     console.log('=== DEBUG END ===');
     const result = await usersService.getUserList(mappedQuery);
-    successWithPagination(res, result.users, result.pagination, '获取用户列表成功');
+
+    successWithPagination(
+      res,
+      result.users,
+      result.pagination,
+      '获取用户列表成功'
+    );
+  });
+
+  /**
+   * 获取当前用户信息
+   */
+  getCurrentUser = asyncHandler(async (req, res) => {
+    const user = await usersService.getUserById(req.user.id, req.user);
+    success(res, user, '获取当前用户信息成功');
+  });
+
+  /**
+   * 更新当前用户信息
+   */
+  updateCurrentUser = asyncHandler(async (req, res) => {
+    const user = await usersService.updateUser(req.user.id, req.body, req.user);
+    success(res, user, '当前用户信息更新成功');
+  });
+
+  /**
+   * 修改当前用户密码
+   */
+  changeCurrentUserPassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const result = await usersService.changePassword(
+      req.user.id,
+      currentPassword,
+      newPassword,
+      req.user
+    );
+    success(res, null, result.message);
+  });
+
+  /**
+   * 获取当前用户借阅历史
+   */
+  getCurrentUserBorrowHistory = asyncHandler(async (req, res) => {
+    const result = await usersService.getUserBorrowHistory(
+      req.user.id,
+      req.query,
+      req.user
+    );
+
+    successWithPagination(
+      res,
+      result.borrows,
+      result.pagination,
+      '获取当前用户借阅历史成功'
+    );
   });
 
   /**
@@ -91,7 +145,13 @@ class UsersController {
   getAdminUserList = asyncHandler(async (req, res) => {
     const mappedQuery = this._cleanQueryParams(req.query);
     const result = await usersService.getUserList(mappedQuery);
-    successWithPagination(res, result.users, result.pagination, '获取管理员用户列表成功');
+
+    successWithPagination(
+      res,
+      result.users,
+      result.pagination,
+      '获取管理员用户列表成功'
+    );
   });
 
   /**
@@ -99,7 +159,7 @@ class UsersController {
    */
   getUserById = asyncHandler(async (req, res) => {
     const user = await usersService.getUserById(req.params.id, req.user);
-    success(res, { user }, '获取用户详情成功');
+    success(res, user, '获取用户详情成功');
   });
 
   /**
@@ -107,7 +167,7 @@ class UsersController {
    */
   updateUser = asyncHandler(async (req, res) => {
     const user = await usersService.updateUser(req.params.id, req.body, req.user);
-    success(res, { user }, '用户信息更新成功');
+    success(res, user, '用户信息更新成功');
   });
 
   /**
@@ -137,18 +197,65 @@ class UsersController {
    */
   searchUsers = asyncHandler(async (req, res) => {
     const { q: query, ...options } = req.query;
-    
-    if (!query?.trim()) {
+    const trimmedQuery = typeof query === 'string' ? query.trim() : '';
+
+    if (!trimmedQuery) {
       return validationError(res, [{ field: 'q', message: '搜索关键词不能为空' }]);
     }
 
-    const result = await usersService.searchUsers(query, options);
-    
-    success(res, {
-      users: result.users,
-      pagination: result.pagination,
-      query: query
-    }, '搜索完成');
+    const result = await usersService.searchUsers(trimmedQuery, options);
+
+    return successWithPagination(
+      res,
+      result.users,
+      result.pagination,
+      '搜索完成'
+    );
+  });
+/**
+   * 管理端用户搜索（兼容前端 /api/v1/admin/users/search?query=xxx&limit=20 参数与返回结构）
+   */
+  adminSearchUsers = asyncHandler(async (req, res) => {
+    const raw = req.query.query ?? req.query.q ?? '';
+    const query = typeof raw === 'string' ? raw.trim() : '';
+
+    const limitValue = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(limitValue) && limitValue > 0 ? limitValue : 20;
+
+    const offsetValue = Number.parseInt(req.query.offset, 10);
+    const offset = Number.isFinite(offsetValue) && offsetValue >= 0 ? offsetValue : 0;
+
+    const basePagination = {
+      page: Math.floor(offset / limit) + 1,
+      limit,
+      total: 0,
+      pages: 0,
+    };
+
+    if (!query) {
+      return successWithPagination(
+        res,
+        [],
+        basePagination,
+        '搜索完成'
+      );
+    }
+
+    const result = await usersService.searchUsers(query, {
+      limit,
+      offset,
+      role: req.query.role,
+      status: req.query.status,
+      sortBy: req.query.sortBy,
+      sortOrder: req.query.sortOrder,
+    });
+
+    return successWithPagination(
+      res,
+      result.users,
+      result.pagination,
+      '搜索完成'
+    );
   });
 
   /**
@@ -156,7 +263,7 @@ class UsersController {
    */
   getUserStatistics = asyncHandler(async (req, res) => {
     const statistics = await usersService.getUserStatistics();
-    success(res, { statistics }, '获取用户统计成功');
+    success(res, statistics, '获取用户统计成功');
   });
 
   /**
@@ -178,7 +285,7 @@ class UsersController {
     }
 
     const result = await usersService.batchUpdateUsers(userIds, action, params, req.user);
-    success(res, { batchResult: result }, '批量操作完成');
+    success(res, result, '批量操作完成');
   });
 
   /**
@@ -190,59 +297,13 @@ class UsersController {
       req.query,
       req.user
     );
-    successWithPagination(res, result.borrows, result.pagination, '获取用户借阅历史成功');
-  });
 
-  /**
-   * 获取当前用户信息
-   */
-  getCurrentUser = asyncHandler(async (req, res) => {
-    const user = await usersService.getUserById(req.user.id, req.user);
-    success(res, { user }, '获取当前用户信息成功');
-  });
-
-  /**
-   * 更新当前用户信息
-   */
-  updateCurrentUser = asyncHandler(async (req, res) => {
-    const user = await usersService.updateUser(req.user.id, req.body, req.user);
-    success(res, { user }, '个人资料更新成功');
-  });
-
-  /**
-   * 修改当前用户密码
-   */
-  changeCurrentUserPassword = asyncHandler(async (req, res) => {
-    const { currentPassword, newPassword } = req.body;
-    
-    const errors = [];
-    if (!currentPassword) errors.push({ field: 'currentPassword', message: '当前密码不能为空' });
-    if (!newPassword) errors.push({ field: 'newPassword', message: '新密码不能为空' });
-    
-    if (errors.length > 0) {
-      return validationError(res, errors);
-    }
-
-    const result = await usersService.changePassword(
-      req.user.id,
-      currentPassword,
-      newPassword,
-      req.user
+    successWithPagination(
+      res,
+      result.borrows,
+      result.pagination,
+      '获取用户借阅历史成功'
     );
-    
-    success(res, null, result.message);
-  });
-
-  /**
-   * 获取当前用户借阅历史
-   */
-  getCurrentUserBorrowHistory = asyncHandler(async (req, res) => {
-    const result = await usersService.getUserBorrowHistory(
-      req.user.id,
-      req.query,
-      req.user
-    );
-    successWithPagination(res, result.borrows, result.pagination, '获取个人借阅历史成功');
   });
 
   /**
@@ -254,7 +315,7 @@ class UsersController {
       { status: 'active' },
       req.user
     );
-    success(res, { user }, '用户激活成功');
+    success(res, user, '用户激活成功');
   });
 
   /**
@@ -266,7 +327,7 @@ class UsersController {
       { status: 'suspended' },
       req.user
     );
-    success(res, { user }, '用户暂停成功');
+    success(res, user, '用户暂停成功');
   });
 }
 

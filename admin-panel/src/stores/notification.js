@@ -55,8 +55,13 @@ export const useNotificationStore = defineStore('notification', () => {
       })
 
       if (response.success) {
-        notifications.value = response.data.notifications
-        pagination.value = response.data.pagination
+        notifications.value = response.data || []
+        pagination.value = {
+          page: response.page || 1,
+          pageSize: response.pageSize || 20,
+          total: response.total || 0,
+          totalPages: response.totalPages || 0
+        }
       }
     } catch (error) {
       console.error('获取通知列表失败:', error)

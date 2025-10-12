@@ -10,39 +10,89 @@ const { ForbiddenError, UnauthorizedError } = require('../utils/apiError');
  */
 const ROLES = {
   ADMIN: 'admin',
-  LIBRARIAN: 'librarian', 
-  PATRON: 'patron'
+  LIBRARIAN: 'librarian',
+  PATRON: 'patron',
 };
+
+const FALLBACK_ROLE_PERMISSIONS = {
+  [ROLES.LIBRARIAN]: new Set([
+    'books.read',
+    'books.create',
+    'books.update',
+    'books.delete',
+    'borrows.read',
+    'borrows.create',
+    'borrows.update',
+    'users.read',
+    'users.update',
+    'reviews.moderate',
+  ]),
+  [ROLES.PATRON]: new Set([
+    'books.read',
+    'borrows.read',
+    'reviews.read',
+    'reviews.write',
+  ]),
+};
+
+const normalizeRoleCode = (role) =>
+  typeof role === 'string' ? role.trim().toLowerCase() : '';
+
+const collectUserRoles = (user) => {
+  const roleSet = new Set();
+  const primary = normalizeRoleCode(user?.role);
+  if (primary) {
+    roleSet.add(primary);
+  }
+
+  if (Array.isArray(user?.roles)) {
+    user.roles.forEach((code) => {
+      const normalized = normalizeRoleCode(code);
+      if (normalized) {
+        roleSet.add(normalized);
+      }
+    });
+  }
+
+  return roleSet;
+};
+
+const isAdminRole = (user) => collectUserRoles(user).has(ROLES.ADMIN);
+
 
 /**
  * 简化的权限检查
  */
 const hasPermission = (user, permission) => {
   if (!user) return false;
-  
-  // 管理员拥有所有权限
-  if (user.role === ROLES.ADMIN) {
+
+  const required = typeof permission === 'string' ? permission.trim().toLowerCase() : '';
+  if (!required) return false;
+
+  if (isAdminRole(user)) {
     return true;
   }
-  
-  // 图书管理员权限
-  if (user.role === ROLES.LIBRARIAN) {
-    const librarianPermissions = [
-      'books:read', 'books:write', 'books:manage',
-      'borrows:read', 'borrows:write', 'borrows:manage',
-      'users:read', 'reviews:moderate'
-    ];
-    return librarianPermissions.includes(permission);
+
+  const permissionSet = new Set(
+    Array.isArray(user.permissions)
+      ? user.permissions
+          .map((code) => (typeof code === 'string' ? code.trim().toLowerCase() : ''))
+          .filter(Boolean)
+      : []
+  );
+
+  if (permissionSet.has('*') || permissionSet.has(required)) {
+    return true;
   }
-  
-  // 普通用户权限
-  if (user.role === ROLES.PATRON) {
-    const patronPermissions = [
-      'books:read', 'borrows:read', 'reviews:read', 'reviews:write'
-    ];
-    return patronPermissions.includes(permission);
+
+  const userRoles = collectUserRoles(user);
+  for (const role of userRoles) {
+    const fallbackSet = FALLBACK_ROLE_PERMISSIONS[role];
+    if (fallbackSet && fallbackSet.has(required)) {
+      return true;
+    }
   }
-  
+
   return false;
 };
 
@@ -50,15 +100,25 @@ const hasPermission = (user, permission) => {
  * 角色检查中间件
  */
 const requireRole = (allowedRoles) => {
-  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  const rawRoles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  const normalizedRequired = rawRoles
+    .map((role) => (typeof role === 'string' ? role.trim().toLowerCase() : ''))
+    .filter(Boolean);
 
   return (req, res, next) => {
     if (!req.user) {
       return next(new UnauthorizedError('需要登录'));
     }
 
-    if (!roles.includes(req.user.role)) {
-      return next(new ForbiddenError(`权限不足，需要角色：${roles.join(' 或 ')}`));
+    if (normalizedRequired.length === 0) {
+      return next();
+    }
+
+    const userRoles = collectUserRoles(req.user);
+    const matched = normalizedRequired.some((role) => userRoles.has(role));
+
+    if (!matched) {
+      return next(new ForbiddenError(`权限不足，需要角色：${rawRoles.join(' 或 ')}`));
     }
 
     next();
@@ -92,7 +152,7 @@ const requireOwnerOrAdmin = (userIdParam = 'userId') => {
     }
 
     // 管理员可以访问所有资源
-    if (req.user.role === ROLES.ADMIN) {
+    if (isAdminRole(req.user)) {
       return next();
     }
 

@@ -188,7 +188,13 @@ class PointsController {
     }
     
     const result = await pointsService.getPointsHistory(targetUserId, options);
-    success(res, result, '获取积分历史成功');
+    
+    successWithPagination(
+      res,
+      result.transactions,
+      result.pagination,
+      '获取积分历史成功'
+    );
   });
 
   /**
@@ -219,7 +225,13 @@ class PointsController {
     }
     
     const result = await pointsService.getPointsHistory(req.user.id, options);
-    success(res, result, '获取我的积分历史成功');
+    
+    successWithPagination(
+      res,
+      result.transactions,
+      result.pagination,
+      '获取我的积分历史成功'
+    );
   });
 
   /**

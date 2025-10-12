@@ -1,7 +1,7 @@
 const express = require('express');
 const pointsController = require('../controllers/points.controller');
 const { authenticateToken } = require('../middlewares/auth.middleware');
-const { requireRole } = require('../middlewares/rbac.middleware');
+const { requireRole, requirePermission } = require('../middlewares/rbac.middleware');
 const { createRateLimit } = require('../middlewares/validation.middleware');
 
 const router = express.Router();
@@ -50,6 +50,7 @@ router.get('/statistics', pointsController.getPointsStatistics);
 // 添加积分（限制频率：每分钟最多10次）
 router.post('/add',
   requireRole(['admin']),
+  requirePermission('points.update'),
   createRateLimit({ windowMs: 60 * 1000, maxRequests: 10 }),
   pointsController.addPoints
 );
@@ -57,6 +58,7 @@ router.post('/add',
 // 扣除积分（限制频率：每分钟最多10次）
 router.post('/deduct',
   requireRole(['admin']),
+  requirePermission('points.update'),
   createRateLimit({ windowMs: 60 * 1000, maxRequests: 10 }),
   pointsController.deductPoints
 );
@@ -64,6 +66,7 @@ router.post('/deduct',
 // 转移积分（限制频率：每分钟最多5次）
 router.post('/transfer',
   requireRole(['admin']),
+  requirePermission('points.update'),
   createRateLimit({ windowMs: 60 * 1000, maxRequests: 5 }),
   pointsController.transferPoints
 );
@@ -71,6 +74,7 @@ router.post('/transfer',
 // 冲正交易（限制频率：每分钟最多3次）
 router.post('/transactions/:transactionId/reverse',
   requireRole(['admin']),
+  requirePermission('points.update'),
   createRateLimit({ windowMs: 60 * 1000, maxRequests: 3 }),
   pointsController.reverseTransaction
 );
@@ -78,6 +82,7 @@ router.post('/transactions/:transactionId/reverse',
 // 批量操作积分（限制频率：每分钟最多2次）
 router.post('/batch',
   requireRole(['admin']),
+  requirePermission('points.update'),
   createRateLimit({ windowMs: 60 * 1000, maxRequests: 2 }),
   pointsController.batchProcessPoints
 );

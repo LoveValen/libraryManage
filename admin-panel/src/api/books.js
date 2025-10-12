@@ -115,11 +115,3 @@ export function getRecentBooks(params = {}) {
 export function getBookStatistics(params = {}) {
   return request.get('/books/statistics', { params })
 }
-
-/**
- * 从ISBN获取图书信息
- * @param {string} isbn - ISBN号
- */
-export function getBookByISBN(isbn) {
-  return request.get(`/books/isbn/${isbn}`)
-}

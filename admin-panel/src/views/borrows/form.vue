@@ -236,7 +236,7 @@ const loadRecentBorrows = async () => {
       sortOrder: 'desc'
     })
 
-    recentBorrows.value = response.data.borrows
+    recentBorrows.value = response.data
   } catch (error) {
     console.error('加载最近借阅记录失败:', error)
     ElMessage.error('加载最近借阅记录失败')

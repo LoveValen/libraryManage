@@ -17,11 +17,34 @@ export const useAuthStore = defineStore(
     const refreshToken = ref(localStorage.getItem('admin_refresh_token') || '')
     const user = ref(null)
     const permissions = ref([])
+    const roles = ref([])
     const loading = ref(false)
 
     // Getters
     const isAuthenticated = computed(() => !!token.value)
     const userRole = computed(() => user.value?.role || '')
+    const allRoles = computed(() => {
+      const roleSet = new Set()
+      if (typeof user.value?.role === 'string' && user.value.role.trim()) {
+        roleSet.add(user.value.role)
+      }
+      if (Array.isArray(roles.value)) {
+        roles.value
+          .filter(role => typeof role === 'string' && role.trim())
+          .forEach(role => roleSet.add(role))
+      }
+      return Array.from(roleSet)
+    })
+    const normalizedRoleSet = computed(() => {
+      const normalized = new Set()
+      allRoles.value.forEach(role => {
+        const code = typeof role === 'string' ? role.trim().toLowerCase() : ''
+        if (code) {
+          normalized.add(code)
+        }
+      })
+      return normalized
+    })
     const userName = computed(() => user.value?.realName || user.value?.username || '')
     const userAvatar = computed(() => user.value?.avatar || '')
 
@@ -88,7 +111,7 @@ export const useAuthStore = defineStore(
         loading.value = true
 
         const response = await authApi.getCurrentUser()
-        const userData = response.data.user
+        const userData = response.data
 
         setUser(userData)
 
@@ -157,7 +180,7 @@ export const useAuthStore = defineStore(
         loading.value = true
 
         const response = await authApi.updateProfile(profileData)
-        const updatedUser = response.data.user
+        const updatedUser = response.data
 
         setUser(updatedUser)
 
@@ -213,13 +236,31 @@ export const useAuthStore = defineStore(
      */
     const setUser = userData => {
       user.value = userData
+      // 后端返回的权限、角色需去重并保留有效字符串
+      const permissionList = Array.isArray(userData.permissions)
+        ? userData.permissions.filter(code => typeof code === 'string' && code.trim())
+        : []
+      const permissionSet = new Set(permissionList.map(code => code.trim()))
 
-      // 提取用户权限
-      if (userData.role === 'admin') {
-        permissions.value = ['*'] // 管理员拥有所有权限
-      } else {
-        permissions.value = ['read'] // 普通用户只有读权限
+      const rolePool = []
+      if (Array.isArray(userData.roles)) {
+        userData.roles
+          .filter(role => typeof role === 'string' && role.trim())
+          .forEach(role => rolePool.push(role))
       }
+      if (typeof userData.role === 'string' && userData.role.trim()) {
+        rolePool.push(userData.role)
+      }
+      const roleSet = new Set(rolePool)
+
+      const normalizedRoles = Array.from(roleSet).map(role => role.trim().toLowerCase())
+      const isAdmin = normalizedRoles.includes('admin')
+      if (isAdmin) {
+        permissionSet.add('*')
+      }
+
+      permissions.value = Array.from(permissionSet)
+      roles.value = Array.from(roleSet)
     }
 
     /**
@@ -230,6 +271,7 @@ export const useAuthStore = defineStore(
       refreshToken.value = ''
       user.value = null
       permissions.value = []
+      roles.value = []
 
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_refresh_token')
@@ -240,7 +282,30 @@ export const useAuthStore = defineStore(
      * @param {string} permission - 权限标识
      */
     const hasPermission = permission => {
-      return permissions.value.includes('*') || permissions.value.includes(permission)
+      if (typeof permission !== 'string') {
+        return false
+      }
+      const code = permission.trim()
+      if (!code) {
+        return false
+      }
+      return permissions.value.includes('*') || permissions.value.includes(code)
+    }
+
+    /**
+     * 检查用户是否具备任意角色
+     * @param {string|string[]} targetRoles - 角色标识或数组
+     */
+    const hasAnyRole = targetRoles => {
+      const list = Array.isArray(targetRoles) ? targetRoles : [targetRoles]
+      const normalized = list
+        .map(role => (typeof role === 'string' ? role.trim().toLowerCase() : ''))
+        .filter(Boolean)
+      if (normalized.length === 0) {
+        return true
+      }
+      const userRoles = normalizedRoleSet.value
+      return normalized.some(role => userRoles.has(role))
     }
 
     /**
@@ -248,7 +313,10 @@ export const useAuthStore = defineStore(
      * @param {string} role - 角色标识
      */
     const hasRole = role => {
-      return userRole.value === role
+      if (typeof role !== 'string') {
+        return false
+      }
+      return hasAnyRole(role)
     }
 
     return {
@@ -257,11 +325,13 @@ export const useAuthStore = defineStore(
       refreshToken,
       user,
       permissions,
+      roles,
       loading,
 
       // Getters
       isAuthenticated,
       userRole,
+      allRoles,
       userName,
       userAvatar,
 
@@ -278,6 +348,7 @@ export const useAuthStore = defineStore(
       setUser,
       clearAuthData,
       hasPermission,
+      hasAnyRole,
       hasRole
     }
   },
@@ -285,7 +356,7 @@ export const useAuthStore = defineStore(
     persist: {
       key: 'admin_auth',
       storage: localStorage,
-      paths: ['token', 'refreshToken', 'user']
+      paths: ['token', 'refreshToken', 'user', 'permissions', 'roles']
     }
   }
 )

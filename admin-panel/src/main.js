@@ -7,6 +7,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 import App from './App.vue'
 import router from './router'
+import permissionDirective from './directives/permission'
 
 // 样式文件
 import 'element-plus/dist/index.css'
@@ -39,6 +40,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 // 注册全局组件
 app.component('svg-icon', SvgIcon)
+app.directive('permission', permissionDirective)
 
 // 配置 NProgress - 更快速、更微妙的加载指示器
 NProgress.configure({

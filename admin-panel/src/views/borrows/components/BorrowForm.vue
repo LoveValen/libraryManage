@@ -283,7 +283,7 @@ const searchUsers = async query => {
   userLoading.value = true
   try {
     const response = await searchUsersAPI({ q: query, limit: 20 })
-    userOptions.value = response.data.users
+    userOptions.value = response.data
   } catch (error) {
     console.error('搜索用户失败:', error)
     ElMessage.error('搜索用户失败')
@@ -305,7 +305,7 @@ const searchBooks = async query => {
       limit: 20,
       status: 'available'
     })
-    bookOptions.value = response.data.books.map(book => ({
+    bookOptions.value = response.data.map(book => ({
       ...book,
       isAvailable: book.status === 'available' && book.availableStock > 0
     }))

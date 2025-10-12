@@ -12,7 +12,7 @@ class BorrowsController {
    */
   createBorrow = asyncHandler(async (req, res) => {
     const borrow = await borrowsService.createBorrow(req.body, req.user);
-    success(res, { borrow }, '图书借阅成功', 201);
+    success(res, borrow, '图书借阅成功', 201);
   });
 
   /**
@@ -20,7 +20,13 @@ class BorrowsController {
    */
   getBorrowList = asyncHandler(async (req, res) => {
     const result = await borrowsService.getBorrowList(req.query);
-    successWithPagination(res, result.borrows, result.pagination, '获取借阅记录成功');
+
+    successWithPagination(
+      res,
+      result.borrows,
+      result.pagination,
+      '获取借阅记录成功'
+    );
   });
 
   /**
@@ -28,7 +34,7 @@ class BorrowsController {
    */
   getBorrowById = asyncHandler(async (req, res) => {
     const borrow = await borrowsService.getBorrowById(req.params.id, req.user);
-    success(res, { borrow }, '获取借阅记录详情成功');
+    success(res, borrow, '获取借阅记录详情成功');
   });
 
   /**
@@ -115,18 +121,18 @@ class BorrowsController {
   getOverdueRecordsPaginated = asyncHandler(async (req, res) => {
     const result = await borrowsService.getOverdueRecordsPaginated(req.query);
     
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Overdue records retrieved successfully',
-      data: {
-        overdueRecords: result.records,
-        pagination: result.pagination,
-        statistics: result.statistics,
-      },
-      timestamp: formatDateTime(new Date()),
-    });
+    // 注意：这里的data需要包含statistics，所以我们将其包装在一起
+    const responseData = {
+      records: result.records,
+      statistics: result.statistics
+    };
+    
+    successWithPagination(
+      res,
+      responseData,
+      result.pagination,
+      'Overdue records retrieved successfully'
+    );
   });
 
   /**
@@ -220,17 +226,12 @@ class BorrowsController {
       req.user
     );
     
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'User borrow history retrieved successfully',
-      data: {
-        borrows: result.borrows,
-        pagination: result.pagination,
-      },
-      timestamp: formatDateTime(new Date()),
-    });
+    successWithPagination(
+      res,
+      result.borrows,
+      result.pagination,
+      'User borrow history retrieved successfully'
+    );
   });
 
   /**
@@ -244,17 +245,12 @@ class BorrowsController {
       req.user
     );
     
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Your borrow history retrieved successfully',
-      data: {
-        borrows: result.borrows,
-        pagination: result.pagination,
-      },
-      timestamp: formatDateTime(new Date()),
-    });
+    successWithPagination(
+      res,
+      result.borrows,
+      result.pagination,
+      'Your borrow history retrieved successfully'
+    );
   });
 
   /**

@@ -215,8 +215,8 @@ const loadOverdueBooks = async () => {
     }
 
     const response = await getBorrows(params)
-    overdueBooks.value = response.data.borrows || []
-    pagination.total = response.data.pagination?.total || 0
+    overdueBooks.value = response.data.borrows || response.data || []
+    pagination.total = response.total || response.data.pagination?.total || 0
 
     // 计算统计数据
     calculateStats()

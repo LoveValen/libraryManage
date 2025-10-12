@@ -1,7 +1,7 @@
 const notificationService = require('../services/notification.service');
 const websocketService = require('../services/websocket.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
-const { success, validationError } = require('../utils/response');
+const { success, successWithPagination, validationError } = require('../utils/response');
 const { validateRequest } = require('../utils/validation');
 const { ForbiddenError } = require('../utils/apiError');
 const Joi = require('joi');
@@ -96,7 +96,12 @@ class NotificationsController {
       unreadOnly: this._parseBoolParam(unreadOnly)
     });
 
-    success(res, result, '获取通知列表成功');
+    successWithPagination(
+      res,
+      result.notifications,
+      result.pagination,
+      '获取通知列表成功'
+    );
   });
 
   /**
@@ -122,7 +127,12 @@ class NotificationsController {
   markAllAsRead = asyncHandler(async (req, res) => {
     const { type } = req.body;
     const updatedCount = await notificationService.markAllAsRead(req.user.id, type);
-    success(res, { updatedCount }, '所有通知已标记为已读');
+    res.status(200).json({
+      success: true,
+      message: '所有通知已标记为已读',
+      data: updatedCount,
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**
@@ -178,7 +188,12 @@ class NotificationsController {
     this._checkAdminPermission(req.user);
     const { id } = req.params;
     const sendSuccess = await notificationService.sendNotification(this._parseIntParam(id));
-    success(res, { success: sendSuccess }, sendSuccess ? '通知发送成功' : '通知发送失败');
+    res.status(200).json({
+      success: true,
+      message: sendSuccess ? '通知发送成功' : '通知发送失败',
+      data: sendSuccess,
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**
@@ -202,7 +217,12 @@ class NotificationsController {
   cleanupExpiredNotifications = asyncHandler(async (req, res) => {
     this._checkAdminPermission(req.user);
     const cleanedCount = await notificationService.cleanupExpiredNotifications();
-    success(res, { cleanedCount }, `已清理 ${cleanedCount} 条过期通知`);
+    res.status(200).json({
+      success: true,
+      message: `已清理 ${cleanedCount} 条过期通知`,
+      data: cleanedCount,
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**
@@ -242,7 +262,12 @@ class NotificationsController {
     const { reason = '管理员操作' } = req.body;
 
     const disconnectedCount = websocketService.disconnectUser(this._parseIntParam(userId), reason);
-    success(res, { disconnectedCount }, `已断开用户 ${userId} 的 ${disconnectedCount} 个连接`);
+    res.status(200).json({
+      success: true,
+      message: `已断开用户 ${userId} 的 ${disconnectedCount} 个连接`,
+      data: disconnectedCount,
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**
@@ -257,7 +282,12 @@ class NotificationsController {
       validatedData.excludeUsers || []
     );
 
-    success(res, { success: broadcastSuccess }, broadcastSuccess ? '系统消息广播成功' : '系统消息广播失败');
+    res.status(200).json({
+      success: true,
+      message: broadcastSuccess ? '系统消息广播成功' : '系统消息广播失败',
+      data: broadcastSuccess,
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**

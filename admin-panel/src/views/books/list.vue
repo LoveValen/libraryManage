@@ -352,10 +352,25 @@ const {
   defaultPageSize: defaultPageSizeTable,
   manual: true,
   immediate: false,
-  transform: (response) => ({
-    list: response?.data || [],
-    total: response?.pagination?.total || 0
-  }),
+  transform: (response) => {
+    const payload = response?.data ?? undefined
+    const list =
+      Array.isArray(payload?.list)
+        ? payload.list
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.records)
+            ? payload.records
+            : Array.isArray(payload)
+              ? payload
+              : []
+    const totalCandidate = payload && typeof payload.total !== 'undefined' ? Number(payload.total) : undefined
+    const fallbackTotal = typeof response?.total !== 'undefined' ? Number(response.total) : list.length
+    return {
+      list,
+      total: Number.isFinite(totalCandidate) ? totalCandidate : fallbackTotal
+    }
+  },
   formatParams: ({ search, page, pageSize, sorter }) => {
     const filters = buildBookFilters(search)
     const query = {
@@ -376,8 +391,14 @@ const bookList = computed(() => tableDataSource.value)
 // 加载基础数据 - 简化版
 const loadCategories = async () => {
   try {
-    const { data } = await bookApi.getCategories()
-    categories.value = data?.categories || []
+    const response = await bookApi.getCategories()
+    const rawData = response?.data
+    const categoryList = Array.isArray(rawData)
+      ? rawData
+      : Array.isArray(rawData?.categories)
+        ? rawData.categories
+        : []
+    categories.value = categoryList
   } catch (error) {
     console.error('获取分类失败:', error)
   }
@@ -385,12 +406,22 @@ const loadCategories = async () => {
 
 const loadLocations = async () => {
   try {
-    const { data } = await bookLocationApi.getLocations({
+    const response = await bookLocationApi.getLocations({
       page: 1,
       size: 200,
       isActive: true
     })
-    locations.value = data?.locations || []
+    const rawData = response?.data
+    const locationList = Array.isArray(rawData?.list)
+      ? rawData.list
+      : Array.isArray(rawData?.items)
+        ? rawData.items
+        : Array.isArray(rawData?.locations)
+          ? rawData.locations
+          : Array.isArray(rawData)
+            ? rawData
+            : []
+    locations.value = locationList
   } catch (error) {
     console.error('获取位置失败:', error)
   }

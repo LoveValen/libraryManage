@@ -79,29 +79,102 @@ export function useTableRequest(fetcher, options = {}) {
 
     try {
       const response = await fetcher(params)
+      const rawPayload = response?.data && typeof response.data === 'object' ? response.data : {}
+      const fallbackArray = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+          ? response
+          : []
+      const derivedList = Array.isArray(rawPayload.list)
+        ? rawPayload.list
+        : Array.isArray(rawPayload.items)
+          ? rawPayload.items
+          : Array.isArray(rawPayload.records)
+            ? rawPayload.records
+            : Array.isArray(rawPayload.rows)
+              ? rawPayload.rows
+              : fallbackArray
+      const derivedTotal = Number(
+        rawPayload.total ??
+        rawPayload.totalCount ??
+        rawPayload.count ??
+        response?.total ??
+        response?.pagination?.total ??
+        derivedList.length ??
+        0
+      )
+      const derivedPage = Number(
+        rawPayload.page ??
+        rawPayload.current ??
+        response?.page ??
+        response?.pagination?.page ??
+        response?.pagination?.current ??
+        nextPage
+      )
+      const derivedPageSize = Number(
+        rawPayload.pageSize ??
+        rawPayload.limit ??
+        rawPayload.size ??
+        response?.pageSize ??
+        response?.pagination?.limit ??
+        response?.pagination?.pageSize ??
+        nextSize
+      )
+      const derivedTotalPages = Number(
+        rawPayload.totalPages ??
+        rawPayload.pages ??
+        response?.totalPages ??
+        response?.pagination?.totalPages ??
+        response?.pagination?.pages ??
+        (Number.isFinite(derivedPageSize) && derivedPageSize > 0 ? Math.ceil((Number.isFinite(derivedTotal) ? derivedTotal : 0) / derivedPageSize) : 0)
+      )
+
+      const normalizedResponse = {
+        ...response,
+        data: {
+          ...rawPayload,
+          list: derivedList,
+          total: Number.isNaN(derivedTotal) ? 0 : derivedTotal,
+          page: Number.isNaN(derivedPage) ? nextPage : derivedPage,
+          pageSize: Number.isNaN(derivedPageSize) ? nextSize : derivedPageSize,
+          totalPages: Number.isNaN(derivedTotalPages) ? (Number.isNaN(derivedPageSize) || derivedPageSize <= 0 ? 0 : Math.ceil((Number.isNaN(derivedTotal) ? 0 : derivedTotal) / (Number.isNaN(derivedPageSize) ? nextSize : derivedPageSize))) : derivedTotalPages
+        }
+      }
+
       const result = typeof transform === 'function'
-        ? transform(response)
+        ? transform(normalizedResponse)
         : {
-            list: response?.data ?? [],
-            total: response?.pagination?.total ?? 0
+            list: normalizedResponse.data.list,
+            total: normalizedResponse.data.total,
+            page: normalizedResponse.data.page,
+            pageSize: normalizedResponse.data.pageSize,
+            totalPages: normalizedResponse.data.totalPages
           }
 
-      const list = Array.isArray(result?.list) ? result.list : []
-      const total = Number(result?.total ?? 0)
+      const list = Array.isArray(result?.list) ? result.list : normalizedResponse.data.list
+      const total = Number(result?.total ?? normalizedResponse.data.total ?? 0)
+      const pageForState = Number(result?.page ?? normalizedResponse.data.page ?? nextPage)
+      const pageSizeForState = Number(result?.pageSize ?? normalizedResponse.data.pageSize ?? nextSize)
+      const totalPagesForState = Number(result?.totalPages ?? normalizedResponse.data.totalPages ?? (Number.isNaN(total) || Number.isNaN(pageSizeForState) || pageSizeForState <= 0 ? 0 : Math.ceil(total / pageSizeForState)))
 
-      dataSource.value = list
-      pagination.current = nextPage
-      pagination.pageSize = nextSize
+      dataSource.value = Array.isArray(list) ? list : []
+      pagination.current = Number.isNaN(pageForState) ? nextPage : pageForState
+      pagination.pageSize = Number.isNaN(pageSizeForState) ? nextSize : pageSizeForState
       pagination.total = Number.isNaN(total) ? 0 : total
 
       if (typeof onSuccess === 'function') {
-        onSuccess({ list, total: pagination.total, params })
+        onSuccess({ list: dataSource.value, total: pagination.total, params })
       }
 
       return {
         success: true,
-        data: list,
-        total: pagination.total
+        data: dataSource.value,
+        total: pagination.total,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        totalPages: Number.isNaN(totalPagesForState)
+          ? (pagination.pageSize > 0 ? Math.ceil(pagination.total / pagination.pageSize) : 0)
+          : totalPagesForState
       }
     } catch (error) {
       console.error('useTableRequest 请求失败:', error)
@@ -110,6 +183,9 @@ export function useTableRequest(fetcher, options = {}) {
         success: false,
         data: [],
         total: 0,
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+        totalPages: 0,
         message: error?.message || '请求失败'
       }
     } finally {

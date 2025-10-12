@@ -11,6 +11,8 @@ const bookCategoriesRoutes = require('../routes/bookCategories.routes');
 const bookTagsRoutes = require('../routes/bookTags.routes');
 const bookLocationsRoutes = require('../routes/bookLocations.routes');
 const usersRoutes = require('../routes/users.routes');
+const rolesRoutes = require('../routes/roles.routes');
+const permissionsRoutes = require('../routes/permissions.routes');
 const borrowsRoutes = require('../routes/borrows.routes');
 const reviewsRoutes = require('../routes/reviews.routes');
 const pointsRoutes = require('../routes/points.routes');
@@ -101,6 +103,8 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/book-locations', bookLocationsRoutes);
   app.use('/api/v1/books', booksRoutes);
   app.use('/api/v1/users', usersRoutes);
+  app.use('/api/v1/roles', rolesRoutes);
+  app.use('/api/v1/permissions', permissionsRoutes);
   app.use('/api/v1/borrows', borrowsRoutes);
   app.use('/api/v1/reviews', reviewsRoutes);
   app.use('/api/v1/points', pointsRoutes);

@@ -137,7 +137,8 @@ class SearchController {
     };
 
     const results = await searchService.intelligentSearch(query, req.user.id, options);
-    success(res, { ...results, personalized: true, userId: req.user.id }, '智能搜索完成');
+    const responseData = { ...results, personalized: true, userId: req.user.id };
+    success(res, responseData, '智能搜索完成');
   });
 
   /**
@@ -211,7 +212,12 @@ class SearchController {
       console.error('Reindex failed:', error);
     });
 
-    success(res, { message: '索引重建已启动', status: 'in_progress' }, '索引重建启动成功');
+    res.status(200).json({
+      success: true,
+      message: '索引重建启动成功',
+      data: { message: '索引重建已启动', status: 'in_progress' },
+      timestamp: require('../utils/date').formatDateTime(new Date())
+    });
   });
 
   /**

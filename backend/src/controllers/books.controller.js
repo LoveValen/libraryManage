@@ -39,7 +39,7 @@ class BooksController {
    */
   createBook = asyncHandler(async (req, res) => {
     const book = await booksService.createBook(req.body, req.user);
-    success(res, { book }, '图书创建成功', 201);
+    success(res, book, '图书创建成功', 201);
   });
 
   /**
@@ -48,8 +48,13 @@ class BooksController {
   getBookList = asyncHandler(async (req, res) => {
     const mappedQuery = this._cleanQueryParams(req.query);
     const result = await booksService.getBookList(mappedQuery);
-    
-    successWithPagination(res, result.books, result.pagination, '获取图书列表成功');
+
+    successWithPagination(
+      res,
+      result.books,
+      result.pagination,
+      '获取图书列表成功'
+    );
   });
 
   /**
@@ -81,7 +86,13 @@ class BooksController {
     }
     
     const result = await booksService.getBookList(mappedQuery);
-    successWithPagination(res, result.books, result.pagination, '获取管理员图书列表成功');
+
+    successWithPagination(
+      res,
+      result.books,
+      result.pagination,
+      '获取管理员图书列表成功'
+    );
   });
 
   /**
@@ -89,7 +100,7 @@ class BooksController {
    */
   getBookById = asyncHandler(async (req, res) => {
     const book = await booksService.getBookById(req.params.id, req.user);
-    success(res, { book }, '获取图书详情成功');
+    success(res, book, '获取图书详情成功');
   });
   /**
    * 获取图书借阅记录
@@ -203,7 +214,7 @@ class BooksController {
     successWithPagination(
       res,
       { borrows: formattedBorrows },
-      { page: parseInt(page), limit: parseInt(size), total },
+      { page, pageSize: size, total },
       '获取借阅记录成功'
     );
   });
@@ -213,7 +224,7 @@ class BooksController {
    */
   updateBook = asyncHandler(async (req, res) => {
     const book = await booksService.updateBook(req.params.id, req.body, req.user);
-    success(res, { book }, '图书更新成功');
+    success(res, book, '图书更新成功');
   });
 
   /**
@@ -229,7 +240,7 @@ class BooksController {
    */
   getCategories = asyncHandler(async (req, res) => {
     const categories = await booksService.getCategories();
-    success(res, { categories }, '获取图书分类成功');
+    success(res, categories, '获取图书分类成功');
   });
 
   /**
@@ -241,7 +252,7 @@ class BooksController {
    */
   getBookTags = asyncHandler(async (req, res) => {
     const tags = await booksService.getBookTags();
-    success(res, { tags }, '获取图书标签成功');
+    success(res, tags, '获取图书标签成功');
   });
 
   /**
@@ -249,7 +260,7 @@ class BooksController {
    */
   getBookLocations = asyncHandler(async (req, res) => {
     const locations = await booksService.getBookLocations();
-    success(res, { locations }, '获取图书存放位置成功');
+    success(res, locations, '获取图书存放位置成功');
   });
 
   searchBooks = asyncHandler(async (req, res) => {
@@ -269,18 +280,12 @@ class BooksController {
 
     const result = await booksService.searchBooks(searchQuery, options);
     
-    res.json({
-      success: true,
-      status: 'success',
-      statusCode: 200,
-      message: 'Search completed successfully',
-      data: {
-        books: result.books,
-        pagination: result.pagination,
-        query: searchQuery,
-      },
-      timestamp: formatDateTime(new Date()),
-    });
+    successWithPagination(
+      res,
+      result.books,
+      result.pagination,
+      'Search completed successfully'
+    );
   });
 
   /**
@@ -366,8 +371,6 @@ class BooksController {
     });
   });
 
-  // ISBN查询功能已移除
-
   /**
    * 下载电子书
    * GET /api/v1/books/:id/download
@@ -407,11 +410,6 @@ class BooksController {
       timestamp: formatDateTime(new Date()),
     });
   });
-
-
-  // ISBN外部查询功能已移除
-
-
 }
 
 module.exports = new BooksController();

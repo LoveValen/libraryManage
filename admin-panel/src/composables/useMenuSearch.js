@@ -58,7 +58,7 @@ export function useMenuSearch() {
               icon: route.meta.icon,
               name: route.name,
               breadcrumb: getBreadcrumb(route, routes),
-              route: route
+              route
             })
           }
         }
@@ -188,7 +188,7 @@ export function useMenuSearch() {
     }
 
     let pinyin = ''
-    for (let char of text) {
+    for (const char of text) {
       if (pinyinMap[char]) {
         pinyin += pinyinMap[char]
       } else {

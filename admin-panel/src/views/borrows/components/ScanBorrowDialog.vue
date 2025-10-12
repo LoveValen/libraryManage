@@ -145,7 +145,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Camera, Reading, SuccessFilled, DocumentAdd, Search } from '@element-plus/icons-vue'
 import { createBorrow } from '@/api/borrows'
-import { getBookByISBN } from '@/api/books'
+import { bookApi } from '@/api/book'
 
 // Emits
 const emit = defineEmits(['success', 'cancel'])
@@ -228,13 +228,26 @@ const searchBook = async () => {
   try {
     let book = null
 
-    // 尝试按ISBN搜索
-    if (/^[\d-X]+$/.test(identifier)) {
-      const response = await getBookByISBN(identifier)
-      book = response.data.book
+    // 尝试按ISBN或ID搜索
+    if (/^\d+$/.test(identifier)) {
+      // 纯数字，可能是ID
+      try {
+        const response = await bookApi.getBookDetail(identifier)
+        book = response.data
+      } catch (error) {
+        // ID搜索失败，尝试作为ISBN搜索
+        const searchResponse = await bookApi.searchBooks(identifier, 1)
+        if (searchResponse.data && searchResponse.data.length > 0) {
+          book = searchResponse.data[0]
+        }
+      }
+    } else if (/^[\d-X]+$/.test(identifier)) {
+      // ISBN格式
+      const response = await bookApi.searchBooks(identifier, 1)
+      if (response.data && response.data.length > 0) {
+        book = response.data[0]
+      }
     } else {
-      // 按ID搜索或其他方式
-      // 这里需要调用相应的API
       ElMessage.warning('请输入有效的ISBN或图书ID')
       return
     }

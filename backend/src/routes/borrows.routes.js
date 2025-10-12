@@ -1,7 +1,7 @@
 const express = require('express');
 const borrowsController = require('../controllers/borrows.controller');
 const { authenticateToken } = require('../middlewares/auth.middleware');
-const { requireRole } = require('../middlewares/rbac.middleware');
+const { requireRole, requirePermission } = require('../middlewares/rbac.middleware');
 const { 
   validate, 
   validateId,
@@ -32,6 +32,7 @@ router.use(authenticateToken); // 所有借阅路由都需要认证
  */
 router.get('/statistics',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   borrowsController.getBorrowStatistics
 );
 
@@ -42,6 +43,7 @@ router.get('/statistics',
  */
 router.get('/overdue',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   validate(require('joi').object({
     graceDays: require('joi').number().integer().min(0).max(30).optional(),
   }), 'query'),
@@ -55,6 +57,7 @@ router.get('/overdue',
  */
 router.get('/overdue-records',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   validate(require('joi').object({
     page: require('joi').number().integer().min(1).optional(),
     limit: require('joi').number().integer().min(1).max(100).optional(),
@@ -75,6 +78,7 @@ router.get('/overdue-records',
  */
 router.get('/due-soon',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   validate(require('joi').object({
     reminderDays: require('joi').number().integer().min(1).max(7).optional(),
   }), 'query'),
@@ -88,6 +92,7 @@ router.get('/due-soon',
  */
 router.get('/trends',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   validate(require('joi').object({
     period: require('joi').string().valid('7d', '30d', '90d', '1y').optional(),
     type: require('joi').string().valid('daily', 'weekly', 'monthly').optional(),
@@ -149,6 +154,7 @@ router.get('/limits/:userId',
  */
 router.get('/',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.read'),
   validate(borrowSchemas.getBorrowList, 'query'),
   borrowsController.getBorrowList
 );
@@ -160,6 +166,7 @@ router.get('/',
  */
 router.post('/',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.create'),
   validate(borrowSchemas.borrowBook),
   borrowsController.createBorrow
 );
@@ -171,6 +178,7 @@ router.post('/',
  */
 router.post('/batch',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.update'),
   validate(require('joi').object({
     borrowIds: require('joi').array().items(require('joi').number().integer().positive()).min(1).required(),
     action: require('joi').string().valid('return', 'renew', 'markLost', 'sendReminder').required(),
@@ -195,6 +203,7 @@ router.post('/batch',
  */
 router.post('/quick-borrow',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.create'),
   validate(require('joi').object({
     userIdentifier: require('joi').string().required(),
     bookIdentifier: require('joi').string().required(),
@@ -210,6 +219,7 @@ router.post('/quick-borrow',
  */
 router.post('/quick-return',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.update'),
   validate(require('joi').object({
     bookIdentifier: require('joi').string().required(),
     condition: require('joi').string().valid('good', 'damaged', 'lost').optional(),
@@ -240,6 +250,7 @@ router.get('/:id',
  */
 router.put('/:id/return',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.update'),
   validateId(),
   validate(borrowSchemas.returnBook),
   borrowsController.returnBook
@@ -263,6 +274,7 @@ router.put('/:id/renew',
  */
 router.put('/:id/lost',
   requireRole(['admin', 'librarian']),
+  requirePermission('borrows.update'),
   validateId(),
   validate(require('joi').object({
     notes: require('joi').string().max(1000).optional(),

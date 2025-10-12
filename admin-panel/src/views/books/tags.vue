@@ -160,10 +160,22 @@ const {
   manual: true,
   immediate: false,
   transform: (response) => {
-    const data = response?.data || {}
+    const payload = response?.data ?? undefined
+    const list =
+      Array.isArray(payload?.list)
+        ? payload.list
+        : Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload?.tags)
+            ? payload.tags
+            : Array.isArray(payload)
+              ? payload
+              : []
+    const totalCandidate = payload && typeof payload.total !== 'undefined' ? Number(payload.total) : undefined
+    const fallbackTotal = typeof response?.total !== 'undefined' ? Number(response.total) : list.length
     return {
-      list: data.tags || [],
-      total: data.total || 0
+      list,
+      total: Number.isFinite(totalCandidate) ? totalCandidate : fallbackTotal
     }
   },
   formatParams: ({ search, page, pageSize, sorter }) => {

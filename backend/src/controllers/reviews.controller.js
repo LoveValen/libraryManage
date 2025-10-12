@@ -1,7 +1,7 @@
 const reviewsService = require('../services/reviews.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
 const { validateRequest } = require('../utils/validation');
-const { success, validationError } = require('../utils/response');
+const { success, successWithPagination, validationError } = require('../utils/response');
 const Joi = require('joi');
 
 /**
@@ -83,7 +83,7 @@ class ReviewsController {
   createReview = asyncHandler(async (req, res) => {
     const validatedData = validateRequest(ReviewsController.CREATE_SCHEMA, req.body);
     const review = await reviewsService.createReview(validatedData, req.user);
-    success(res, { review }, '评价创建成功', 201);
+    success(res, review, '评价创建成功', 201);
   });
 
   /**
@@ -101,7 +101,7 @@ class ReviewsController {
       }
     );
     
-    success(res, { review }, '获取评价详情成功');
+    success(res, review, '获取评价详情成功');
   });
 
   /**
@@ -117,7 +117,7 @@ class ReviewsController {
       req.user
     );
     
-    success(res, { review }, '评价更新成功');
+    success(res, review, '评价更新成功');
   });
 
   /**
@@ -154,7 +154,18 @@ class ReviewsController {
       }
     );
     
-    success(res, result, '获取图书评价列表成功');
+    // 包装数据：reviews和statistics一起返回
+    const responseData = {
+      reviews: result.reviews,
+      statistics: result.statistics
+    };
+    
+    successWithPagination(
+      res,
+      responseData,
+      result.pagination,
+      '获取图书评价列表成功'
+    );
   });
 
   /**
@@ -181,7 +192,12 @@ class ReviewsController {
       }
     );
     
-    success(res, result, '获取用户评价列表成功');
+    successWithPagination(
+      res,
+      result.reviews,
+      result.pagination,
+      '获取用户评价列表成功'
+    );
   });
 
   /**
@@ -379,7 +395,12 @@ class ReviewsController {
       }
     );
     
-    success(res, result, '获取我的评价列表成功');
+    successWithPagination(
+      res,
+      result.reviews,
+      result.pagination,
+      '获取我的评价列表成功'
+    );
   });
 
   /**

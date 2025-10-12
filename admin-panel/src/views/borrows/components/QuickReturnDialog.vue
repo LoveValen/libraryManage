@@ -211,7 +211,7 @@ const handleSearch = async () => {
       limit: 10
     })
 
-    searchResults.value = response.data.borrows || []
+    searchResults.value = response.data || []
 
     if (searchResults.value.length === 0) {
       ElMessage.info('未找到匹配的借阅记录')

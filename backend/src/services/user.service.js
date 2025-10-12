@@ -400,7 +400,7 @@ class UserService {
       const skip = (Number(page) - 1) * Number(limit);
       const where = { is_deleted: false };
 
-      const normalizedSearch = typeof search === 'string' ? normalizedSearch : '';
+      const normalizedSearch = typeof search === 'string' ? search : '';
 
       // 搜索条件
       if (normalizedSearch) {

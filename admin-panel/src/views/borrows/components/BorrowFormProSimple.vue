@@ -96,7 +96,7 @@ const loadUserOptions = async (query) => {
 
   try {
     const response = await searchUsersAPI({ q: query, limit: 20 })
-    return response.data.users.map(user => ({
+    return response.data.map(user => ({
       label: `${user.realName || user.username} (${user.email})`,
       value: user.id,
       user
@@ -121,7 +121,7 @@ const loadBookOptions = async (query) => {
       status: 'available'
     })
     
-    return response.data.books
+    return response.data
       .filter(book => book.status === 'available' && book.availableStock > 0)
       .map(book => ({
         label: `${book.title} - ${book.authors?.join?.(', ') || book.authors}`,

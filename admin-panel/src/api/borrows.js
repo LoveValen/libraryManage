@@ -60,6 +60,17 @@ export function checkBorrowLimits(params) {
 }
 
 /**
+ * 检查借阅权限（用于借阅弹窗）
+ * 说明：适配后端 GET /borrows/limits/:userId 接口
+ * @param {Object} params
+ * @param {number} params.userId - 用户ID
+ * @param {number} [params.bookId] - 图书ID（可选，仅用于前端提示）
+ */
+export function checkBorrowPermission({ userId, bookId }) {
+  return request.get(`/borrows/limits/${userId}`, { params: { bookId } })
+}
+
+/**
  * 获取借阅详情
  * @param {number} id - 借阅ID
  */
@@ -183,6 +194,7 @@ export const borrowApi = {
   renewBook,
   markBookAsLost,
   checkBorrowLimits,
+  checkBorrowPermission,
   getBorrowDetail,
   getBorrowHistory,
   getBookBorrowHistory,

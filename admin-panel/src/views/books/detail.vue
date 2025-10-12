@@ -726,7 +726,7 @@ const fetchBookDetail = async () => {
   try {
     loading.value = true
     const { data } = await bookApi.getBookDetail(bookId.value)
-    bookDetail.value = data.book
+    bookDetail.value = data
     statistics.value = data.statistics || {
       borrowCount: 0,
       viewCount: 0,
@@ -743,10 +743,17 @@ const fetchBookDetail = async () => {
 
 const fetchCategories = async () => {
   try {
-    const { data } = await bookApi.getCategories()
-    categories.value = data.categories
+    const response = await bookApi.getCategories()
+    const rawData = response?.data
+    const categoryList = Array.isArray(rawData)
+      ? rawData
+      : Array.isArray(rawData?.categories)
+        ? rawData.categories
+        : []
+    categories.value = categoryList
   } catch (error) {
     console.error('获取分类失败:', error)
+    categories.value = []
   }
 }
 
@@ -760,9 +767,9 @@ const fetchBorrowHistory = async () => {
       status: borrowStatusFilter.value
     }
 
-    const { data } = await bookApi.getBookBorrowHistory(bookId.value, params)
-    borrowHistory.value = data.borrows
-    borrowPagination.total = data.total
+    const response = await bookApi.getBookBorrowHistory(bookId.value, params)
+    borrowHistory.value = response.data.borrows || response.data
+    borrowPagination.total = response.total || response.data.total
   } catch (error) {
     console.error('获取借阅记录失败:', error)
     ElMessage.error('获取借阅记录失败')
@@ -779,10 +786,10 @@ const fetchReviews = async () => {
       size: reviewsPagination.size
     }
 
-    const { data } = await bookApi.getBookReviews(bookId.value, params)
-    reviews.value = data.reviews
-    reviewsDistribution.value = data.distribution
-    reviewsPagination.total = data.total
+    const response = await bookApi.getBookReviews(bookId.value, params)
+    reviews.value = response.data.reviews || response.data
+    reviewsDistribution.value = response.data.statistics?.ratingDistribution || response.data.distribution
+    reviewsPagination.total = response.total || response.data.total
   } catch (error) {
     console.error('获取评论失败:', error)
     ElMessage.error('获取评论失败')
@@ -799,9 +806,9 @@ const fetchStockHistory = async () => {
       size: stockPagination.size
     }
 
-    const { data } = await bookApi.getBookStockHistory(bookId.value, params)
-    stockHistory.value = data.records
-    stockPagination.total = data.total
+    const response = await bookApi.getBookStockHistory(bookId.value, params)
+    stockHistory.value = response.data.records || response.data
+    stockPagination.total = response.total || response.data.total
   } catch (error) {
     console.error('获取库存记录失败:', error)
     ElMessage.error('获取库存记录失败')
@@ -818,9 +825,9 @@ const fetchOperationLogs = async () => {
       size: logsPagination.size
     }
 
-    const { data } = await bookApi.getBookLogs(bookId.value, params)
-    operationLogs.value = data.logs
-    logsPagination.total = data.total
+    const response = await bookApi.getBookLogs(bookId.value, params)
+    operationLogs.value = response.data.logs || response.data
+    logsPagination.total = response.total || response.data.total
   } catch (error) {
     console.error('获取操作日志失败:', error)
     ElMessage.error('获取操作日志失败')
@@ -851,7 +858,8 @@ const getStatusTagType = status => {
 }
 
 const getCategoryName = categoryId => {
-  const category = categories.value.find(c => c.id === categoryId)
+  const categoryList = Array.isArray(categories.value) ? categories.value : []
+  const category = categoryList.find(c => c.id === categoryId)
   return category ? category.name : '未分类'
 }
 

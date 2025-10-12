@@ -314,6 +314,26 @@ export const asyncRoutes = [
     },
     children: [
       {
+        path: 'roles',
+        name: 'SystemRoles',
+        component: () => import('@/views/system/roles.vue'),
+        meta: {
+          title: '角色管理',
+          icon: 'User',
+          permission: 'roles.manage'
+        }
+      },
+      {
+        path: 'permissions',
+        name: 'SystemPermissions',
+        component: () => import('@/views/system/permissions.vue'),
+        meta: {
+          title: '权限管理',
+          icon: 'Lock',
+          permission: 'permissions.manage'
+        }
+      },
+      {
         path: 'settings',
         name: 'SystemSettings',
         component: () => import('@/views/system/settings.vue'),
@@ -446,7 +466,7 @@ router.beforeEach(async (to, from, next) => {
   if (!appStore.routesGenerated) {
     try {
       // 根据用户角色生成可访问的路由
-      const accessRoutes = generateRoutes(authStore.user.role)
+      const accessRoutes = generateRoutes(authStore.allRoles)
 
       // 动态添加路由
       accessRoutes.forEach(route => {
@@ -467,9 +487,17 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 检查路由权限
-  if (to.meta.roles && !to.meta.roles.includes(authStore.user.role)) {
+  if (to.meta.roles && !authStore.hasAnyRole(to.meta.roles)) {
     next('/403')
     return
+  }
+
+  // 细粒度权限校验（若配置了 meta.permission）
+  if (to.meta.permission) {
+    if (!authStore.hasPermission(to.meta.permission)) {
+      next('/403')
+      return
+    }
   }
 
   next()
@@ -483,21 +511,20 @@ router.afterEach(() => {
 })
 
 // 生成可访问的路由
-function generateRoutes(userRole) {
-  const accessedRoutes = filterAsyncRoutes(asyncRoutes, userRole)
-  return accessedRoutes
+function generateRoutes(userRoles) {
+  const normalizedRoles = normalizeRoles(userRoles)
+  return filterAsyncRoutes(asyncRoutes, normalizedRoles)
 }
 
-// 过滤异步路由
-function filterAsyncRoutes(routes, role) {
+function filterAsyncRoutes(routes, normalizedRoles) {
   const res = []
 
   routes.forEach(route => {
     const tmp = { ...route }
 
-    if (hasPermission(role, tmp)) {
+    if (matchesRouteRole(tmp, normalizedRoles)) {
       if (tmp.children) {
-        tmp.children = filterAsyncRoutes(tmp.children, role)
+        tmp.children = filterAsyncRoutes(tmp.children, normalizedRoles)
       }
       res.push(tmp)
     }
@@ -506,13 +533,34 @@ function filterAsyncRoutes(routes, role) {
   return res
 }
 
-// 检查权限
-function hasPermission(role, route) {
+function matchesRouteRole(route, normalizedRoles) {
   if (route.meta && route.meta.roles) {
-    return route.meta.roles.includes(role)
-  } else {
-    return true
+    const requiredRoles = normalizeRoles(route.meta.roles)
+    if (requiredRoles.size === 0) {
+      return true
+    }
+    for (const role of requiredRoles) {
+      if (normalizedRoles.has(role)) {
+        return true
+      }
+    }
+    return false
   }
+  return true
+}
+
+function normalizeRoles(roles) {
+  const list = Array.isArray(roles) ? roles : [roles]
+  const set = new Set()
+  list.forEach(role => {
+    if (typeof role === 'string') {
+      const code = role.trim().toLowerCase()
+      if (code) {
+        set.add(code)
+      }
+    }
+  })
+  return set
 }
 
 export default router

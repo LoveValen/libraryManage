@@ -557,12 +557,41 @@ const fetchUsers = async () => {
 
     const response = await userApi.getUsers(params)
 
-    if (response && response.data) {
-      // Handle the actual backend response format
-      // Backend returns: { success: true, data: [...users], pagination: {...} }
-      userList.value = response.data || []
-      if (response.pagination) {
+    if (response && response.data !== undefined) {
+      const payload = response?.data && typeof response.data === 'object' ? response.data : {}
+      const list = Array.isArray(payload.list)
+        ? payload.list
+        : Array.isArray(response?.data)
+          ? response.data
+          : []
+      userList.value = list
+      if (typeof payload.total === 'number') {
+        pagination.total = payload.total
+      } else if (typeof response.total === 'number') {
+        pagination.total = response.total
+      } else if (response.pagination) {
         pagination.total = response.pagination.total || 0
+      } else {
+        pagination.total = list.length
+      }
+
+      if (typeof payload.page === 'number') {
+        pagination.page = payload.page
+      } else if (typeof response.page === 'number') {
+        pagination.page = response.page
+      }
+
+      if (typeof payload.pageSize === 'number') {
+        pagination.pageSize = payload.pageSize
+      } else if (typeof response.pageSize === 'number') {
+        pagination.pageSize = response.pageSize
+      }
+
+      if (typeof payload.page === 'number') {
+        pagination.page = payload.page
+      }
+      if (typeof payload.pageSize === 'number') {
+        pagination.pageSize = payload.pageSize
       }
     } else {
       throw new Error('Invalid response data')
@@ -610,11 +639,31 @@ const requestUsers = async (params) => {
     delete requestParams.dateRange
 
     const response = await userApi.getUsers(requestParams)
-    
+
+    const payload = response?.data && typeof response.data === 'object' ? response.data : {}
+    const list = Array.isArray(payload.list)
+      ? payload.list
+      : Array.isArray(response?.data)
+        ? response.data
+        : []
+    const total = Number(
+      payload.total ??
+      payload.totalCount ??
+      payload.count ??
+      response?.total ??
+      response?.pagination?.total ??
+      list.length ??
+      0
+    )
+    const page = payload.page ?? response?.page ?? response?.pagination?.page ?? requestParams.page
+    const pageSize = payload.pageSize ?? response?.pageSize ?? response?.pagination?.limit ?? requestParams.limit
+
     return {
       success: true,
-      data: response.data || [],
-      total: response.pagination?.total || 0
+      data: list,
+      total,
+      page,
+      pageSize
     }
   } catch (error) {
     console.error('获取用户列表失败:', error)

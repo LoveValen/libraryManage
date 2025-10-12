@@ -3,6 +3,7 @@ const { asyncHandler } = require('../middlewares/error.middleware');
 const { success, validationError } = require('../utils/response');
 const { validateRequest } = require('../utils/validation');
 const { NotFoundError, BadRequestError, ConflictError } = require('../utils/apiError');
+const { formatDateTime } = require('../utils/date');
 const Joi = require('joi');
 
 /**
@@ -75,7 +76,7 @@ class BookCategoriesController {
    */
   getCategoryTree = asyncHandler(async (req, res) => {
     const categories = await BookCategoryService.getCategoriesWithStats();
-    success(res, { categories }, '获取分类树成功');
+    success(res, categories, '获取分类树成功');
   });
 
   /**
@@ -84,7 +85,13 @@ class BookCategoriesController {
    */
   getAllCategories = asyncHandler(async (req, res) => {
     const categories = await BookCategoryService.getCategoriesWithStats();
-    success(res, { categories, total: categories.length }, '获取分类列表成功');
+    res.status(200).json({
+      success: true,
+      message: '获取分类列表成功',
+      data: categories,
+      total: categories.length,
+      timestamp: formatDateTime(new Date())
+    });
   });
 
   /**
@@ -100,7 +107,7 @@ class BookCategoriesController {
     }
     
     const categoryData = this._formatCategoryResponse(category);
-    success(res, { category: categoryData }, '获取分类详情成功');
+    success(res, categoryData, '获取分类详情成功');
   });
 
 
@@ -153,7 +160,7 @@ class BookCategoriesController {
     const category = await BookCategoryService.create(categoryData);
     const formattedCategory = this._formatCategoryResponse(category);
     
-    success(res, { category: formattedCategory }, resolvedParentId ? '创建子分类成功' : '创建分类成功', 201);
+    success(res, formattedCategory, resolvedParentId ? '创建子分类成功' : '创建分类成功', 201);
   });
 
   /**
@@ -202,7 +209,7 @@ class BookCategoriesController {
     const updatedCategory = await BookCategoryService.update(categoryId, updateData);
     const formattedCategory = this._formatCategoryResponse(updatedCategory);
     
-    success(res, { category: formattedCategory }, '更新分类成功');
+    success(res, formattedCategory, '更新分类成功');
   });
 
 

@@ -281,8 +281,8 @@ const searchUsers = async query => {
 
   try {
     searchingUsers.value = true
-    const { data } = await userApi.searchUsers(query, 20)
-    userOptions.value = data.users
+    const response = await userApi.searchUsers(query, 20)
+    userOptions.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('搜索用户失败:', error)
     ElMessage.error('搜索用户失败')
@@ -300,8 +300,8 @@ const handleUserChange = async userId => {
 
   try {
     // 获取用户详情
-    const { data: userDetail } = await userApi.getUserProfile(userId)
-    selectedUser.value = userDetail.user
+    const { data: userDetail } = await userApi.getUserDetail(userId)
+    selectedUser.value = userDetail
 
     // 检查借阅权限
     await checkBorrowPermission(userId)
@@ -313,11 +313,23 @@ const handleUserChange = async userId => {
 
 const checkBorrowPermission = async userId => {
   try {
-    const response = await borrowApi.checkBorrowPermission({
+    const resp = await borrowApi.checkBorrowPermission({
       userId,
       bookId: props.book.id
     })
-    borrowCheckResult.value = response.data
+    // 适配后端 /borrows/limits/:userId 返回结构，构造表单所需的检查结果
+    const limits = resp.data?.limits || resp.limits || {}
+    const canBorrowByLimits = !!limits.canBorrow
+    const bookAvailable = (props.book.availableStock || 0) > 0
+    const canBorrow = canBorrowByLimits && bookAvailable
+
+    borrowCheckResult.value = {
+      canBorrow,
+      message: canBorrow ? '可借阅' : '不可借阅',
+      description: canBorrow
+        ? `剩余额度：${limits.availableSlots ?? '-'} 本`
+        : (limits.reason ? `原因：${limits.reason}` : (bookAvailable ? '达到借阅上限或存在未付罚金' : '图书无可借库存'))
+    }
   } catch (error) {
     console.error('检查借阅权限失败:', error)
     borrowCheckResult.value = {

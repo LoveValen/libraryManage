@@ -1185,19 +1185,53 @@ export default defineComponent({
 
         const response = await props.request(params)
 
-        if (response.success !== false) {
-          tableData.value = response.data || response.list || []
-
-          if (response.total !== undefined) {
-            paginationState.total = response.total
-          } else if (response.pagination) {
-            Object.assign(paginationState, response.pagination)
-          }
-
-          emit('load', response)
-        } else {
+        if (response.success === false) {
           throw new Error(response.message || '请求失败')
         }
+
+        const resolvedData = Array.isArray(response?.data?.list)
+          ? response.data.list
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.list)
+              ? response.list
+              : Array.isArray((response as any)?.records)
+                ? (response as any).records
+                : []
+        tableData.value = resolvedData as any[]
+
+        const totalValue = (response as any).total ?? response?.data?.total ?? response?.data?.totalCount ?? response?.data?.count
+        if (typeof totalValue === 'number') {
+          paginationState.total = totalValue
+        } else if (response.pagination) {
+          paginationState.total = response.pagination.total ?? paginationState.total
+        }
+
+        if (typeof (response as any).page === 'number') {
+          paginationState.current = (response as any).page
+        } else if (typeof response?.data?.page === 'number') {
+          paginationState.current = response.data.page
+        } else if (response.pagination) {
+          if (typeof response.pagination.page === 'number') {
+            paginationState.current = response.pagination.page
+          } else if (typeof response.pagination.current === 'number') {
+            paginationState.current = response.pagination.current
+          }
+        }
+
+        if (typeof (response as any).pageSize === 'number') {
+          paginationState.pageSize = (response as any).pageSize
+        } else if (typeof response?.data?.pageSize === 'number') {
+          paginationState.pageSize = response.data.pageSize
+        } else if (response.pagination) {
+          if (typeof response.pagination.limit === 'number') {
+            paginationState.pageSize = response.pagination.limit
+          } else if (typeof response.pagination.pageSize === 'number') {
+            paginationState.pageSize = response.pagination.pageSize
+          }
+        }
+
+        emit('load', response)
       } catch (error: any) {
         console.error('表格数据加载失败:', error)
         ElMessage.error(error.message || '数据加载失败')

@@ -504,11 +504,31 @@ const requestBorrows = async (params) => {
     }
 
     const response = await getBorrows(requestParams)
-    
+
+    const payload = response?.data && typeof response.data === 'object' ? response.data : {}
+    const list = Array.isArray(payload.list)
+      ? payload.list
+      : Array.isArray(response?.data)
+        ? response.data
+        : []
+    const total = Number(
+      payload.total ??
+      payload.totalCount ??
+      payload.count ??
+      response?.total ??
+      response?.pagination?.total ??
+      list.length ??
+      0
+    )
+    const page = payload.page ?? response?.page ?? response?.pagination?.page ?? requestParams.page
+    const pageSize = payload.pageSize ?? response?.pageSize ?? response?.pagination?.limit ?? requestParams.limit
+
     return {
       success: true,
-      data: response.data || [],
-      total: response.pagination?.total || 0
+      data: list,
+      total,
+      page,
+      pageSize
     }
   } catch (error) {
     console.error('获取借阅记录失败:', error)

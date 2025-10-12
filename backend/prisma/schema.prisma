@@ -802,6 +802,7 @@ model users {
   userBehaviors                                                 user_behaviors[]
   userPoints                                                    user_points?
   userPreferences                                               user_preferences?
+  userRoles                                                     user_roles[]
 
   @@index([email], map: "users_email")
   @@index([is_deleted], map: "users_is_deleted")
@@ -1331,4 +1332,70 @@ model book_files {
   @@index([file_type], map: "book_files_file_type")
   @@index([is_active], map: "book_files_is_active")
   @@index([created_at], map: "book_files_created_at")
+}
+
+// =========================
+// RBAC Models (Roles & Permissions)
+// =========================
+
+/// 系统角色表
+model roles {
+  id               Int               @id @default(autoincrement()) @db.UnsignedInt
+  name             String            @unique(map: "uk_roles_name") @db.VarChar(100)
+  code             String            @unique(map: "uk_roles_code") @db.VarChar(100)
+  description      String?           @db.Text
+  is_system        Boolean           @default(false)
+  created_at       DateTime          @default(now()) @db.DateTime(0)
+  updated_at       DateTime          @default(now()) @updatedAt @db.DateTime(0)
+  
+  userRoles        user_roles[]
+  rolePermissions  role_permissions[]
+  
+  @@index([code], map: "idx_roles_code")
+}
+
+/// 系统权限表
+model permissions {
+  id               Int               @id @default(autoincrement()) @db.UnsignedInt
+  name             String            @db.VarChar(150)
+  code             String            @unique(map: "uk_permissions_code") @db.VarChar(150)
+  group_name       String?           @db.VarChar(100)
+  description      String?           @db.Text
+  created_at       DateTime          @default(now()) @db.DateTime(0)
+  updated_at       DateTime          @default(now()) @updatedAt @db.DateTime(0)
+  
+  rolePermissions  role_permissions[]
+  
+  @@index([code], map: "idx_permissions_code")
+  @@index([group_name], map: "idx_permissions_group")
+}
+
+/// 用户-角色 关联表（多对多）
+model user_roles {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  user_id    Int      @db.UnsignedInt
+  role_id    Int      @db.UnsignedInt
+  created_at DateTime @default(now()) @db.DateTime(0)
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "fk_user_roles_user")
+  role roles @relation(fields: [role_id], references: [id], onDelete: Cascade, map: "fk_user_roles_role")
+
+  @@unique([user_id, role_id], map: "uk_user_roles_user_role")
+  @@index([user_id], map: "idx_user_roles_user")
+  @@index([role_id], map: "idx_user_roles_role")
+}
+
+/// 角色-权限 关联表（多对多）
+model role_permissions {
+  id            Int         @id @default(autoincrement()) @db.UnsignedInt
+  role_id       Int         @db.UnsignedInt
+  permission_id Int         @db.UnsignedInt
+  created_at    DateTime    @default(now()) @db.DateTime(0)
+
+  role       roles       @relation(fields: [role_id], references: [id], onDelete: Cascade, map: "fk_role_permissions_role")
+  permission permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, map: "fk_role_permissions_permission")
+
+  @@unique([role_id, permission_id], map: "uk_role_permissions_role_permission")
+  @@index([role_id], map: "idx_role_permissions_role")
+  @@index([permission_id], map: "idx_role_permissions_permission")
 }

@@ -434,8 +434,8 @@ const requestOverdueRecords = async (params) => {
     
     return {
       success: true,
-      data: response.data.overdueRecords || [],
-      total: response.data.pagination?.total || 0
+      data: response.data.records || response.data.overdueRecords || [],
+      total: response.total || response.data.pagination?.total || 0
     }
   } catch (error) {
     console.error('加载逾期记录失败:', error)

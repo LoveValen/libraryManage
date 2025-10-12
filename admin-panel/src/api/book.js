@@ -247,17 +247,6 @@ export const bookApi = {
   },
 
   /**
-   * 根据ISBN获取图书信息
-   * @param {string} isbn - ISBN
-   */
-  getBookByISBN(isbn) {
-    return request({
-      url: `/books/isbn/${isbn}`,
-      method: 'get'
-    })
-  },
-
-  /**
    * 搜索图书（用于自动完成）
    * @param {string} query - 搜索关键词
    * @param {number} limit - 返回数量限制

@@ -258,7 +258,11 @@ const {
 } = useTableRequest(async (params) => {
   const response = await getBookCategories()
   return {
-    raw: response?.data?.categories || [],
+    raw: Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.data?.categories)
+        ? response.data.categories
+        : [],
     query: params
   }
 }, {

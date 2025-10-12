@@ -3,7 +3,7 @@ const path = require('path');
 const booksController = require('../controllers/books.controller');
 const reviewsController = require('../controllers/reviews.controller');
 const { authenticateToken, optionalAuth } = require('../middlewares/auth.middleware');
-const { requireRole } = require('../middlewares/rbac.middleware');
+const { requireRole, requirePermission } = require('../middlewares/rbac.middleware');
 const { 
   validate, 
   validateId,
@@ -185,6 +185,7 @@ router.get('/:id/download',
  */
 router.post('/',
   requireRole(['admin', 'librarian']),
+  requirePermission('books.create'),
   validate(bookSchemas.createBook),
   booksController.createBook
 );
@@ -196,6 +197,7 @@ router.post('/',
  */
 router.put('/:id',
   requireRole(['admin', 'librarian']),
+  requirePermission('books.update'),
   validateId(),
   validate(bookSchemas.updateBook),
   booksController.updateBook
@@ -208,6 +210,7 @@ router.put('/:id',
  */
 router.patch('/:id/stock',
   requireRole(['admin', 'librarian']),
+  requirePermission('books.update'),
   validateId(),
   validate(require('joi').object({
     totalStock: require('joi').number().integer().min(0).required(),
@@ -223,6 +226,7 @@ router.patch('/:id/stock',
  */
 router.delete('/:id',
   requireRole(['admin']),
+  requirePermission('books.delete'),
   validateId(),
   booksController.deleteBook
 );

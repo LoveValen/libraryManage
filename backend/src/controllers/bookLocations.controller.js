@@ -1,6 +1,6 @@
 ﻿const BookLocationService = require('../services/bookLocation.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
-const { success } = require('../utils/response');
+const { success, successWithPagination } = require('../utils/response');
 const Joi = require('joi');
 
 /**
@@ -44,7 +44,13 @@ class BookLocationController {
       page,
       size
     });
-    success(res, result, '获取图书存放位置成功');
+    
+    successWithPagination(
+      res,
+      result.locations,
+      { page: result.page, pageSize: result.size, total: result.total },
+      '获取图书存放位置成功'
+    );
   });
 
   /**
@@ -52,7 +58,7 @@ class BookLocationController {
    */
   listActive = asyncHandler(async (req, res) => {
     const locations = await BookLocationService.listActive();
-    success(res, { locations }, '获取有效存放位置成功');
+    success(res, locations, '获取有效存放位置成功');
   });
 
   /**
@@ -60,7 +66,7 @@ class BookLocationController {
    */
   detail = asyncHandler(async (req, res) => {
     const location = await BookLocationService.getById(req.params.id);
-    success(res, { location }, '获取存放位置详情成功');
+    success(res, location, '获取存放位置详情成功');
   });
 
   /**
@@ -69,7 +75,7 @@ class BookLocationController {
   create = asyncHandler(async (req, res) => {
     const payload = await this.createSchema.validateAsync(req.body, { abortEarly: false });
     const location = await BookLocationService.create(payload);
-    success(res, { location }, '创建存放位置成功', 201);
+    success(res, location, '创建存放位置成功', 201);
   });
 
   /**
@@ -78,7 +84,7 @@ class BookLocationController {
   update = asyncHandler(async (req, res) => {
     const payload = await this.updateSchema.validateAsync(req.body, { abortEarly: false });
     const location = await BookLocationService.update(req.params.id, payload);
-    success(res, { location }, '更新存放位置成功');
+    success(res, location, '更新存放位置成功');
   });
 
   /**

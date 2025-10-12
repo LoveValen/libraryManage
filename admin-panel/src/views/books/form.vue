@@ -3,15 +3,15 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <el-button @click="goBack" size="default">
-          <el-icon><ArrowLeft /></el-icon>
+        <ElButton @click="goBack" size="default">
+          <ElIcon><ArrowLeft /></ElIcon>
           返回
-        </el-button>
+        </ElButton>
       </div>
       <div class="header-actions">
-        <el-button @click="handleSave" type="primary" :loading="submitting">
+        <ElButton @click="handleSave" type="primary" :loading="submitting">
           保存
-        </el-button>
+        </ElButton>
       </div>
     </div>
 
@@ -30,7 +30,74 @@
       @submit="handleFormSubmit"
       @values-change="handleValuesChange"
       @field-change="handleFieldChange"
-    />
+    >
+      <!-- 自定义 ISBN 输入字段 -->
+      <template #field-isbn="{ value }">
+        <ElInput
+          :model-value="value"
+          placeholder="请输入ISBN号码"
+          maxlength="20"
+          clearable
+          @blur="handleISBNBlur"
+          @update:model-value="handleISBNChange"
+        >
+          <template #append>
+            <ElButton :loading="validatingISBN" @click="validateISBN">验证</ElButton>
+          </template>
+        </ElInput>
+      </template>
+
+      <!-- 自定义封面上传字段 -->
+      <template #field-cover>
+        <div class="cover-upload-field">
+          <div class="cover-content">
+            <!-- 封面预览区 -->
+            <div v-if="defaultFormValues.cover" class="preview-card">
+              <img :src="defaultFormValues.cover" alt="图书封面" class="cover-image" />
+              <div class="preview-actions">
+                <ElButton size="small" @click="previewCover">
+                  <ElIcon><View /></ElIcon>
+                  预览
+                </ElButton>
+                <ElButton size="small" type="danger" @click="removeCover">
+                  <ElIcon><Delete /></ElIcon>
+                  删除
+                </ElButton>
+              </div>
+            </div>
+            <div v-else class="preview-card is-empty">
+              <ElIcon class="empty-icon"><Picture /></ElIcon>
+              <span>暂无封面</span>
+            </div>
+
+            <!-- 上传区 -->
+            <div class="upload-card">
+              <ElUpload
+                ref="uploadRef"
+                :action="uploadAction"
+                :headers="uploadHeaders"
+                :data="uploadData"
+                :show-file-list="false"
+                :before-upload="beforeUpload"
+                :on-success="handleUploadSuccess"
+                :on-error="handleUploadError"
+                accept="image/*"
+                drag
+                class="cover-uploader"
+              >
+                <div class="upload-content">
+                  <ElIcon class="upload-icon"><Plus /></ElIcon>
+                  <div class="upload-text">
+                    <p>点击或拖拽上传封面</p>
+                    <p class="upload-hint">建议比例 3:4，最大 5MB</p>
+                  </div>
+                </div>
+              </ElUpload>
+            </div>
+          </div>
+        </div>
+      </template>
+    </ProForm>
 
     <!-- 封面预览对话框 -->
     <el-dialog v-model="showCoverPreview" title="封面预览" width="400px">
@@ -46,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, h, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ElMessage,
@@ -86,7 +153,6 @@ const uploadHeaders = getAuthHeaders(authStore.token)
 const loading = ref(false)
 const submitting = ref(false)
 const validatingISBN = ref(false)
-const fetchingInfo = ref(false)
 const isValidISBN = ref(true)
 const proFormRef = ref()
 const uploadRef = ref()
@@ -208,107 +274,6 @@ const formGroups = [
   }
 ]
 
-// 自定义 ISBN 输入组件
-const ISBNInputField = {
-  name: 'ISBNInputField',
-  props: ['field', 'value'],
-  setup(props) {
-    return () =>
-      h(ElInput, {
-        modelValue: props.value,
-        placeholder: props.field.placeholder,
-        maxlength: 20,
-        clearable: true,
-        onBlur: handleISBNBlur,
-        'onUpdate:modelValue': val => {
-          formData.isbn = val
-          proFormRef.value?.setFieldValue('isbn', val)
-        }
-      }, {
-        append: () => h(ElButton, {
-          onClick: validateISBN,
-          loading: validatingISBN.value
-        }, { default: () => '验证' })
-      })
-  }
-}
-
-// 自定义封面上传组件
-const CoverUploadField = {
-  name: 'CoverUploadField',
-  setup() {
-    return () => {
-      const previewNode = defaultFormValues.cover
-        ? h('div', { class: 'preview-card' }, [
-            h('img', {
-              src: defaultFormValues.cover,
-              alt: '图书封面',
-              class: 'cover-image'
-            }),
-            h('div', { class: 'preview-actions' }, [
-              h(ElButton, {
-                size: 'small',
-                onClick: previewCover
-              }, {
-                default: () => [h(ElIcon, null, { default: () => h(View) }), ' 预览']
-              }),
-              h(ElButton, {
-                size: 'small',
-                type: 'danger',
-                onClick: removeCover
-              }, {
-                default: () => [h(ElIcon, null, { default: () => h(Delete) }), ' 删除']
-              })
-            ])
-          ])
-        : h('div', { class: 'preview-card is-empty' }, [
-            h(ElIcon, { class: 'empty-icon' }, { default: () => h(Picture) }),
-            h('span', '暂无封面')
-          ])
-
-      const uploadNode = h('div', { class: 'upload-card' }, [
-        h(ElUpload, {
-          ref: uploadRef,
-          action: uploadAction.value,
-          headers: uploadHeaders.value,
-          data: uploadData.value,
-          showFileList: false,
-          beforeUpload,
-          onSuccess: handleUploadSuccess,
-          onError: handleUploadError,
-          accept: 'image/*',
-          drag: true,
-          class: 'cover-uploader'
-        }, {
-          default: () => h('div', { class: 'upload-content' }, [
-            h(ElIcon, { class: 'upload-icon' }, { default: () => h(Plus) }),
-            h('div', { class: 'upload-text' }, [
-              h('p', '点击或拖拽上传封面'),
-              h('p', { class: 'upload-hint' }, '建议比例 3:4，最大 5MB')
-            ])
-          ])
-        })
-      ])
-
-      return h('div', { class: 'cover-upload-field' }, [
-        h('div', { class: 'cover-content' }, [previewNode, uploadNode]),
-        h('div', { class: 'isbn-fetch' }, [
-          h(ElButton, {
-            onClick: fetchBookInfo,
-            loading: fetchingInfo.value,
-            style: { width: '100%' }
-          }, {
-            default: () => [
-              h(ElIcon, null, { default: () => h(Search) }),
-              ' 根据ISBN自动获取图书信息'
-            ]
-          })
-        ])
-      ])
-    }
-  }
-}
-
 // 计算属性
 const isEdit = ref(!!route.params.id)
 const bookId = ref(route.params.id ?? null)
@@ -317,6 +282,12 @@ const bookId = ref(route.params.id ?? null)
 const uploadData = computed(() => ({
   type: 'book_cover'
 }))
+
+// ISBN 输入变化处理
+const handleISBNChange = (val) => {
+  formData.isbn = val
+  proFormRef.value?.setFieldValue('isbn', val)
+}
 
 // ProForm 字段配置
 const formFields = ref([
@@ -378,10 +349,6 @@ const formFields = ref([
     span: 6,
     required: true,
     placeholder: '请输入ISBN号码',
-    renderFormItem: () => h(ISBNInputField, {
-      field: { name: 'isbn', placeholder: '请输入ISBN号码' },
-      value: formData.isbn
-    }),
     rules: [
       { required: true, message: '请输入ISBN', trigger: 'blur' },
       { pattern: /^(97[89])?[\d\-]+[\dX]$/, message: 'ISBN格式不正确', trigger: 'blur' }
@@ -608,8 +575,7 @@ const formFields = ref([
     label: '',
     valueType: 'custom',
     group: 'coverInfo',
-    span: 24,
-    renderFormItem: () => h(CoverUploadField)
+    span: 24
   }
 ])
 
@@ -633,8 +599,12 @@ const updateStock = value => setNumericField('stock', value, 0)
 // 方法
 const fetchCategories = async () => {
   try {
-    const { data } = await bookApi.getCategoryTree()
-    const rawCategories = data?.categories || data?.data?.categories || []
+    const response = await bookApi.getCategoryTree()
+    const rawCategories = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response?.data?.categories)
+        ? response.data.categories
+        : []
     const treeCategories = normalizeCategoryTree(rawCategories)
     categories.value = treeCategories
 
@@ -652,9 +622,17 @@ const fetchCategories = async () => {
 
 const fetchTagOptions = async () => {
   try {
-    const { data } = await bookApi.getBookTags()
-    const payload = data?.data ?? data
-    const tags = Array.isArray(payload?.tags) ? payload.tags : []
+    const response = await bookApi.getBookTags()
+    const rawData = response?.data
+    const tags = Array.isArray(rawData?.list)
+      ? rawData.list
+      : Array.isArray(rawData?.items)
+        ? rawData.items
+        : Array.isArray(rawData?.tags)
+          ? rawData.tags
+          : Array.isArray(rawData)
+            ? rawData
+            : []
     setTagOptions(tags)
 
     await nextTick()
@@ -673,9 +651,17 @@ const fetchTagOptions = async () => {
 
 const fetchLocationOptions = async () => {
   try {
-    const { data } = await bookApi.getBookLocations()
-    const payload = data?.data ?? data
-    const locations = Array.isArray(payload?.locations) ? payload.locations : []
+    const response = await bookApi.getBookLocations()
+    const rawData = response?.data
+    const locations = Array.isArray(rawData?.list)
+      ? rawData.list
+      : Array.isArray(rawData?.items)
+        ? rawData.items
+        : Array.isArray(rawData?.locations)
+          ? rawData.locations
+          : Array.isArray(rawData)
+            ? rawData
+            : []
     setLocationOptions(locations)
 
     await nextTick()
@@ -698,7 +684,7 @@ const fetchBookDetail = async (targetId = bookId.value) => {
   try {
     loading.value = true
     const { data } = await bookApi.getBookDetail(targetId)
-    const book = data?.book || {}
+    const book = data || {}
 
     // 辅助函数：安全转换为数字
     const safeNumber = (value, defaultVal = null) => {
@@ -827,43 +813,6 @@ const validateISBN = async () => {
     isValidISBN.value = false
   } finally {
     validatingISBN.value = false
-  }
-}
-
-const fetchBookInfo = async () => {
-  if (!formData.isbn) {
-    ElMessage.warning('请先输入ISBN')
-    return
-  }
-
-  try {
-    fetchingInfo.value = true
-    const { data } = await bookApi.getBookByISBN(formData.isbn)
-
-    if (data.book) {
-      const bookInfo = data.book
-
-      // 只更新空字段
-      if (!formData.title && bookInfo.title) formData.title = bookInfo.title
-      if (!formData.subtitle && bookInfo.subtitle) formData.subtitle = bookInfo.subtitle
-      if (!formData.author && bookInfo.author) formData.author = bookInfo.author
-      if (!formData.publisher && bookInfo.publisher) formData.publisher = bookInfo.publisher
-      if (!formData.publishDate && bookInfo.publishDate) formData.publishDate = bookInfo.publishDate
-      if (!formData.description && bookInfo.description) formData.description = bookInfo.description
-      if (!defaultFormValues.cover && bookInfo.cover) defaultFormValues.cover = bookInfo.cover
-      if (!formData.pages && bookInfo.pages) formData.pages = bookInfo.pages
-      if (!formData.price && bookInfo.price) formData.price = bookInfo.price
-      if (!formData.language && bookInfo.language) formData.language = bookInfo.language
-
-      ElMessage.success('图书信息获取成功')
-    } else {
-      ElMessage.info('未找到该ISBN对应的图书信息')
-    }
-  } catch (error) {
-    console.error('获取图书信息失败:', error)
-    ElMessage.error('获取图书信息失败')
-  } finally {
-    fetchingInfo.value = false
   }
 }
 
@@ -1227,10 +1176,6 @@ onMounted(async () => {
         }
       }
     }
-  }
-
-  .isbn-fetch {
-    align-self: flex-start;
   }
 }
 

@@ -1,6 +1,6 @@
 ﻿const BookTagService = require('../services/bookTag.service');
 const { asyncHandler } = require('../middlewares/error.middleware');
-const { success } = require('../utils/response');
+const { success, successWithPagination } = require('../utils/response');
 const Joi = require('joi');
 
 /**
@@ -38,7 +38,13 @@ class BookTagController {
       page,
       size
     });
-    success(res, result, '获取图书标签成功');
+    
+    successWithPagination(
+      res,
+      result.tags,
+      { page: result.page, pageSize: result.size, total: result.total },
+      '获取图书标签成功'
+    );
   });
 
   /**
@@ -46,7 +52,7 @@ class BookTagController {
    */
   listActive = asyncHandler(async (req, res) => {
     const tags = await BookTagService.listActive();
-    success(res, { tags }, '获取可用标签成功');
+    success(res, tags, '获取可用标签成功');
   });
 
   /**
@@ -54,7 +60,7 @@ class BookTagController {
    */
   detail = asyncHandler(async (req, res) => {
     const tag = await BookTagService.getById(req.params.id);
-    success(res, { tag }, '获取标签详情成功');
+    success(res, tag, '获取标签详情成功');
   });
 
   /**
@@ -63,7 +69,7 @@ class BookTagController {
   create = asyncHandler(async (req, res) => {
     const payload = await this.createSchema.validateAsync(req.body, { abortEarly: false });
     const tag = await BookTagService.create(payload);
-    success(res, { tag }, '创建标签成功', 201);
+    success(res, tag, '创建标签成功', 201);
   });
 
   /**
@@ -72,7 +78,7 @@ class BookTagController {
   update = asyncHandler(async (req, res) => {
     const payload = await this.updateSchema.validateAsync(req.body, { abortEarly: false });
     const tag = await BookTagService.update(req.params.id, payload);
-    success(res, { tag }, '更新标签成功');
+    success(res, tag, '更新标签成功');
   });
 
   /**

@@ -457,7 +457,7 @@ const loadBorrowDetail = async () => {
   try {
     const borrowId = route.params.id
     const response = await getBorrowDetail(borrowId)
-    borrowRecord.value = response.data.borrowRecord
+    borrowRecord.value = response.data
 
     // 加载相关数据
     loadBorrowHistory()
@@ -494,7 +494,7 @@ const loadUserBorrowHistory = async () => {
       limit: 10,
       excludeId: borrowRecord.value.id
     })
-    userBorrowHistory.value = response.data.borrows
+    userBorrowHistory.value = response.data
   } catch (error) {
     console.error('加载用户借阅历史失败:', error)
   } finally {
@@ -511,7 +511,7 @@ const loadBookBorrowHistory = async () => {
       limit: 10,
       excludeId: borrowRecord.value.id
     })
-    bookBorrowHistory.value = response.data.borrows
+    bookBorrowHistory.value = response.data
   } catch (error) {
     console.error('加载图书借阅历史失败:', error)
   } finally {

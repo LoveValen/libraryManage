@@ -79,7 +79,31 @@ class AuthController {
    */
   getCurrentUser = asyncHandler(async (req, res) => {
     const user = await authService.getCurrentUser(req.user.id);
-    success(res, { user }, '用户信息获取成功');
+
+    const permissions = new Set(
+      [
+        ...(Array.isArray(user.permissions) ? user.permissions : []),
+        ...(Array.isArray(req.user?.permissions) ? req.user.permissions : []),
+        ...(Array.isArray(req.tokenPayload?.permissions) ? req.tokenPayload.permissions : []),
+      ].filter((code) => typeof code === 'string' && code.trim().length > 0)
+    );
+
+    const roles = new Set(
+      [
+        ...(Array.isArray(user.roles) ? user.roles : []),
+        ...(Array.isArray(req.user?.roles) ? req.user.roles : []),
+        ...(Array.isArray(req.tokenPayload?.roles) ? req.tokenPayload.roles : []),
+        typeof req.user?.role === 'string' ? req.user.role : null,
+      ].filter((role) => typeof role === 'string' && role.trim().length > 0)
+    );
+
+    const resp = {
+      ...user,
+      permissions: Array.from(permissions),
+      roles: Array.from(roles),
+    };
+
+    success(res, resp, '用户信息获取成功');
   });
 
   /**
@@ -87,7 +111,7 @@ class AuthController {
    */
   updateProfile = asyncHandler(async (req, res) => {
     const result = await authService.updateProfile(req.user, req.body);
-    success(res, { user: result.user }, result.message);
+    success(res, result.user, result.message);
   });
 
   /**

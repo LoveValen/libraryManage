@@ -4,6 +4,7 @@ const {
   generateToken, 
   verifyRefreshToken 
 } = require('../middlewares/auth.middleware');
+const RolesService = require('./roles.service');
 const { 
   UnauthorizedError, 
   ConflictError, 
@@ -124,10 +125,17 @@ class AuthService {
     // Update login info
     await UserService.updateLoginInfo(user.id, ip);
 
-    // Generate tokens
-    const accessToken = generateToken(user);
-    // Note: Refresh token generation would be implemented here in a real system
-    const refreshTokenValue = generateToken(user, { expiresIn: '7d' }); // Example refresh token
+    // 加载角色与权限上下文
+    const accessContext = await RolesService.getUserAccessContext(user.id);
+    const permissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
+    const roles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+
+    // 组合鉴权载荷
+    const enrichedUser = { ...user, permissions, roles };
+
+    // 生成访问令牌与刷新令牌
+    const accessToken = generateToken(enrichedUser);
+    const refreshTokenValue = generateToken(enrichedUser, { expiresIn: '7d' });
 
     logBusinessOperation('USER_LOGIN', user.id, {
       ip,
@@ -135,8 +143,10 @@ class AuthService {
       loginMethod: 'password'
     });
 
+    const safeUser = UserService.toSafeJSON(enrichedUser);
+
     return {
-      user: UserService.toSafeJSON(user),
+      user: safeUser,
       tokens: {
         accessToken,
         refreshToken: refreshTokenValue,
@@ -166,8 +176,13 @@ class AuthService {
         throw new UnauthorizedError('Account is inactive or suspended');
       }
 
+      const accessContext = await RolesService.getUserAccessContext(user.id);
+      const permissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
+      const roles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+      const enrichedUser = { ...user, permissions, roles };
+
       // Generate new access token
-      const accessToken = generateToken(user);
+      const accessToken = generateToken(enrichedUser);
 
       return {
         accessToken,
@@ -257,7 +272,15 @@ class AuthService {
       throw new NotFoundError('User not found');
     }
 
-    return UserService.toSafeJSON(user);
+    const accessContext = await RolesService.getUserAccessContext(user.id);
+    const permissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
+    const roles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+
+    const safeUser = UserService.toSafeJSON(user);
+    safeUser.permissions = permissions;
+    safeUser.roles = roles;
+
+    return safeUser;
   }
 
   /**
