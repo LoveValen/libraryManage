@@ -1,4 +1,4 @@
-export const getUploadAction = () => `${import.meta.env.VITE_API_BASE_URL}/upload/image`
+﻿export const getUploadAction = () => `${import.meta.env.VITE_API_BASE_URL}/upload/image`
 
 export const getAuthHeaders = token => ({
   Authorization: `Bearer ${token || localStorage.getItem('token') || ''}`
@@ -18,6 +18,13 @@ export const useAuthStore = defineStore(
     const user = ref(null)
     const permissions = ref([])
     const roles = ref([])
+    const accessResources = ref({
+      routes: [],
+      flatRoutes: [],
+      routeNames: [],
+      buttons: [],
+      buttonMap: {}
+    })
     const loading = ref(false)
 
     // Getters
@@ -44,6 +51,21 @@ export const useAuthStore = defineStore(
         }
       })
       return normalized
+    })
+    const accessibleRouteNameSet = computed(() => {
+      const names = Array.isArray(accessResources.value.routeNames)
+        ? accessResources.value.routeNames
+        : []
+      const result = new Set()
+      names.forEach(name => {
+        if (typeof name === 'string') {
+          const cleaned = name.trim()
+          if (cleaned) {
+            result.add(cleaned)
+          }
+        }
+      })
+      return result
     })
     const userName = computed(() => user.value?.realName || user.value?.username || '')
     const userAvatar = computed(() => user.value?.avatar || '')
@@ -234,6 +256,26 @@ export const useAuthStore = defineStore(
      * 设置用户信息
      * @param {Object} userData - 用户数据
      */
+    const normalizeAccessResources = resources => {
+      if (!resources || typeof resources !== 'object') {
+        return {
+          routes: [],
+          flatRoutes: [],
+          routeNames: [],
+          buttons: [],
+          buttonMap: {}
+        }
+      }
+      const { routes, flatRoutes, routeNames, buttons, buttonMap } = resources
+      return {
+        routes: Array.isArray(routes) ? routes : [],
+        flatRoutes: Array.isArray(flatRoutes) ? flatRoutes : [],
+        routeNames: Array.isArray(routeNames) ? routeNames : [],
+        buttons: Array.isArray(buttons) ? buttons : [],
+        buttonMap: buttonMap && typeof buttonMap === 'object' ? buttonMap : {}
+      }
+    }
+
     const setUser = userData => {
       user.value = userData
       // 后端返回的权限、角色需去重并保留有效字符串
@@ -261,6 +303,7 @@ export const useAuthStore = defineStore(
 
       permissions.value = Array.from(permissionSet)
       roles.value = Array.from(roleSet)
+      accessResources.value = normalizeAccessResources(userData.accessResources)
     }
 
     /**
@@ -272,6 +315,13 @@ export const useAuthStore = defineStore(
       user.value = null
       permissions.value = []
       roles.value = []
+      accessResources.value = {
+        routes: [],
+        flatRoutes: [],
+        routeNames: [],
+        buttons: [],
+        buttonMap: {}
+      }
 
       localStorage.removeItem('admin_token')
       localStorage.removeItem('admin_refresh_token')
@@ -290,6 +340,24 @@ export const useAuthStore = defineStore(
         return false
       }
       return permissions.value.includes('*') || permissions.value.includes(code)
+    }
+
+    /**
+     * 检查路由访问权限
+     * @param {string} routeName - 路由名称
+     */
+    const hasRouteAccess = routeName => {
+      if (typeof routeName !== 'string') {
+        return false
+      }
+      const name = routeName.trim()
+      if (!name) {
+        return false
+      }
+      if (permissions.value.includes('*')) {
+        return true
+      }
+      return accessibleRouteNameSet.value.has(name)
     }
 
     /**
@@ -326,6 +394,7 @@ export const useAuthStore = defineStore(
       user,
       permissions,
       roles,
+      accessResources,
       loading,
 
       // Getters
@@ -334,6 +403,7 @@ export const useAuthStore = defineStore(
       allRoles,
       userName,
       userAvatar,
+      accessibleRouteNameSet,
 
       // Actions
       login,
@@ -348,6 +418,7 @@ export const useAuthStore = defineStore(
       setUser,
       clearAuthData,
       hasPermission,
+      hasRouteAccess,
       hasAnyRole,
       hasRole
     }
@@ -356,7 +427,7 @@ export const useAuthStore = defineStore(
     persist: {
       key: 'admin_auth',
       storage: localStorage,
-      paths: ['token', 'refreshToken', 'user', 'permissions', 'roles']
+      paths: ['token', 'refreshToken', 'user', 'permissions', 'roles', 'accessResources']
     }
   }
 )

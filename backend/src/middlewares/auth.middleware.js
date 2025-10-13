@@ -36,6 +36,7 @@ const authenticateToken = async (req, res, next) => {
     const accessContext = await RolesService.getUserAccessContext(user.id);
     const contextPermissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
     const contextRoles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+    const contextResources = accessContext.resources || null;
 
     const tokenPermissions = Array.isArray(decoded.permissions) ? decoded.permissions : [];
     const tokenRoles = Array.isArray(decoded.roles) ? decoded.roles : [];
@@ -55,6 +56,9 @@ const authenticateToken = async (req, res, next) => {
     const roles = Array.from(roleSet);
 
     const enrichedUser = { ...user, permissions, roles };
+    if (contextResources) {
+      enrichedUser.accessResources = contextResources;
+    }
 
     req.user = enrichedUser;
     req.token = decoded;

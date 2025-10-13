@@ -16,10 +16,23 @@ const ROLES = {
 
 const FALLBACK_ROLE_PERMISSIONS = {
   [ROLES.LIBRARIAN]: new Set([
+    'dashboard.view',
     'books.read',
     'books.create',
     'books.update',
     'books.delete',
+    'bookcategories.read',
+    'bookcategories.create',
+    'bookcategories.update',
+    'bookcategories.delete',
+    'booktags.read',
+    'booktags.create',
+    'booktags.update',
+    'booktags.delete',
+    'booklocations.read',
+    'booklocations.create',
+    'booklocations.update',
+    'booklocations.delete',
     'borrows.read',
     'borrows.create',
     'borrows.update',
@@ -28,6 +41,7 @@ const FALLBACK_ROLE_PERMISSIONS = {
     'reviews.moderate',
   ]),
   [ROLES.PATRON]: new Set([
+    'dashboard.view',
     'books.read',
     'borrows.read',
     'reviews.read',

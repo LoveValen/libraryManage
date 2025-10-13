@@ -1,7 +1,7 @@
-<template>
+﻿<template>
   <div class="books-container">
 
-    <!-- 搜索筛选区域 -->
+    <!-- 鎼滅储绛涢€夊尯鍩?-->
     <SearchFilterSimple
       ref="searchFilterRef"
       v-model="searchForm"
@@ -15,25 +15,25 @@
     />
 
 
-    <!-- 图书列表卡片 -->
+    <!-- 鍥句功鍒楄〃鍗＄墖 -->
     <el-card shadow="never" class="books-card">
-      <!-- 视图控制栏 -->
+      <!-- 瑙嗗浘鎺у埗鏍?-->
       <div class="view-controls">
         <div class="view-controls-left">
           <el-radio-group v-model="viewMode" @change="handleViewModeChange" size="default">
             <el-radio-button value="grid">
               <el-icon><Grid /></el-icon>
-              <span class="view-label">卡片视图</span>
+              <span class="view-label">鍗＄墖瑙嗗浘</span>
             </el-radio-button>
             <el-radio-button value="table">
               <el-icon><List /></el-icon>
-              <span class="view-label">表格视图</span>
+              <span class="view-label">琛ㄦ牸瑙嗗浘</span>
             </el-radio-button>
           </el-radio-group>
         </div>
       </div>
 
-      <!-- 图书列表 - 卡片视图 -->
+      <!-- 鍥句功鍒楄〃 - 鍗＄墖瑙嗗浘 -->
       <div v-if="viewMode === 'grid'" class="books-grid">
         <el-row :gutter="20" v-loading="loading">
           <el-col v-for="book in bookList" :key="book.id" :xl="6" :lg="8" :md="12" :sm="24" class="book-card-col">
@@ -77,11 +77,11 @@
                 <div class="book-stats">
                   <div class="stat-item">
                     <el-icon><Reading /></el-icon>
-                    <span>{{ book.borrowCount || 0 }}次借阅</span>
+                    <span>{{ book.borrowCount || 0 }}娆″€熼槄</span>
                   </div>
                   <div class="stat-item" v-if="showStock">
                     <el-icon><Box /></el-icon>
-                    <span>{{ book.stock || 0 }}本库存</span>
+                    <span>{{ book.stock || 0 }}鏈簱瀛?/span>
                   </div>
                 </div>
               </div>
@@ -90,7 +90,7 @@
         </el-row>
       </div>
 
-      <!-- 图书列表 - 表格视图 -->
+      <!-- 鍥句功鍒楄〃 - 琛ㄦ牸瑙嗗浘 -->
       <div v-else>
         <ProTable
           ref="proTableRef"
@@ -109,7 +109,7 @@
           @create="handleAdd"
           @selection-change="handleProTableSelectionChange"
         >
-          <!-- 图书信息插槽 -->
+          <!-- 鍥句功淇℃伅鎻掓Ы -->
           <template #bookInfo="{ record }">
             <div class="book-info-cell">
               <img v-if="showCover" :src="record.cover" :alt="record.title" class="book-cover-small" />
@@ -121,17 +121,17 @@
             </div>
           </template>
 
-          <!-- 分类插槽 -->
+          <!-- 鍒嗙被鎻掓Ы -->
           <template #category="{ record }">
             <StatusTag :status="record.categoryId" :text="getCategoryName(record.categoryId)" size="small" />
           </template>
 
-          <!-- 状态插槽 -->
+          <!-- 鐘舵€佹彃妲?-->
           <template #status="{ record }">
             <StatusTag :status="record.status" :preset="'book'" size="small" />
           </template>
 
-          <!-- 位置插槽 -->
+          <!-- 浣嶇疆鎻掓Ы -->
           <template #location="{ record }">
             <div class="location-info">
               <el-icon><Position /></el-icon>
@@ -139,21 +139,21 @@
             </div>
           </template>
 
-          <!-- 库存信息插槽 -->
+          <!-- 搴撳瓨淇℃伅鎻掓Ы -->
           <template #stock="{ record }">
             <div class="stock-info">
               <div class="stock-item">
-                <span class="stock-label">库存:</span>
+                <span class="stock-label">搴撳瓨:</span>
                 <span class="stock-value">{{ record.stock || 0 }}</span>
               </div>
               <div class="stock-item">
-                <span class="stock-label">在借:</span>
+                <span class="stock-label">鍦ㄥ€?</span>
                 <span class="borrowed-value">{{ record.borrowedCount || 0 }}</span>
               </div>
             </div>
           </template>
 
-          <!-- 出版信息插槽 -->
+          <!-- 鍑虹増淇℃伅鎻掓Ы -->
           <template #publishInfo="{ record }">
             <div class="publish-info">
               <div class="publisher">{{ record.publisher || '-' }}</div>
@@ -161,7 +161,7 @@
             </div>
           </template>
 
-          <!-- 借阅次数插槽 -->
+          <!-- 鍊熼槄娆℃暟鎻掓Ы -->
           <template #borrowCount="{ record }">
             <div class="borrow-count-info">
               <el-icon><Reading /></el-icon>
@@ -169,7 +169,7 @@
             </div>
           </template>
 
-          <!-- 评分插槽 -->
+          <!-- 璇勫垎鎻掓Ы -->
           <template #rating="{ record }">
             <div class="rating-info">
               <el-rate v-model="record.rating" disabled size="small" />
@@ -177,7 +177,7 @@
             </div>
           </template>
 
-          <!-- 时间插槽 -->
+          <!-- 鏃堕棿鎻掓Ы -->
           <template #createTime="{ record }">
             <div class="time-info">
               <div>{{ formatDate(record.createdAt) }}</div>
@@ -185,57 +185,56 @@
             </div>
           </template>
 
-          <!-- 工具栏插槽 -->
+          <!-- 宸ュ叿鏍忔彃妲?-->
           <template #toolBarRender="{ selectedRowKeys, selectedRows }">
             <div style="display: flex; justify-content: space-between; width: 100%;">
-              <!-- 左侧操作按钮 -->
+              <!-- 宸︿晶鎿嶄綔鎸夐挳 -->
               <div style="display: flex; gap: 8px;">
-                <!-- 新增图书按钮 -->
+                <!-- 鏂板鍥句功鎸夐挳 -->
                 <el-button 
                   type="primary" 
                   @click="handleAdd"
                 >
-                新增图书
+                鏂板鍥句功
                 </el-button>
                 
-                <!-- 批量操作按钮（始终显示，无选中项时禁用） -->
+                <!-- 鎵归噺鎿嶄綔鎸夐挳锛堝缁堟樉绀猴紝鏃犻€変腑椤规椂绂佺敤锛?-->
                 <el-button 
                   type="danger" 
                   :disabled="selectedRowKeys.length === 0"
                   @click="handleBatchDeleteFromTable(selectedRows)"
                 >
-                  批量删除
+                  鎵归噺鍒犻櫎
                 </el-button>
                 <el-button 
                   type="warning" 
                   :disabled="selectedRowKeys.length === 0"
                   @click="handleBatchUpdateStatusFromTable(selectedRows)"
                 >
-                  批量状态更新
-                </el-button>
+                  鎵归噺鐘舵€佹洿鏂?                </el-button>
                 <el-button 
                   type="info" 
                   :disabled="selectedRowKeys.length === 0"
                   @click="handleBatchMoveFromTable(selectedRows)"
                 >
-                  批量移动
+                  鎵归噺绉诲姩
                 </el-button>
                 
-                <!-- 常规工具栏按钮 -->
+                <!-- 甯歌宸ュ叿鏍忔寜閽?-->
                 <el-button type="info" :icon="Download" :loading="exportLoading" @click="handleExport">
-                  导出数据
+                  瀵煎嚭鏁版嵁
                 </el-button>
                 <el-button type="success" :icon="Upload" @click="handleImport">
-                  导入图书
+                  瀵煎叆鍥句功
                 </el-button>
               </div>
               
-              <!-- 右侧工具按钮 -->
+              <!-- 鍙充晶宸ュ叿鎸夐挳 -->
               <div style="display: flex; gap: 8px;">
-                <el-tooltip content="刷新数据" placement="top">
+                <el-tooltip content="鍒锋柊鏁版嵁" placement="top">
                   <el-button :icon="Refresh" @click="handleRefresh" :loading="loading" />
                 </el-tooltip>
-                <el-tooltip content="列设置" placement="top">
+                <el-tooltip content="鍒楄缃? placement="top">
                   <el-button :icon="Setting" @click="openColumnSettings" />
                 </el-tooltip>
               </div>
@@ -245,12 +244,12 @@
       </div>
     </el-card>
 
-    <!-- 分类管理对话框 -->
-    <el-dialog v-model="showCategoryManager" title="分类管理" width="800px" destroy-on-close>
+    <!-- 鍒嗙被绠＄悊瀵硅瘽妗?-->
+    <el-dialog v-model="showCategoryManager" title="鍒嗙被绠＄悊" width="800px" destroy-on-close>
       <CategoryManager @updated="fetchCategories" />
     </el-dialog>
 
-    <!-- 列设置对话框 -->
+    <!-- 鍒楄缃璇濇 -->
     <ColumnSettings
       v-model="showColumnSettings"
       :column-options="columnOptions"
@@ -260,13 +259,13 @@
       @apply="handleColumnSettingsApply"
     />
 
-    <!-- 借阅对话框 -->
-    <el-dialog v-model="showBorrowDialog" title="借阅图书" width="500px" destroy-on-close>
+    <!-- 鍊熼槄瀵硅瘽妗?-->
+    <el-dialog v-model="showBorrowDialog" title="鍊熼槄鍥句功" width="500px" destroy-on-close>
       <BorrowForm :book="selectedBook" @success="handleBorrowSuccess" />
     </el-dialog>
 
-    <!-- 二维码对话框 -->
-    <el-dialog v-model="showQRCodeDialog" title="图书二维码" width="400px" destroy-on-close>
+    <!-- 浜岀淮鐮佸璇濇 -->
+    <el-dialog v-model="showQRCodeDialog" title="鍥句功浜岀淮鐮? width="400px" destroy-on-close>
       <QRCodeGenerator v-if="selectedBook" :book="selectedBook" />
     </el-dialog>
   </div>
@@ -305,8 +304,7 @@ import { useTableHeight, getTableHeightPreset } from '@/composables/useTableHeig
 
 const router = useRouter()
 
-// 响应式数据
-const exportLoading = ref(false)
+// 鍝嶅簲寮忔暟鎹?const exportLoading = ref(false)
 const categories = ref([])
 const locations = ref([])
 const selectedBooks = ref([])
@@ -320,7 +318,7 @@ const selectedBook = ref(null)
 const proTableRef = ref()
 const searchFilterRef = ref()
 
-// 搜索表单
+// 鎼滅储琛ㄥ崟
 const defaultSearchForm = Object.freeze({
   keyword: '',
   categoryId: null,
@@ -328,7 +326,7 @@ const defaultSearchForm = Object.freeze({
   locationId: null,
   dateRange: null
 })
-// 计算属性 - 下拉选项
+// 璁＄畻灞炴€?- 涓嬫媺閫夐」
 const categoryOptions = computed(() =>
   categories.value.map(cat => ({ label: cat.name, value: cat.id }))
 )
@@ -388,7 +386,7 @@ const {
 
 const bookList = computed(() => tableDataSource.value)
 
-// 加载基础数据 - 简化版
+// 鍔犺浇鍩虹鏁版嵁 - 绠€鍖栫増
 const loadCategories = async () => {
   try {
     const response = await bookApi.getCategories()
@@ -400,7 +398,7 @@ const loadCategories = async () => {
         : []
     categories.value = categoryList
   } catch (error) {
-    console.error('获取分类失败:', error)
+    console.error('鑾峰彇鍒嗙被澶辫触:', error)
   }
 }
 
@@ -423,51 +421,50 @@ const loadLocations = async () => {
             : []
     locations.value = locationList
   } catch (error) {
-    console.error('获取位置失败:', error)
+    console.error('鑾峰彇浣嶇疆澶辫触:', error)
   }
 }
 
 
-// 搜索字段配置（基于 ProForm 设计）
-const searchFields = [
+// 鎼滅储瀛楁閰嶇疆锛堝熀浜?ProForm 璁捐锛?const searchFields = [
   {
     name: 'keyword',
     valueType: 'text',
-    label: '关键词',
-    placeholder: '输入书名、作者或ISBN搜索',
+    label: '鍏抽敭璇?,
+    placeholder: '杈撳叆涔﹀悕銆佷綔鑰呮垨ISBN鎼滅储',
     clearable: true
   },
   {
     name: 'categoryId',
     valueType: 'select',
-    label: '图书分类',
-    placeholder: '选择图书分类',
+    label: '鍥句功鍒嗙被',
+    placeholder: '閫夋嫨鍥句功鍒嗙被',
     options: categoryOptions
   },
   {
     name: 'status',
     valueType: 'select',
-    label: '图书状态',
-    placeholder: '选择图书状态',
+    label: '鍥句功鐘舵€?,
+    placeholder: '閫夋嫨鍥句功鐘舵€?,
     options: [
-      { label: '可借阅', value: 'available' },
-      { label: '已借出', value: 'borrowed' },
-      { label: '维护中', value: 'maintenance' },
-      { label: '已下架', value: 'offline' }
+      { label: '鍙€熼槄', value: 'available' },
+      { label: '宸插€熷嚭', value: 'borrowed' },
+      { label: '缁存姢涓?, value: 'maintenance' },
+      { label: '宸蹭笅鏋?, value: 'offline' }
     ]
   },
     {
     name: 'locationId',
     valueType: 'select',
-    label: '存放位置',
-    placeholder: '选择存放位置',
+    label: '瀛樻斁浣嶇疆',
+    placeholder: '閫夋嫨瀛樻斁浣嶇疆',
     options: locationOptions
   },
   {
     name: 'dateRange',
     valueType: 'dateRange',
-    label: '添加时间',
-    placeholder: '请选择时间范围'
+    label: '娣诲姞鏃堕棿',
+    placeholder: '璇烽€夋嫨鏃堕棿鑼冨洿'
   }
 ]
 
@@ -501,18 +498,17 @@ const buildBookFilters = (form = searchForm) => {
 }
 
 
-// 所有可用的列配置
-const allTableColumns = [
+// 鎵€鏈夊彲鐢ㄧ殑鍒楅厤缃?const allTableColumns = [
   {
     key: 'bookInfo',
-    title: '图书信息',
+    title: '鍥句功淇℃伅',
     slot: 'bookInfo',
     minWidth: 260,
     align: 'center'
   },
   {
     key: 'category',
-    title: '分类',
+    title: '鍒嗙被',
     slot: 'category',
     minWidth: 100,
     sorter: true,
@@ -520,14 +516,14 @@ const allTableColumns = [
   },
   {
     key: 'publishInfo',
-    title: '出版信息',
+    title: '鍑虹増淇℃伅',
     slot: 'publishInfo',
     minWidth: 150,
     align: 'center'
   },
   {
     key: 'status',
-    title: '状态',
+    title: '鐘舵€?,
     slot: 'status',
     minWidth: 90,
     sorter: true,
@@ -535,21 +531,21 @@ const allTableColumns = [
   },
   {
     key: 'location',
-    title: '位置',
+    title: '浣嶇疆',
     slot: 'location',
     minWidth: 130,
     align: 'center'
   },
   {
     key: 'stock',
-    title: '库存/借阅',
+    title: '搴撳瓨/鍊熼槄',
     slot: 'stock',
     minWidth: 100,
     align: 'center'
   },
   {
     key: 'rating',
-    title: '评分',
+    title: '璇勫垎',
     slot: 'rating',
     minWidth: 130,
     sorter: true,
@@ -557,7 +553,7 @@ const allTableColumns = [
   },
   {
     key: 'borrowCount',
-    title: '借阅次数',
+    title: '鍊熼槄娆℃暟',
     slot: 'borrowCount',
     minWidth: 130,
     sorter: true,
@@ -565,7 +561,7 @@ const allTableColumns = [
   },
   {
     key: 'createTime',
-    title: '添加时间',
+    title: '娣诲姞鏃堕棿',
     slot: 'createTime',
     minWidth: 140,
     sorter: true,
@@ -573,83 +569,79 @@ const allTableColumns = [
   }
 ]
 
-// 动态过滤的表格列配置（计算属性）
+// 鍔ㄦ€佽繃婊ょ殑琛ㄦ牸鍒楅厤缃紙璁＄畻灞炴€э級
 const bookTableColumns = computed(() => {
-  // 根据columnOptions的顺序和visibleColumns的选择来生成列
+  // 鏍规嵁columnOptions鐨勯『搴忓拰visibleColumns鐨勯€夋嫨鏉ョ敓鎴愬垪
   const columnsMap = {}
   allTableColumns.forEach(col => {
     columnsMap[col.key] = col
   })
   
-  // 按照columnOptions的顺序返回可见的列
-  return columnOptions.value
+  // 鎸夌収columnOptions鐨勯『搴忚繑鍥炲彲瑙佺殑鍒?  return columnOptions.value
     .filter(opt => visibleColumns.value.includes(opt.value))
     .map(opt => columnsMap[opt.value])
     .filter(Boolean)
 })
 
-// 批量操作配置
+// 鎵归噺鎿嶄綔閰嶇疆
 const batchActions = [
   {
     key: 'batchDelete',
-    text: '批量删除',
+    text: '鎵归噺鍒犻櫎',
     type: 'danger',
     onClick: (selectedRowKeys, selectedRows) => handleBatchDeleteFromTable(selectedRows)
   },
   {
     key: 'batchUpdateStatus',
-    text: '批量状态更新',
+    text: '鎵归噺鐘舵€佹洿鏂?,
     type: 'warning',
     onClick: (selectedRowKeys, selectedRows) => handleBatchUpdateStatusFromTable(selectedRows)
   },
   {
     key: 'batchMove',
-    text: '批量移动',
+    text: '鎵归噺绉诲姩',
     type: 'info',
     onClick: (selectedRowKeys, selectedRows) => handleBatchMoveFromTable(selectedRows)
   }
 ]
 
-// 行操作配置
-const rowActions = [
+// 琛屾搷浣滈厤缃?const rowActions = [
   {
     key: 'view',
-    text: '查看',
+    text: '鏌ョ湅',
     type: 'text',
     onClick: (record) => handleView(record)
   },
   {
     key: 'edit',
-    text: '编辑',
+    text: '缂栬緫',
     type: 'text',
     onClick: (record) => handleEdit(record)
   },
   {
     key: 'borrow',
-    text: '借阅',
+    text: '鍊熼槄',
     type: 'text',
     onClick: (record) => handleBorrow(record)
   },
   {
     key: 'delete',
-    text: '删除',
+    text: '鍒犻櫎',
     type: 'text',
     onClick: (record) => handleDelete(record)
   }
 ]
 
-// 工具栏配置
-const toolBarConfig = {
+// 宸ュ叿鏍忛厤缃?const toolBarConfig = {
   create: true,
-  createText: '新增图书',
+  createText: '鏂板鍥句功',
   reload: true,
   density: true,
   columnSetting: true,
   fullScreen: true
 }
 
-// 默认列设置配置
-const defaultVisibleColumns = [
+// 榛樿鍒楄缃厤缃?const defaultVisibleColumns = [
   'bookInfo',
   'category',
   'status',
@@ -660,18 +652,18 @@ const defaultVisibleColumns = [
 ]
 
 const defaultColumnOptions = [
-  { label: '图书信息', value: 'bookInfo', required: true },
-  { label: '分类', value: 'category' },
-  { label: '出版信息', value: 'publishInfo' },
-  { label: '状态', value: 'status' },
-  { label: '位置', value: 'location' },
-  { label: '库存/借阅', value: 'stock' },
-  { label: '评分', value: 'rating' },
-  { label: '借阅次数', value: 'borrowCount' },
-  { label: '添加时间', value: 'createTime' }
+  { label: '鍥句功淇℃伅', value: 'bookInfo', required: true },
+  { label: '鍒嗙被', value: 'category' },
+  { label: '鍑虹増淇℃伅', value: 'publishInfo' },
+  { label: '鐘舵€?, value: 'status' },
+  { label: '浣嶇疆', value: 'location' },
+  { label: '搴撳瓨/鍊熼槄', value: 'stock' },
+  { label: '璇勫垎', value: 'rating' },
+  { label: '鍊熼槄娆℃暟', value: 'borrowCount' },
+  { label: '娣诲姞鏃堕棿', value: 'createTime' }
 ]
 
-// 使用统一的列设置 composable
+// 浣跨敤缁熶竴鐨勫垪璁剧疆 composable
 const {
   visibleColumns,
   columnOptions,
@@ -680,21 +672,20 @@ const {
   openColumnSettings
 } = useColumnSettings('book', defaultVisibleColumns, defaultColumnOptions)
 
-// 使用表格高度管理 composable
+// 浣跨敤琛ㄦ牸楂樺害绠＄悊 composable
 const tableHeightConfig = getTableHeightPreset('standard', {
-  headerOffset: 220, // 搜索区域 + 工具栏
-  footerOffset: 80   // 分页区域
+  headerOffset: 220, // 鎼滅储鍖哄煙 + 宸ュ叿鏍?  footerOffset: 80   // 鍒嗛〉鍖哄煙
 })
 const { finalTableHeight } = useTableHeight(tableHeightConfig)
 
 
-// 方法
+// 鏂规硶
 const getCategoryName = categoryId => {
   const category = categories.value.find(c => c.id === categoryId)
-  return category ? category.name : '未分类'
+  return category ? category.name : '鏈垎绫?
 }
 
-// 获取图书列表 - 统一处理
+// 鑾峰彇鍥句功鍒楄〃 - 缁熶竴澶勭悊
 const fetchBooks = async (page = tableState.current, size) => {
   if (viewMode.value === 'table') {
     if (proTableRef.value?.reload) {
@@ -708,11 +699,10 @@ const fetchBooks = async (page = tableState.current, size) => {
   await reloadBooks({ page, pageSize: targetSize })
 }
 
-// 分类更新回调
+// 鍒嗙被鏇存柊鍥炶皟
 const fetchCategories = () => loadCategories()
 
-// 搜索处理 - 统一化
-const handleSearch = (criteria = {}) => {
+// 鎼滅储澶勭悊 - 缁熶竴鍖?const handleSearch = (criteria = {}) => {
   Object.assign(searchForm, criteria)
   if (viewMode.value === 'table') {
     if (proTableRef.value?.reload) {
@@ -752,7 +742,7 @@ const handleViewModeChange = mode => {
 }
 
 
-// ProTable选择变化处理
+// ProTable閫夋嫨鍙樺寲澶勭悊
 const handleProTableSelectionChange = (selectedRowKeys, selectedRows) => {
   selectedBooks.value = selectedRows
 }
@@ -783,85 +773,85 @@ const handleBorrow = book => {
 
 const handleDelete = async book => {
   try {
-    await ElMessageBox.confirm(`确定要删除图书《${book.title}》吗？此操作不可撤销！`, '删除图书', { type: 'warning' })
+    await ElMessageBox.confirm(`纭畾瑕佸垹闄ゅ浘涔︺€?{book.title}銆嬪悧锛熸鎿嶄綔涓嶅彲鎾ら攢锛乣, '鍒犻櫎鍥句功', { type: 'warning' })
 
     await bookApi.deleteBook(book.id)
-    ElMessage.success('图书删除成功')
+    ElMessage.success('鍥句功鍒犻櫎鎴愬姛')
     fetchBooks()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('删除图书失败:', error)
-      ElMessage.error('删除图书失败')
+      console.error('鍒犻櫎鍥句功澶辫触:', error)
+      ElMessage.error('鍒犻櫎鍥句功澶辫触')
     }
   }
 }
 
 
 
-// ProTable批量操作处理函数
+// ProTable鎵归噺鎿嶄綔澶勭悊鍑芥暟
 const handleBatchDeleteFromTable = async (selectedRows) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedRows.length} 本图书吗？此操作不可撤销！`,
-      '批量删除',
+      `纭畾瑕佸垹闄ら€変腑鐨?${selectedRows.length} 鏈浘涔﹀悧锛熸鎿嶄綔涓嶅彲鎾ら攢锛乣,
+      '鎵归噺鍒犻櫎',
       { type: 'warning' }
     )
 
     const bookIds = selectedRows.map(book => book.id)
     await bookApi.batchDeleteBooks(bookIds)
 
-    ElMessage.success('批量删除成功')
+    ElMessage.success('鎵归噺鍒犻櫎鎴愬姛')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
+      console.error('鎵归噺鍒犻櫎澶辫触:', error)
+      ElMessage.error('鎵归噺鍒犻櫎澶辫触')
     }
   }
 }
 
 const handleBatchUpdateStatusFromTable = async (selectedRows) => {
   try {
-    const { value: newStatus } = await ElMessageBox.prompt(`选择要设置的状态：`, '批量更新状态', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    const { value: newStatus } = await ElMessageBox.prompt(`閫夋嫨瑕佽缃殑鐘舵€侊細`, '鎵归噺鏇存柊鐘舵€?, {
+      confirmButtonText: '纭畾',
+      cancelButtonText: '鍙栨秷',
       inputType: 'select',
       inputOptions: [
-        { value: 'available', label: '可借' },
-        { value: 'maintenance', label: '维修中' },
-        { value: 'offline', label: '已下架' }
+        { value: 'available', label: '鍙€? },
+        { value: 'maintenance', label: '缁翠慨涓? },
+        { value: 'offline', label: '宸蹭笅鏋? }
       ]
     })
 
     const bookIds = selectedRows.map(book => book.id)
     await bookApi.batchUpdateStatus(bookIds, newStatus)
 
-    ElMessage.success('批量更新成功')
+    ElMessage.success('鎵归噺鏇存柊鎴愬姛')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('批量更新失败:', error)
-      ElMessage.error('批量更新失败')
+      console.error('鎵归噺鏇存柊澶辫触:', error)
+      ElMessage.error('鎵归噺鏇存柊澶辫触')
     }
   }
 }
 
 const handleBatchMoveFromTable = async (selectedRows) => {
   try {
-    const { value: newLocation } = await ElMessageBox.prompt('请输入新的位置：', '批量移动位置', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消'
+    const { value: newLocation } = await ElMessageBox.prompt('璇疯緭鍏ユ柊鐨勪綅缃細', '鎵归噺绉诲姩浣嶇疆', {
+      confirmButtonText: '纭畾',
+      cancelButtonText: '鍙栨秷'
     })
 
     const bookIds = selectedRows.map(book => book.id)
     await bookApi.batchUpdateLocation(bookIds, newLocation)
 
-    ElMessage.success('批量移动成功')
+    ElMessage.success('鎵归噺绉诲姩鎴愬姛')
     proTableRef.value?.refresh()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('批量移动失败:', error)
-      ElMessage.error('批量移动失败')
+      console.error('鎵归噺绉诲姩澶辫触:', error)
+      ElMessage.error('鎵归噺绉诲姩澶辫触')
     }
   }
 }
@@ -869,7 +859,7 @@ const handleBatchMoveFromTable = async (selectedRows) => {
 
 
 const handleImport = () => {
-  ElMessage.info('批量导入功能开发中...')
+  ElMessage.info('鎵归噺瀵煎叆鍔熻兘寮€鍙戜腑...')
 }
 
 const handleRefresh = () => {
@@ -882,7 +872,7 @@ const handleExport = async () => {
 
     const params = {
       ...searchForm,
-      // 处理日期范围
+      // 澶勭悊鏃ユ湡鑼冨洿
       ...(searchForm.dateRange?.length === 2 && (() => {
         const [start, end] = searchForm.dateRange
         const startFormatted = formatDate(start)
@@ -898,25 +888,25 @@ const handleExport = async () => {
       })())
     }
 
-    // 转换数字类型
+    // 杞崲鏁板瓧绫诲瀷
     if (params.categoryId) params.categoryId = Number(params.categoryId)
     if (params.locationId) params.locationId = Number(params.locationId)
     delete params.dateRange
 
     const blob = await bookApi.exportBooks(params)
 
-    // 创建下载链接
+    // 鍒涘缓涓嬭浇閾炬帴
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `图书数据_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.download = `鍥句功鏁版嵁_${new Date().toISOString().slice(0, 10)}.xlsx`
     link.click()
     window.URL.revokeObjectURL(url)
 
-    ElMessage.success('导出成功')
+    ElMessage.success('瀵煎嚭鎴愬姛')
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    console.error('瀵煎嚭澶辫触:', error)
+    ElMessage.error('瀵煎嚭澶辫触')
   } finally {
     exportLoading.value = false
   }
@@ -925,19 +915,19 @@ const handleExport = async () => {
 const handleBorrowSuccess = () => {
   showBorrowDialog.value = false
   fetchBooks()
-  ElMessage.success('借阅成功')
+  ElMessage.success('鍊熼槄鎴愬姛')
 }
 
-// 列设置应用回调 - 包装handleApplyFromComponent以添加ProTable刷新
+// 鍒楄缃簲鐢ㄥ洖璋?- 鍖呰handleApplyFromComponent浠ユ坊鍔燩roTable鍒锋柊
 const handleColumnSettingsApply = (data) => {
   handleApplyFromComponent(data)
-  // 强制刷新ProTable
+  // 寮哄埗鍒锋柊ProTable
   if (proTableRef.value) {
     proTableRef.value.refresh()
   }
 }
 
-// 生命周期
+// 鐢熷懡鍛ㄦ湡
 onMounted(() => {
   Promise.all([loadCategories(), loadLocations()])
 })
@@ -1239,7 +1229,7 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-// 列设置对话框样式
+// 鍒楄缃璇濇鏍峰紡
 .column-settings-container {
   max-height: 400px;
   overflow-y: auto;
@@ -1319,8 +1309,7 @@ onMounted(() => {
   }
 }
 
-// 响应式设计
-@media (max-width: 768px) {
+// 鍝嶅簲寮忚璁?@media (max-width: 768px) {
   .view-controls {
     flex-direction: column;
     gap: 16px;

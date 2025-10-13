@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const bookCategoriesController = require('../controllers/bookCategories.controller');
-const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { authenticateToken } = require('../middlewares/auth.middleware');
+const { requirePermission } = require('../middlewares/rbac.middleware');
 const { validateId, validate } = require('../middlewares/validation.middleware');
 const { categorySchemas } = require('../utils/validation');
 
@@ -24,8 +25,8 @@ router.get(
 // 创建分类（需要管理员权限）
 router.post(
   '/',
-  authenticate,
-  authorize(['admin']),
+  authenticateToken,
+  requirePermission('bookCategories.create'),
   validate(categorySchemas.createCategory),
   bookCategoriesController.createCategory
 );
@@ -34,8 +35,8 @@ router.post(
 // 更新分类（需要管理员权限）
 router.put(
   '/:identifier',
-  authenticate,
-  authorize(['admin']),
+  authenticateToken,
+  requirePermission('bookCategories.update'),
   validate(categorySchemas.updateCategory),
   bookCategoriesController.updateCategory
 );
@@ -43,8 +44,8 @@ router.put(
 // 删除分类（需要管理员权限）
 router.delete(
   '/:identifier',
-  authenticate,
-  authorize(['admin']),
+  authenticateToken,
+  requirePermission('bookCategories.delete'),
   bookCategoriesController.deleteCategory
 );
 

@@ -13,6 +13,7 @@ const bookLocationsRoutes = require('../routes/bookLocations.routes');
 const usersRoutes = require('../routes/users.routes');
 const rolesRoutes = require('../routes/roles.routes');
 const permissionsRoutes = require('../routes/permissions.routes');
+const permissionResourcesRoutes = require('../routes/permissionResources.routes');
 const borrowsRoutes = require('../routes/borrows.routes');
 const reviewsRoutes = require('../routes/reviews.routes');
 const pointsRoutes = require('../routes/points.routes');
@@ -44,6 +45,7 @@ const setupApiInfo = (app) => {
         borrows: '/api/v1/borrows',
         reviews: '/api/v1/reviews',
         points: '/api/v1/points',
+        permissionResources: '/api/v1/permission-resources',
         notifications: '/api/v1/notifications',
         restore: '/api/v1/restore',
         admin: '/api/v1/admin',
@@ -72,7 +74,8 @@ const setupApiInfo = (app) => {
           users: '/api/v1/users',
           borrows: '/api/v1/borrows',
           reviews: '/api/v1/reviews',
-          points: '/api/v1/points'
+          points: '/api/v1/points',
+          permissionResources: '/api/v1/permission-resources'
         }
       },
       timestamp: new Date().toISOString()
@@ -105,6 +108,7 @@ const setupApiRoutes = (app) => {
   app.use('/api/v1/users', usersRoutes);
   app.use('/api/v1/roles', rolesRoutes);
   app.use('/api/v1/permissions', permissionsRoutes);
+  app.use('/api/v1/permission-resources', permissionResourcesRoutes);
   app.use('/api/v1/borrows', borrowsRoutes);
   app.use('/api/v1/reviews', reviewsRoutes);
   app.use('/api/v1/points', pointsRoutes);

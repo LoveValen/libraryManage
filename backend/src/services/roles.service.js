@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const permissionResourcesService = require('./permissionResources.service');
 
 class RolesService {
   async list() {
@@ -141,9 +142,12 @@ class RolesService {
       ? ['*']
       : Array.from(permissionCodes);
 
+    const resources = await permissionResourcesService.getAccessibleResources(permissions);
+
     return {
       roles: uniqueRoles,
       permissions,
+      resources,
     };
   }
 

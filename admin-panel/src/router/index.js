@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+﻿import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import NProgress from 'nprogress'
@@ -57,6 +57,7 @@ export const asyncRoutes = [
         meta: {
           title: '仪表板',
           icon: 'DataBoard',
+          permission: 'dashboard.view',
           affix: true,
           transition: 'fade-slide' // 默认动画
         }
@@ -78,7 +79,8 @@ export const asyncRoutes = [
         component: () => import('@/views/books/list.vue'),
         meta: {
           title: '图书列表',
-          icon: 'List'
+          icon: 'List',
+          permission: 'books.read'
         }
       },
       {
@@ -465,8 +467,8 @@ router.beforeEach(async (to, from, next) => {
   // 检查是否已生成路由
   if (!appStore.routesGenerated) {
     try {
-      // 根据用户角色生成可访问的路由
-      const accessRoutes = generateRoutes(authStore.allRoles)
+      // 根据权限上下文生成可访问的路由
+      const accessRoutes = generateRoutes(authStore)
 
       // 动态添加路由
       accessRoutes.forEach(route => {
@@ -492,6 +494,11 @@ router.beforeEach(async (to, from, next) => {
     return
   }
 
+  if (to.name && !authStore.hasRouteAccess(to.name)) {
+    next('/403')
+    return
+  }
+
   // 细粒度权限校验（若配置了 meta.permission）
   if (to.meta.permission) {
     if (!authStore.hasPermission(to.meta.permission)) {
@@ -511,26 +518,57 @@ router.afterEach(() => {
 })
 
 // 生成可访问的路由
-function generateRoutes(userRoles) {
-  const normalizedRoles = normalizeRoles(userRoles)
-  return filterAsyncRoutes(asyncRoutes, normalizedRoles)
+function generateRoutes(authStore) {
+  const normalizedRoles = normalizeRoles(authStore.allRoles)
+  const permissionArray = Array.isArray(authStore.permissions) ? authStore.permissions : (authStore.permissions?.value || [])
+  const permissionSet = new Set(permissionArray.map(code => (typeof code === 'string' ? code.trim() : '')).filter(Boolean))
+  const rawRouteNameSet = authStore.accessibleRouteNameSet && typeof authStore.accessibleRouteNameSet === 'object' && 'value' in authStore.accessibleRouteNameSet
+    ? authStore.accessibleRouteNameSet.value
+    : authStore.accessibleRouteNameSet
+  const routeNameSet = rawRouteNameSet instanceof Set ? rawRouteNameSet : new Set()
+  return filterAsyncRoutes(asyncRoutes, normalizedRoles, permissionSet, routeNameSet)
 }
 
-function filterAsyncRoutes(routes, normalizedRoles) {
+function filterAsyncRoutes(routes, normalizedRoles, permissionSet, routeNameSet) {
   const res = []
 
   routes.forEach(route => {
     const tmp = { ...route }
 
-    if (matchesRouteRole(tmp, normalizedRoles)) {
-      if (tmp.children) {
-        tmp.children = filterAsyncRoutes(tmp.children, normalizedRoles)
+    if (tmp.children) {
+      tmp.children = filterAsyncRoutes(tmp.children, normalizedRoles, permissionSet, routeNameSet)
+    }
+
+    if (matchesRouteAccess(tmp, normalizedRoles, permissionSet, routeNameSet)) {
+      if (!tmp.children || tmp.children.length > 0) {
+        res.push(tmp)
       }
-      res.push(tmp)
     }
   })
 
   return res
+}
+
+function matchesRouteAccess(route, normalizedRoles, permissionSet, routeNameSet) {
+  if (!matchesRouteRole(route, normalizedRoles)) {
+    return false
+  }
+
+  const requiredPermission = route.meta?.permission
+  if (requiredPermission && !(permissionSet.has('*') || permissionSet.has(requiredPermission))) {
+    return false
+  }
+
+  if (route.name) {
+    const name = String(route.name).trim()
+    if (name && routeNameSet instanceof Set && routeNameSet.size > 0 && !route.meta?.ignoreResourceCheck) {
+      if (!routeNameSet.has(name)) {
+        return false
+      }
+    }
+  }
+
+  return true
 }
 
 function matchesRouteRole(route, normalizedRoles) {
@@ -550,7 +588,8 @@ function matchesRouteRole(route, normalizedRoles) {
 }
 
 function normalizeRoles(roles) {
-  const list = Array.isArray(roles) ? roles : [roles]
+  const source = roles && typeof roles === 'object' && 'value' in roles ? roles.value : roles
+  const list = Array.isArray(source) ? source : [source]
   const set = new Set()
   list.forEach(role => {
     if (typeof role === 'string') {

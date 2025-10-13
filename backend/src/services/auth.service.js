@@ -129,6 +129,7 @@ class AuthService {
     const accessContext = await RolesService.getUserAccessContext(user.id);
     const permissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
     const roles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+    const accessResources = accessContext.resources || null;
 
     // 组合鉴权载荷
     const enrichedUser = { ...user, permissions, roles };
@@ -144,6 +145,9 @@ class AuthService {
     });
 
     const safeUser = UserService.toSafeJSON(enrichedUser);
+    safeUser.permissions = permissions;
+    safeUser.roles = roles;
+    safeUser.accessResources = accessResources;
 
     return {
       user: safeUser,
@@ -275,10 +279,12 @@ class AuthService {
     const accessContext = await RolesService.getUserAccessContext(user.id);
     const permissions = Array.isArray(accessContext.permissions) ? accessContext.permissions : [];
     const roles = Array.isArray(accessContext.roles) ? accessContext.roles : [];
+    const accessResources = accessContext.resources || null;
 
     const safeUser = UserService.toSafeJSON(user);
     safeUser.permissions = permissions;
     safeUser.roles = roles;
+    safeUser.accessResources = accessResources;
 
     return safeUser;
   }
