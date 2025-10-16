@@ -1,7 +1,7 @@
 import request from './request'
 
-export function listPermissions() {
-  return request.get('/permissions')
+export function listPermissions(params) {
+  return request.get('/permissions', { params })
 }
 
 export function createPermission(data) {

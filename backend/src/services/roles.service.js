@@ -2,8 +2,25 @@ const prisma = require('../utils/prisma');
 const permissionResourcesService = require('./permissionResources.service');
 
 class RolesService {
-  async list() {
+  async list(params = {}) {
+    const { keyword, is_system } = params;
+    
+    // 构建查询条件
+    const where = {};
+    
+    if (keyword) {
+      where.OR = [
+        { code: { contains: keyword, mode: 'insensitive' } },
+        { name: { contains: keyword, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (is_system !== undefined && is_system !== null && is_system !== '') {
+      where.is_system = is_system === 'true' || is_system === true;
+    }
+    
     const roles = await prisma.roles.findMany({
+      where,
       orderBy: [{ is_system: 'desc' }, { code: 'asc' }],
       include: { rolePermissions: { include: { permission: true } } },
     });

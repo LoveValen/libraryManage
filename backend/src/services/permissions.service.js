@@ -1,8 +1,25 @@
 const prisma = require('../utils/prisma');
 
 class PermissionsService {
-  async list() {
+  async list(params = {}) {
+    const { keyword, group_name } = params;
+    
+    // 构建查询条件
+    const where = {};
+    
+    if (keyword) {
+      where.OR = [
+        { code: { contains: keyword, mode: 'insensitive' } },
+        { name: { contains: keyword, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (group_name) {
+      where.group_name = { contains: group_name, mode: 'insensitive' };
+    }
+    
     return prisma.permissions.findMany({
+      where,
       orderBy: [{ group_name: 'asc' }, { code: 'asc' }],
     });
   }

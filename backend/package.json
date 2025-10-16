@@ -14,6 +14,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
     "seed:reference": "node scripts/seedReferenceData.js",
+    "seed:rbac": "node scripts/seedRBAC.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "format": "prettier --write src/**/*.js"

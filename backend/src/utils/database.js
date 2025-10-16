@@ -1,6 +1,7 @@
 const prisma = require('./prisma');
 const bcrypt = require('bcryptjs');
 const { formatDateTime } = require('./date');
+const { seedRBAC } = require('../seeds/rbac.seed');
 
 /**
  * 数据库工具 - 遵循优秀源码的简洁设计
@@ -106,9 +107,12 @@ async function initializeDatabase() {
   try {
     console.log('🚀 Starting database initialization...');
 
-    // Create initial admin
+    // Create initial admin 并同步 RBAC 基础数据
     if (process.env.NODE_ENV !== 'test') {
       await createInitialAdmin();
+      console.log('🌱 同步 RBAC 基础数据...');
+      await seedRBAC();
+      console.log('✅ RBAC 基础数据同步完成');
     }
 
     console.log('🎉 Database initialization completed!');

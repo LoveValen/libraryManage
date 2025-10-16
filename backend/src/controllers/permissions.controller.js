@@ -4,7 +4,8 @@ const { success } = require('../utils/response');
 
 class PermissionsController {
   list = asyncHandler(async (req, res) => {
-    const data = await permissionsService.list();
+    const { page, size, keyword, group_name } = req.query;
+    const data = await permissionsService.list({ page, size, keyword, group_name });
     success(res, data, '权限列表获取成功');
   });
 

@@ -1,7 +1,7 @@
 import request from './request'
 
-export function listRoles() {
-  return request.get('/roles')
+export function listRoles(params) {
+  return request.get('/roles', { params })
 }
 
 export function createRole(data) {

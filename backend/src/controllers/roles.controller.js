@@ -4,7 +4,8 @@ const { success } = require('../utils/response');
 
 class RolesController {
   list = asyncHandler(async (req, res) => {
-    const data = await rolesService.list();
+    const { page, size, keyword, is_system } = req.query;
+    const data = await rolesService.list({ page, size, keyword, is_system });
     success(res, data, '角色列表获取成功');
   });
 
