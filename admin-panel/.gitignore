@@ -169,7 +169,6 @@ dist/
 node_modules/
 !node_modules/.gitkeep
 
-# Package manager lock files (keep only one)
-package-lock.json
+# 包管理锁文件（保留 npm 的 package-lock.json）
 yarn.lock
 pnpm-lock.yaml
