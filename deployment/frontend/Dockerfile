@@ -7,8 +7,8 @@ WORKDIR /app
 # 复制前端package文件
 COPY admin-panel/package*.json ./
 
-# 安装依赖
-RUN npm ci --only=production=false
+# 安装依赖（包含构建所需的开发依赖）
+RUN npm ci
 
 # 复制前端源代码
 COPY admin-panel/ .
