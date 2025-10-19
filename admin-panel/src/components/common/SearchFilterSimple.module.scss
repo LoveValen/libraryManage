@@ -1,0 +1,137 @@
+.proSearchFilter {
+  margin-bottom: 16px;
+
+  .searchCard {
+    border-radius: 8px;
+    
+    :global(.el-card__body) {
+      padding: 20px;
+    }
+  }
+
+  .searchForm {
+    :global(.el-form-item) {
+      margin-bottom: 0;
+      margin-right: 0;
+    }
+
+    .searchFields {
+      width: 100%;
+    }
+
+    .fieldCol {
+      margin-bottom: 16px;
+    }
+
+    // 当操作按钮在单独一行时，最后一行需要 margin-bottom
+    .actionRow {
+      .fieldCol {
+        margin-bottom: 0;
+      }
+    }
+
+    // 当只有一行时，移除底部 margin
+    .searchFields.singleRow {
+      .fieldCol {
+        margin-bottom: 0;
+      }
+    }
+
+    .searchFormItem {
+      width: 100%;
+
+      :global(.el-form-item__content) {
+        width: 100%;
+        flex: 1;
+      }
+
+      :global(.el-form-item__label) {
+        color: var(--el-text-color-regular);
+        font-weight: 500;
+        line-height: 32px;
+      }
+    }
+
+    .actionCol {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+
+      .actionFormItem {
+        width: 100%;
+        
+        :global(.el-form-item__content) {
+          justify-content: flex-end;
+          width: 100%;
+        }
+      }
+    }
+
+    .actionButtons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+
+      .collapseBtn {
+        margin-left: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .advancedTip {
+    margin-top: 16px;
+    
+    :global(.el-alert) {
+      border-radius: 6px;
+      
+      .el-alert__content {
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 1200px) {
+  .proSearchFilter {
+    .actionButtons {
+      .collapseBtn {
+        margin-left: 0;
+        margin-top: 8px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .proSearchFilter {
+    .searchCard {
+      :global(.el-card__body) {
+        padding: 16px;
+      }
+    }
+
+    .fieldCol {
+      margin-bottom: 12px;
+    }
+
+    .actionButtons {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+
+      :global(.el-button) {
+        width: 100%;
+      }
+
+      .collapseBtn {
+        margin-left: 0;
+        margin-top: 0;
+        width: 100%;
+      }
+    }
+  }
+}

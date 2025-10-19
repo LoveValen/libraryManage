@@ -1,0 +1,378 @@
+@use './variables.scss' as *;
+
+// 清除浮动
+@mixin clearfix {
+  &::before,
+  &::after {
+    content: '';
+    display: table;
+  }
+  &::after {
+    clear: both;
+  }
+}
+
+// 文本省略
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// 居中对齐
+@mixin center($position: absolute) {
+  position: $position;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// 垂直居中
+@mixin vcenter($position: absolute) {
+  position: $position;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+// 水平居中
+@mixin hcenter($position: absolute) {
+  position: $position;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+// Flex布局
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $wrap: nowrap) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  flex-wrap: $wrap;
+}
+
+// Flex居中
+@mixin flex-center {
+  @include flex(row, center, center);
+}
+
+// Flex两端对齐
+@mixin flex-between {
+  @include flex(row, space-between, center);
+}
+
+// 正方形
+@mixin square($size) {
+  width: $size;
+  height: $size;
+}
+
+// 圆形
+@mixin circle($size) {
+  @include square($size);
+  border-radius: 50%;
+}
+
+// 按钮样式 - 简化版本，避免颜色函数问题
+@mixin button-variant($color, $background, $border) {
+  color: $color;
+  background-color: $background;
+  border-color: $border;
+  transition: all 0.3s ease;
+  
+  &:hover,
+  &:focus {
+    color: $color;
+    background-color: $background;
+    border-color: $border;
+    opacity: 0.8;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    color: $color;
+    background-color: $background;
+    border-color: $border;
+    opacity: 0.9;
+    transform: translateY(0);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+// 渐变背景
+@mixin gradient($start-color, $end-color, $direction: to right) {
+  background: linear-gradient($direction, $start-color, $end-color);
+}
+
+// 响应式断点
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == mobile {
+    @media (max-width: #{$breakpoint-mobile - 1px}) {
+      @content;
+    }
+  }
+  @if $breakpoint == tablet {
+    @media (min-width: #{$breakpoint-mobile}) and (max-width: #{$breakpoint-tablet - 1px}) {
+      @content;
+    }
+  }
+  @if $breakpoint == desktop {
+    @media (min-width: #{$breakpoint-tablet}) {
+      @content;
+    }
+  }
+  @if $breakpoint == large {
+    @media (min-width: #{$breakpoint-large}) {
+      @content;
+    }
+  }
+}
+
+// 滚动条样式
+@mixin scrollbar($size: 8px, $thumb-color: var(--el-border-color-light), $track-color: transparent) {
+  &::-webkit-scrollbar {
+    width: $size;
+    height: $size;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: $thumb-color;
+    border-radius: $size / 2;
+    
+    &:hover {
+      background-color: var(--el-border-color);
+    }
+  }
+  
+  &::-webkit-scrollbar-track {
+    background-color: $track-color;
+  }
+}
+
+// 阴影效果
+@mixin shadow($level: 1) {
+  @if $level == 1 {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+  } @else if $level == 2 {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12), 0 0 12px rgba(0, 0, 0, 0.06);
+  } @else if $level == 3 {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12), 0 0 20px rgba(0, 0, 0, 0.08);
+  }
+}
+
+// 过渡动画
+@mixin transition($property: all, $duration: 0.3s, $timing: ease) {
+  transition: $property $duration $timing;
+}
+
+// 变换效果
+@mixin transform($transforms) {
+  transform: $transforms;
+}
+
+// 旋转
+@mixin rotate($degrees) {
+  @include transform(rotate(#{$degrees}deg));
+}
+
+// 缩放
+@mixin scale($scale) {
+  @include transform(scale($scale));
+}
+
+// 平移
+@mixin translate($x, $y) {
+  @include transform(translate($x, $y));
+}
+
+// 状态颜色混入 - 已废弃，直接在CSS中使用Element Plus的颜色变量
+// @mixin status-color($color) {
+//   color: $color;
+//   background-color: #{$color}1a; // 10% opacity
+//   border: 1px solid #{$color}4d; // 30% opacity
+// }
+
+// 悬停效果
+@mixin hover-effect($scale: 1.05, $shadow: true) {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  
+  &:hover {
+    transform: scale($scale);
+    @if $shadow {
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  }
+}
+
+// 加载动画
+@mixin loading-animation($duration: 1.5s) {
+  @keyframes loading {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  animation: loading $duration linear infinite;
+}
+
+// 淡入动画
+@mixin fade-in($duration: 0.3s) {
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  animation: fadeIn $duration ease-in;
+}
+
+// 滑入动画
+@mixin slide-in($direction: up, $distance: 20px, $duration: 0.3s) {
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      @if $direction == up {
+        transform: translateY($distance);
+      } @else if $direction == down {
+        transform: translateY(-$distance);
+      } @else if $direction == left {
+        transform: translateX($distance);
+      } @else if $direction == right {
+        transform: translateX(-$distance);
+      }
+    }
+    to {
+      opacity: 1;
+      transform: translate(0, 0);
+    }
+  }
+  
+  animation: slideIn $duration ease-out;
+}
+
+// 卡片样式
+@mixin card($padding: 20px, $radius: 8px, $shadow: true) {
+  background: var(--card-bg-color);
+  border-radius: $radius;
+  padding: $padding;
+  @if $shadow {
+    box-shadow: var(--card-shadow);
+  }
+}
+
+// 表单组样式
+@mixin form-group($margin-bottom: 20px) {
+  margin-bottom: $margin-bottom;
+  
+  .form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+  }
+  
+  .form-control {
+    width: 100%;
+  }
+  
+  .form-help {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+  
+  .form-error {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--el-color-danger);
+  }
+}
+
+// 网格布局
+@mixin grid($columns: 1, $gap: 20px) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: $gap;
+  
+  @include respond-to(mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// 页面容器
+@mixin page-container($padding: 20px, $max-width: none) {
+  padding: $padding;
+  @if $max-width {
+    max-width: $max-width;
+    margin: 0 auto;
+  }
+  
+  @include respond-to(mobile) {
+    padding: $padding / 2;
+  }
+}
+
+// 工具栏样式
+@mixin toolbar($height: 48px, $padding: 0 16px) {
+  height: $height;
+  padding: $padding;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 搜索框样式
+@mixin search-box($width: 300px) {
+  .el-input {
+    width: $width;
+    
+    .el-input__wrapper {
+      border-radius: 20px;
+      background-color: var(--el-fill-color-light);
+      border: none;
+      
+      &:hover,
+      &.is-focus {
+        background-color: var(--el-fill-color);
+        box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+      }
+    }
+    
+    .el-input__inner {
+      color: var(--el-text-color-primary);
+      
+      &::placeholder {
+        color: var(--el-text-color-placeholder);
+      }
+    }
+  }
+}
+
+// 标签样式 - 已废弃，使用Element Plus内置的标签样式
+// @mixin tag-variant($color) {
+//   color: $color;
+//   background-color: rgba($color, 0.1);
+//   border-color: rgba($color, 0.3);
+//   
+//   &.is-closable .el-tag__close {
+//     color: $color;
+//     
+//     &:hover {
+//       background-color: $color;
+//       color: #ffffff;
+//     }
+//   }
+// }

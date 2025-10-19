@@ -1,0 +1,186 @@
+.proForm {
+  width: 100%;
+
+  &--inline {
+    :global(.el-form) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+  }
+}
+
+.formGroup {
+  margin-bottom: 20px;
+
+  .groupHeader {
+    margin-bottom: 16px;
+
+    .groupTitle {
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .groupDescription {
+      margin: 8px 0 0 0;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.5;
+    }
+  }
+}
+
+.formActions {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+
+  &--left {
+    text-align: left;
+  }
+
+  &--center {
+    text-align: center;
+  }
+
+  &--right {
+    text-align: right;
+  }
+
+  &--fixed {
+    position: sticky;
+    bottom: 0;
+    background: var(--el-bg-color);
+    z-index: 10;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    margin: 0 -20px -20px -20px;
+    padding: 16px 20px;
+  }
+
+  :global(.el-button) {
+    margin-right: 12px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+
+// 折叠分组样式
+.formCollapse {
+  border: none;
+  
+  :global(.el-collapse-item) {
+    margin-bottom: 20px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    overflow: hidden;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .el-collapse-item__header {
+      padding: 20px 20px;
+      background: var(--el-fill-color-extra-light);
+      border-bottom: none;
+      font-weight: 600;
+      
+      &:hover {
+        background: var(--el-fill-color-light);
+      }
+      
+      .el-collapse-item__arrow {
+        margin-right: 12px;
+        transition: transform 0.3s ease;
+      }
+    }
+    
+    .el-collapse-item__wrap {
+      border-top: 1px solid var(--el-border-color-lighter);
+    }
+    
+    .el-collapse-item__content {
+      padding: 20px;
+      background: white;
+    }
+  }
+}
+
+.collapseHeader {
+  display: flex;
+  flex-direction: column;
+  
+  .groupTitle {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+  }
+  
+  .groupDescription {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    line-height: 1.4;
+  }
+}
+
+.collapseContent {
+  // 确保内容区域有合适的间距
+  .el-row {
+    margin: 0;
+  }
+}
+
+// 分组卡片样式（非折叠模式）
+.groupCard {
+  margin-bottom: 20px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  :global(.el-card__header) {
+    padding: 20px 20px;
+    background: var(--el-fill-color-extra-light);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+  }
+  
+  :global(.el-card__body) {
+    padding: 20px;
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .proForm {
+    .formActions {
+      text-align: center;
+      
+      :global(.el-button) {
+        margin-bottom: 12px;
+        width: 100%;
+        margin-right: 0;
+      }
+    }
+  }
+  
+  .formCollapse {
+    :global(.el-collapse-item) {
+      .el-collapse-item__header,
+      .el-collapse-item__content {
+        padding: 16px;
+      }
+    }
+  }
+  
+  .groupCard {
+    :global(.el-card__header),
+    :global(.el-card__body) {
+      padding: 16px;
+    }
+  }
+}

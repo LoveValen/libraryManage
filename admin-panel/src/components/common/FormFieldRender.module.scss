@@ -1,0 +1,36 @@
+.fieldTooltip {
+  margin-left: 4px;
+  color: var(--el-color-info);
+  cursor: help;
+}
+
+.fieldExtra {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+}
+
+.fieldText {
+  color: var(--el-text-color-regular);
+}
+
+/* 全局样式覆盖 */
+:global(.el-form-item__label) {
+  display: flex;
+  align-items: center;
+}
+
+:global(.el-upload) {
+  width: 100%;
+}
+
+:global(.el-upload-list--picture-card .el-upload-list__item) {
+  width: 100px;
+  height: 100px;
+}
+
+:global(.el-upload--picture-card) {
+  width: 100px;
+  height: 100px;
+}

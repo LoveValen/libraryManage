@@ -1,0 +1,434 @@
+// 列宽拖拽专用样式
+// 用于 ProTable 虚拟表格的列宽调整功能
+
+// ========== 拖拽手柄样式 ==========
+.column-resize-handle {
+  position: absolute !important;
+  right: -3px !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 6px !important;
+  cursor: col-resize !important;
+  z-index: 9999 !important;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  user-select: none;
+  pointer-events: auto !important;
+  
+  // 拖拽手柄指示器
+  &::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 20px;
+    background: var(--el-border-color-light);
+    border-radius: 1px;
+    transition: all 0.2s ease;
+    opacity: 0.5;
+  }
+  
+  // 悬停状态
+  &:hover {
+    background: rgba(64, 158, 255, 0.1);
+    
+    &::before {
+      background: var(--el-color-primary);
+      height: 32px;
+      opacity: 1;
+      box-shadow: 0 0 4px rgba(64, 158, 255, 0.5);
+    }
+  }
+  
+  // 激活/拖拽中状态
+  &.active,
+  &.dragging {
+    background: rgba(64, 158, 255, 0.2) !important;
+    
+    &::before {
+      background: var(--el-color-primary) !important;
+      height: 100% !important;
+      width: 3px !important;
+      opacity: 1 !important;
+    }
+  }
+  
+  // 调试模式下的样式
+  .debug-mode & {
+    background: rgba(255, 0, 0, 0.1) !important;
+    
+    &::before {
+      background: red !important;
+      opacity: 0.8 !important;
+    }
+    
+    &:hover {
+      background: rgba(255, 0, 0, 0.3) !important;
+    }
+  }
+}
+
+// ========== 拖拽线样式（基于参考文章） ==========
+.drag-line {
+  position: absolute !important;
+  right: 0px !important;
+  top: 0px !important;
+  bottom: 0px !important;
+  width: 4px !important;
+  cursor: ew-resize !important;
+  z-index: 9999 !important;
+  user-select: none !important;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  
+  // 拖拽线指示器
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 1px;
+    height: 20px;
+    background: var(--el-border-color-light);
+    transition: all 0.2s ease;
+  }
+  
+  // 悬停效果
+  &:hover {
+    background: rgba(64, 158, 255, 0.08);
+    
+    &::after {
+      background: var(--el-color-primary);
+      width: 2px;
+      height: 30px;
+      box-shadow: 0 0 4px rgba(64, 158, 255, 0.4);
+    }
+  }
+  
+  // 拖拽中状态
+  &:active,
+  &[draggable="true"]:active {
+    background: rgba(64, 158, 255, 0.15) !important;
+    
+    &::after {
+      background: var(--el-color-primary) !important;
+      width: 3px !important;
+      height: 100% !important;
+    }
+  }
+  
+  // 调试模式
+  .debug-mode & {
+    background: rgba(255, 0, 0, 0.1) !important;
+    
+    &::after {
+      background: red !important;
+      width: 2px;
+    }
+    
+    &:hover {
+      background: rgba(255, 0, 0, 0.2) !important;
+    }
+  }
+}
+
+// ========== ElTableV2 特定覆盖 ==========
+.el-table-v2 {
+  // 确保表头单元格支持拖拽
+  .el-table-v2__header {
+    position: relative !important;
+    
+    .el-table-v2__header-row {
+      position: relative !important;
+    }
+    
+    .el-table-v2__header-cell {
+      position: relative !important;
+      overflow: visible !important;
+      
+      // 防止内容裁剪拖拽手柄
+      .el-table-v2__header-cell-text {
+        overflow: visible !important;
+      }
+    }
+  }
+  
+  // 可调整大小的表头
+  .resizable-header {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    
+    // 悬停效果
+    &:hover {
+      background: var(--el-fill-color-light);
+    }
+    
+    // 选中状态
+    &.column-selected {
+      background: rgba(64, 158, 255, 0.08) !important;
+      
+      // 左边框指示器
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--el-color-primary);
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+    
+    // 多选状态
+    &.multi-selected {
+      background: rgba(64, 158, 255, 0.12) !important;
+      
+      &::before {
+        width: 3px;
+        background: linear-gradient(
+          180deg,
+          var(--el-color-primary),
+          var(--el-color-primary-light-3)
+        );
+      }
+    }
+  }
+}
+
+// ========== 拖拽指示线 ==========
+.column-resize-line {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--el-color-primary);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0.8;
+  box-shadow: 0 0 8px rgba(64, 158, 255, 0.6);
+  
+  // 动画效果
+  &.animated {
+    animation: resize-line-pulse 0.5s ease-in-out infinite;
+  }
+  
+  // 顶部和底部装饰
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: var(--el-color-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(64, 158, 255, 0.8);
+  }
+  
+  &::before {
+    top: -6px;
+  }
+  
+  &::after {
+    bottom: -6px;
+  }
+  
+  // 中间指示器
+  .resize-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 4px 8px;
+    background: var(--el-color-primary);
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+}
+
+// ========== 全局拖拽状态 ==========
+body.column-resizing {
+  cursor: ew-resize !important;
+  user-select: none !important;
+  
+  * {
+    cursor: ew-resize !important;
+    user-select: none !important;
+  }
+  
+  // 保持拖拽线可交互
+  .drag-line {
+    pointer-events: auto !important;
+    cursor: ew-resize !important;
+  }
+  
+  // 保持拖拽手柄可交互
+  .column-resize-handle {
+    pointer-events: auto !important;
+    cursor: ew-resize !important;
+  }
+  
+  // 防止文本选择
+  ::selection {
+    background: transparent;
+  }
+}
+
+// ========== 拖拽时的遮罩层 ==========
+.column-resize-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  cursor: col-resize;
+  user-select: none;
+  
+  // 半透明背景（可选）
+  &.with-backdrop {
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// ========== 列宽提示 ==========
+.column-width-tooltip {
+  position: fixed;
+  z-index: 10001;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  margin-top: -8px;
+  
+  // 箭头
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid rgba(0, 0, 0, 0.8);
+  }
+}
+
+// ========== 动画定义 ==========
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes resize-line-pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(64, 158, 255, 0.8);
+  }
+}
+
+// ========== ProTable 特定样式 ==========
+.pro-table {
+  // 虚拟表格容器
+  .pro-table-content {
+    position: relative;
+    
+    // 确保拖拽手柄在虚拟滚动中可见
+    .el-table-v2__header {
+      .column-resize-handle {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+    }
+  }
+  
+  // 调试模式
+  &.debug-mode {
+    .column-resize-handle {
+      background: rgba(255, 0, 0, 0.2) !important;
+      border-right: 1px dashed red;
+      
+      &::before {
+        background: red !important;
+      }
+    }
+    
+    .resizable-header {
+      border: 1px dotted blue;
+      
+      &::after {
+        content: attr(data-column-key);
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        font-size: 10px;
+        color: red;
+        background: white;
+        padding: 0 2px;
+        border-radius: 2px;
+      }
+    }
+  }
+}
+
+// ========== 响应式调整 ==========
+@media (max-width: 768px) {
+  .column-resize-handle {
+    width: 8px !important;
+    right: -4px !important;
+    
+    &::before {
+      width: 3px;
+    }
+  }
+}
+
+// ========== 辅助类 ==========
+.column-resize-disabled {
+  .column-resize-handle {
+    display: none !important;
+  }
+  
+  .resizable-header {
+    cursor: default !important;
+  }
+}
+
+// 高亮拖拽区域
+.column-resize-highlight {
+  .column-resize-handle {
+    background: rgba(255, 193, 7, 0.2) !important;
+    
+    &::before {
+      background: var(--el-color-warning) !important;
+      height: 100% !important;
+      width: 3px !important;
+    }
+  }
+}

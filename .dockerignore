@@ -1,0 +1,21 @@
+# 忽略版本控制目录与编辑器配置，避免写入镜像
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# 忽略依赖与编译产物，缩小构建上下文
+node_modules
+**/node_modules
+dist
+**/dist
+logs
+**/logs
+*.log
+**/*.log
+
+# 忽略本地环境配置，保留生产模板
+.env
+.env.*
+!.env.production

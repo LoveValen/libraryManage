@@ -1,0 +1,111 @@
+services:
+  # MySQL 8.4数据库
+  mysql:
+    image: mysql:8.4
+    container_name: library_mysql_prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-library_db}
+      MYSQL_USER: library_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./deployment/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - library_network
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis 7.2缓存
+  redis:
+    image: redis:7.2-alpine
+    container_name: library_redis_prod
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=esetrva1t5e4uPafugefyWBKLrgH7YuONJ55inmpbp8=
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+      - ./deployment/redis/redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - library_network
+    command: redis-server /etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "esetrva1t5e4uPafugefyWBKLrgH7YuONJ55inmpbp8=", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # 后端API服务
+  backend:
+    build: 
+      context: .
+      dockerfile: deployment/backend/Dockerfile
+      target: production
+    container_name: library_backend_prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=mysql://${DB_USER:-root}:${DB_PASSWORD:-root}@${DB_HOST:-mysql}:3306/${DB_NAME:-library_db}
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=3306
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-root}
+      - DB_NAME=${DB_NAME:-library_db}
+      - REDIS_URL=redis://:esetrva1t5e4uPafugefyWBKLrgH7YuONJ55inmpbp8=@${REDIS_HOST:-redis}:6379
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=esetrva1t5e4uPafugefyWBKLrgH7YuONJ55inmpbp8=
+      - JWT_SECRET=${JWT_SECRET:-da555f549f113d99ee0b85fb180ba187d0ec4a6a47325ded9272a777d8271ed4}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - FRONTEND_URL=${FRONTEND_URL:-http://8.133.18.41:8080}
+    volumes:
+      - ./backend/public/uploads:/app/public/uploads
+      - ./backend/logs:/app/logs
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - library_network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 前端应用
+  frontend:
+    build:
+      context: .
+      dockerfile: deployment/frontend/Dockerfile
+    container_name: library_frontend_prod
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - library_network
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      timeout: 10s
+      retries: 3
+
+
+# 网络配置
+networks:
+  library_network:
+    driver: bridge
+
+# 数据卷配置
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
