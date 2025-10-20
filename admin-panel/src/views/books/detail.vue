@@ -92,15 +92,15 @@
                 </div>
                 <div class="status-item">
                   <span class="status-label">位置</span>
-                  <span class="status-value">{{ bookDetail.location }}</span>
+                  <span class="status-value">{{ bookDetail.location || '未设置' }}</span>
                 </div>
                 <div class="status-item">
                   <span class="status-label">库存</span>
-                  <span class="status-value">{{ bookDetail.stock }}本</span>
+                  <span class="status-value">{{ bookDetail.stock ?? 0 }}本</span>
                 </div>
                 <div class="status-item">
                   <span class="status-label">可借</span>
-                  <span class="status-value">{{ bookDetail.availableStock }}本</span>
+                  <span class="status-value">{{ bookDetail.availableStock ?? 0 }}本</span>
                 </div>
               </div>
             </div>
@@ -110,11 +110,11 @@
             <div class="book-info-section">
               <div class="book-title-area">
                 <h1 class="book-title">{{ bookDetail.title }}</h1>
-                <div class="book-subtitle">{{ bookDetail.subtitle }}</div>
+                <div v-if="bookDetail.subtitle" class="book-subtitle">{{ bookDetail.subtitle }}</div>
                 <div class="book-meta">
                   <div class="meta-item">
                     <span class="meta-label">作者：</span>
-                    <span class="meta-value">{{ bookDetail.author }}</span>
+                    <span class="meta-value">{{ bookDetail.author || '未知作者' }}</span>
                   </div>
                   <div class="meta-item">
                     <span class="meta-label">分类：</span>
@@ -124,7 +124,7 @@
                   </div>
                   <div class="meta-item">
                     <span class="meta-label">评分：</span>
-                    <el-rate v-model="bookDetail.rating" disabled show-score />
+                    <el-rate :model-value="bookDetail.rating || 0" disabled show-score />
                     <span class="review-count">({{ bookDetail.reviewCount }}人评价)</span>
                   </div>
                 </div>
@@ -138,35 +138,35 @@
               <div class="book-details-grid">
                 <div class="detail-item">
                   <span class="detail-label">ISBN：</span>
-                  <span class="detail-value">{{ bookDetail.isbn }}</span>
+                  <span class="detail-value">{{ bookDetail.isbn || '-' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">出版社：</span>
-                  <span class="detail-value">{{ bookDetail.publisher }}</span>
+                  <span class="detail-value">{{ bookDetail.publisher || '-' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">出版日期：</span>
-                  <span class="detail-value">{{ formatDate(bookDetail.publishDate) }}</span>
+                  <span class="detail-value">{{ bookDetail.publishDate ? formatDate(bookDetail.publishDate) : '未填写' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">页数：</span>
-                  <span class="detail-value">{{ bookDetail.pages }}页</span>
+                  <span class="detail-value">{{ formatPages(bookDetail.pages) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">语言：</span>
-                  <span class="detail-value">{{ bookDetail.language }}</span>
+                  <span class="detail-value">{{ bookDetail.language || '未填写' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">版次：</span>
-                  <span class="detail-value">第{{ bookDetail.edition }}版</span>
+                  <span class="detail-value">{{ formatEdition(bookDetail.edition) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">价格：</span>
-                  <span class="detail-value">¥{{ bookDetail.price }}</span>
+                  <span class="detail-value">{{ formatPrice(bookDetail.price) }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">添加时间：</span>
-                  <span class="detail-value">{{ formatDateTime(bookDetail.createdAt) }}</span>
+                  <span class="detail-value">{{ bookDetail.createdAt ? formatDateTime(bookDetail.createdAt) : '未记录' }}</span>
                 </div>
               </div>
 
@@ -405,7 +405,7 @@
                       </div>
 
                       <div class="review-rating">
-                        <el-rate v-model="review.rating" disabled size="small" />
+                        <el-rate :model-value="review.rating || 0" disabled size="small" />
                       </div>
 
                       <div class="review-actions">
@@ -644,6 +644,106 @@ import QRCodeGenerator from './components/QRCodeGenerator.vue'
 const route = useRoute()
 const router = useRouter()
 
+const formatPrice = value => {
+  if (value === null || value === undefined || value === '') return '未定价'
+  const num = Number(value)
+  if (Number.isNaN(num)) {
+    return value
+  }
+  return `¥${num.toFixed(2)}`
+}
+
+const formatEdition = value => {
+  if (value === null || value === undefined || value === '') return '未填写'
+  return `第${value}版`
+}
+
+const formatPages = value => {
+  if (!value) return '未填写'
+  return `${value}页`
+}
+
+const transformBookDetail = raw => {
+  if (!raw) return null
+
+  const authorsArray = Array.isArray(raw.authors)
+    ? raw.authors
+    : raw.author
+      ? [raw.author]
+      : []
+  const authorText = authorsArray.filter(Boolean).join('、') || '未知作者'
+
+  const tagNames = Array.isArray(raw.tagItems)
+    ? raw.tagItems.map(item => item?.name).filter(Boolean)
+    : Array.isArray(raw.tags)
+      ? raw.tags.filter(tag => typeof tag === 'string' && tag.trim().length > 0)
+      : []
+
+  const locationText = raw.locationName || raw.locationInfo?.name || raw.location || '未设置'
+  const totalStock = raw.totalStock ?? raw.total_stock ?? raw.stock ?? 0
+  const availableStock = raw.availableStock ?? raw.available_stock ?? raw.stock ?? 0
+  const ratingValue = Number(raw.averageRating ?? raw.rating ?? 0)
+
+  return {
+    ...raw,
+    authors: authorsArray,
+    author: authorText,
+    subtitle: raw.subtitle || raw.summary || '',
+    description: raw.description || raw.summary || '',
+    tags: tagNames,
+    location: locationText,
+    stock: totalStock,
+    availableStock,
+    rating: Number.isFinite(ratingValue) ? Number(ratingValue.toFixed(1)) : 0,
+    reviewCount: raw.reviewCount ?? raw.reviewsCount ?? 0,
+    borrowCount: raw.borrowCount ?? 0,
+    viewCount: raw.viewCount ?? 0,
+    favoriteCount: raw.favoriteCount ?? raw.favoritesCount ?? 0,
+    reserveCount: raw.reserveCount ?? raw.reservationsCount ?? 0,
+    publishDate: raw.publishDate || (raw.publicationYear ? `${raw.publicationYear}-01-01` : raw.publish_date || null),
+    edition: raw.edition || raw.version || raw.editionNumber || null,
+    price: raw.price ?? null
+  }
+}
+
+const transformBorrowRecord = record => {
+  if (!record) return null
+
+  const borrower = record.borrower || record.user || {}
+  const borrowDate = record.borrow_date || record.borrowDate || null
+  const dueDate = record.due_date || record.dueDate || null
+  const returnDate = record.return_date || record.returnDate || null
+
+  return {
+    id: record.id,
+    status: record.status,
+    renewalCount: record.renewal_count ?? record.renewalCount ?? 0,
+    notes: record.borrow_notes ?? record.notes ?? '',
+    borrowDate,
+    dueDate,
+    returnDate,
+    user: {
+      realName: borrower.real_name || borrower.realName || borrower.username || borrower.email || '未知用户',
+      username: borrower.username || borrower.email || '-',
+      avatar: borrower.avatar || borrower.profile?.avatar || ''
+    }
+  }
+}
+
+const transformReview = review => {
+  if (!review) return null
+  const user = review.user || {}
+  return {
+    ...review,
+    user: user
+      ? {
+          ...user,
+          realName: user.realName || user.nickName || user.username || '匿名用户'
+        }
+      : undefined
+  }
+}
+
 // 响应式数据
 const loading = ref(false)
 const bookDetail = ref(null)
@@ -725,13 +825,15 @@ const bookId = computed(() => route.params.id)
 const fetchBookDetail = async () => {
   try {
     loading.value = true
-    const { data } = await bookApi.getBookDetail(bookId.value)
-    bookDetail.value = data
-    statistics.value = data.statistics || {
-      borrowCount: 0,
-      viewCount: 0,
-      favoriteCount: 0,
-      reserveCount: 0
+    const response = await bookApi.getBookDetail(bookId.value)
+    const rawData = response?.data ?? response
+    const transformed = transformBookDetail(rawData)
+    bookDetail.value = transformed
+    statistics.value = {
+      borrowCount: transformed?.borrowCount ?? 0,
+      viewCount: transformed?.viewCount ?? 0,
+      favoriteCount: transformed?.favoriteCount ?? 0,
+      reserveCount: transformed?.reserveCount ?? 0
     }
   } catch (error) {
     console.error('获取图书详情失败:', error)
@@ -768,12 +870,15 @@ const fetchBorrowHistory = async () => {
     }
 
     const response = await bookApi.getBookBorrowHistory(bookId.value, params)
-    borrowHistory.value = response.data
-    borrowPagination.total = response.total
+    const list = Array.isArray(response.data) ? response.data : []
+    borrowHistory.value = list.map(transformBorrowRecord)
+    borrowPagination.total = Number(response.total ?? list.length) || 0
+    borrowPagination.page = Number(response.page ?? borrowPagination.page) || borrowPagination.page
+    borrowPagination.size = Number(response.pageSize ?? borrowPagination.size) || borrowPagination.size
   } catch (error) {
     console.error('获取借阅记录失败:', error)
     showError('获取借阅记录失败')
-  } finally{
+  } finally {
     borrowLoading.value = false
   }
 }
@@ -787,12 +892,16 @@ const fetchReviews = async () => {
     }
 
     const response = await bookApi.getBookReviews(bookId.value, params)
-    reviews.value = response.data
-    reviewsDistribution.value = response.data.statistics?.ratingDistribution
-    reviewsPagination.total = response.total
+    const payload = response.data || {}
+    const reviewList = Array.isArray(payload.reviews) ? payload.reviews : []
+    reviews.value = reviewList.map(transformReview)
+    reviewsDistribution.value = payload.statistics?.ratingDistribution || {}
+    reviewsPagination.total = Number(response.total ?? reviewList.length) || 0
+    reviewsPagination.page = Number(response.page ?? reviewsPagination.page) || reviewsPagination.page
+    reviewsPagination.size = Number(response.pageSize ?? reviewsPagination.size) || reviewsPagination.size
   } catch (error) {
     console.error('获取评论失败:', error)
-    ElMessage.error('获取评论失败')
+    showError('获取评论失败')
   } finally {
     reviewsLoading.value = false
   }
@@ -807,11 +916,14 @@ const fetchStockHistory = async () => {
     }
 
     const response = await bookApi.getBookStockHistory(bookId.value, params)
-    stockHistory.value = response.data
-    stockPagination.total = response.total
+    const records = Array.isArray(response.data) ? response.data : []
+    stockHistory.value = records
+    stockPagination.total = Number(response.total ?? records.length) || 0
+    stockPagination.page = Number(response.page ?? stockPagination.page) || stockPagination.page
+    stockPagination.size = Number(response.pageSize ?? stockPagination.size) || stockPagination.size
   } catch (error) {
     console.error('获取库存记录失败:', error)
-    ElMessage.error('获取库存记录失败')
+    showError('获取库存记录失败')
   } finally {
     stockLoading.value = false
   }
@@ -826,11 +938,14 @@ const fetchOperationLogs = async () => {
     }
 
     const response = await bookApi.getBookLogs(bookId.value, params)
-    operationLogs.value = response.data
-    logsPagination.total = response.total
+    const records = Array.isArray(response.data) ? response.data : []
+    operationLogs.value = records
+    logsPagination.total = Number(response.total ?? records.length) || 0
+    logsPagination.page = Number(response.page ?? logsPagination.page) || logsPagination.page
+    logsPagination.size = Number(response.pageSize ?? logsPagination.size) || logsPagination.size
   } catch (error) {
     console.error('获取操作日志失败:', error)
-    ElMessage.error('获取操作日志失败')
+    showError('获取操作日志失败')
   } finally {
     logsLoading.value = false
   }

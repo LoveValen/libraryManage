@@ -212,6 +212,7 @@ const setTagOptions = (tags = []) => {
     value: tag.id,
     raw: tag
   }))
+  syncTagFieldOptions()
 }
 
 const setLocationOptions = (locations = []) => {
@@ -221,6 +222,7 @@ const setLocationOptions = (locations = []) => {
     value: location.id,
     raw: location
   }))
+  syncLocationFieldOptions()
 }
 
 const ensureOption = (targetRef, option) => {
@@ -578,6 +580,40 @@ const formFields = ref([
   }
 ])
 
+const updateFormField = (fieldName, updater) => {
+  const index = formFields.value.findIndex(field => field.name === fieldName)
+  if (index === -1) return
+  const currentField = formFields.value[index]
+  const nextField = {
+    ...currentField,
+    ...updater(currentField)
+  }
+  formFields.value = [
+    ...formFields.value.slice(0, index),
+    nextField,
+    ...formFields.value.slice(index + 1)
+  ]
+}
+
+const syncCategoryFieldOptions = () => {
+  updateFormField('categoryId', field => ({
+    fieldProps: {
+      ...(field.fieldProps || {}),
+      data: categories.value
+    }
+  }))
+}
+
+const syncTagFieldOptions = () => {
+  const options = tagOptions.value.map(option => ({ ...option }))
+  updateFormField('tagIds', () => ({ options }))
+}
+
+const syncLocationFieldOptions = () => {
+  const options = locationOptions.value.map(option => ({ ...option }))
+  updateFormField('locationId', () => ({ options }))
+}
+
 const normalizeNumberValue = (value, fallback = 0) => {
   if (value === '' || value === null || value === undefined) return fallback
   const numeric = Number(value)
@@ -606,13 +642,7 @@ const fetchCategories = async () => {
         : []
     const treeCategories = normalizeCategoryTree(rawCategories)
     categories.value = treeCategories
-
-    await nextTick()
-    proFormRef.value?.setFieldProps?.('categoryId', {
-      fieldProps: {
-        data: treeCategories
-      }
-    })
+    syncCategoryFieldOptions()
   } catch (error) {
     console.error('获取分类失败:', error)
     showError('获取分类数据失败：' + (error.message || '网络错误'))
@@ -633,15 +663,6 @@ const fetchTagOptions = async () => {
             ? rawData
             : []
     setTagOptions(tags)
-
-    await nextTick()
-    proFormRef.value?.setFieldProps?.('tagIds', {
-      options: tags.map(tag => ({
-        label: tag.name,
-        value: tag.id,
-        raw: tag
-      }))
-    })
   } catch (error) {
     console.error('获取标签列表失败:', error)
   }
@@ -662,15 +683,6 @@ const fetchLocationOptions = async () => {
             ? rawData
             : []
     setLocationOptions(locations)
-
-    await nextTick()
-    proFormRef.value?.setFieldProps?.('locationId', {
-      options: locations.map(location => ({
-        label: location.name,
-        value: location.id,
-        raw: location
-      }))
-    })
   } catch (error) {
     console.error('获取存放位置失败:', error)
   }
@@ -776,6 +788,8 @@ const fetchBookDetail = async (targetId = bookId.value) => {
         raw: book.locationInfo || { id: locationId, name: locationName }
       })
     }
+    syncTagFieldOptions()
+    syncLocationFieldOptions()
 
     await nextTick()
     proFormRef.value?.setValues(detailValues)
@@ -1235,5 +1249,3 @@ onMounted(async () => {
   }
 }
 </style>
-
-

@@ -597,17 +597,53 @@ async function upsertRoles(permissionMap) {
       ? Array.from(permissionMap.keys())
       : r.permissions;
 
-    await prisma.role_permissions.deleteMany({ where: { role_id: role.id } });
+    const existingRolePermissions = await prisma.role_permissions.findMany({
+      where: { role_id: role.id },
+      select: { permission: { select: { code: true } }, permission_id: true }
+    });
+
+    const existingPermissionMap = new Map(
+      existingRolePermissions
+        .filter(item => item.permission?.code)
+        .map(item => [item.permission.code, item.permission_id])
+    );
+
+    const desiredSet = new Set(permissionCodes);
+    const codesToAdd = [];
 
     for (const code of permissionCodes) {
-      const perm = permissionMap.get(code);
-      if (!perm) continue;
-      await prisma.role_permissions.create({
-        data: {
+      if (!existingPermissionMap.has(code)) {
+        const perm = permissionMap.get(code);
+        if (perm) {
+          codesToAdd.push(perm.id);
+        }
+      }
+    }
+
+    if (codesToAdd.length) {
+      await prisma.role_permissions.createMany({
+        data: codesToAdd.map(permissionId => ({
           role_id: role.id,
-          permission_id: perm.id,
-          created_at: new Date(),
-        },
+          permission_id: permissionId,
+          created_at: new Date()
+        })),
+        skipDuplicates: true
+      });
+    }
+
+    const codesToRemove = [];
+    for (const [code, permissionId] of existingPermissionMap.entries()) {
+      if (!desiredSet.has(code)) {
+        codesToRemove.push(permissionId);
+      }
+    }
+
+    if (codesToRemove.length) {
+      await prisma.role_permissions.deleteMany({
+        where: {
+          role_id: role.id,
+          permission_id: { in: codesToRemove }
+        }
       });
     }
   }

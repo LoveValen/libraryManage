@@ -206,7 +206,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { showError, notifySuccess } from '@/utils/message'
+import { showError, showInfo, notifySuccess } from '@/utils/message'
 import {
   Lightning,
   Plus,
@@ -263,7 +263,9 @@ const loadLeaderboard = async () => {
       limit: 10
     })
 
-    leaderboard.value = response.data
+    leaderboard.value = Array.isArray(response.data?.leaderboard)
+      ? response.data.leaderboard
+      : (Array.isArray(response.data) ? response.data : [])
   } catch (error) {
     console.error('加载排行榜失败:', error)
     showError('加载排行榜失败')
@@ -279,7 +281,13 @@ const loadRecentTransactions = async () => {
       limit: 10
     })
 
-    recentTransactions.value = response.data.transactions
+    if (Array.isArray(response.data)) {
+      recentTransactions.value = response.data
+    } else if (Array.isArray(response.data?.transactions)) {
+      recentTransactions.value = response.data.transactions
+    } else {
+      recentTransactions.value = []
+    }
   } catch (error) {
     console.error('加载交易记录失败:', error)
     showError('加载交易记录失败')
@@ -291,10 +299,10 @@ const loadRecentTransactions = async () => {
 const loadPointsRules = async () => {
   try {
     const response = await getPointsRules()
-    const rules = response.data
+    const rules = response.data || {}
 
-    pointsRules.value = rules.pointsRules
-    userLevels.value = rules.userLevels
+    pointsRules.value = rules.pointsRules || {}
+    userLevels.value = rules.userLevels || {}
   } catch (error) {
     console.error('加载积分规则失败:', error)
     showError('加载积分规则失败')

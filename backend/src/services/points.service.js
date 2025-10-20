@@ -1,4 +1,3 @@
-const UserService = require('./user.service');
 const prisma = require('../utils/prisma');
 const { 
   NotFoundError, 
@@ -12,19 +11,20 @@ const {
   POINTS_RULES, 
   USER_LEVELS 
 } = require('../utils/constants');
+const UserService = require('./user.service');
 
 /**
  * Basic PointsService for Prisma operations
  */
 class PointsService {
-  static async getOrCreateUserPoints(userId) {
-    let userPoints = await prisma.userPoints.findUnique({
+  static async getOrCreateUserPoints(userId, client = prisma) {
+    let userPoints = await client.userPoints.findUnique({
       where: { user_id: parseInt(userId) },
       include: { user: true }
     });
 
     if (!userPoints) {
-      userPoints = await prisma.userPoints.create({
+      userPoints = await client.userPoints.create({
         data: {
           user_id: parseInt(userId),
           balance: 0,
@@ -43,14 +43,20 @@ class PointsService {
   }
 
   static async addPoints(userId, points, transactionType, description, options = {}) {
-    const { operatorId, metadata, relatedEntityType, relatedEntityId } = options;
+    const {
+      operatorId,
+      metadata,
+      relatedEntityType,
+      relatedEntityId,
+      transactionClient
+    } = options;
 
-    return prisma.$transaction(async (tx) => {
-      const userPoints = await this.getOrCreateUserPoints(userId);
+    const execute = async (client) => {
+      const userPoints = await this.getOrCreateUserPoints(userId, client);
       const previousBalance = userPoints.balance;
       const newBalance = previousBalance + points;
 
-      const updatedUserPoints = await tx.userPoints.update({
+      const updatedUserPoints = await client.userPoints.update({
         where: { user_id: parseInt(userId) },
         data: {
           balance: newBalance,
@@ -61,7 +67,7 @@ class PointsService {
         }
       });
 
-      const transaction = await tx.pointsTransactions.create({
+      const transaction = await client.pointsTransactions.create({
         data: {
           user_id: parseInt(userId),
           points_change: points,
@@ -79,6 +85,371 @@ class PointsService {
       });
 
       return { userPoints: updatedUserPoints, transaction };
+    };
+
+    if (transactionClient) {
+      return execute(transactionClient);
+    }
+
+    return prisma.$transaction(async (tx) => execute(tx));
+  }
+
+  static async deductPoints(userId, points, transactionType, description, options = {}) {
+    const amount = Math.abs(points);
+    const {
+      operatorId,
+      metadata,
+      relatedEntityType,
+      relatedEntityId,
+      transactionClient
+    } = options;
+
+    const execute = async (client) => {
+      const userPoints = await this.getOrCreateUserPoints(userId, client);
+
+      if (userPoints.balance < amount) {
+        throw new InsufficientPointsError('积分余额不足');
+      }
+
+      const previousBalance = userPoints.balance;
+      const newBalance = previousBalance - amount;
+      const data = {
+        balance: newBalance,
+        total_spent: { increment: amount },
+        last_transaction_at: new Date(),
+        updated_at: new Date()
+      };
+
+      const updatedUserPoints = await client.userPoints.update({
+        where: { user_id: parseInt(userId) },
+        data
+      });
+
+      const transaction = await client.pointsTransactions.create({
+        data: {
+          user_id: parseInt(userId),
+          points_change: -amount,
+          current_balance: newBalance,
+          previous_balance: previousBalance,
+          transaction_type: transactionType,
+          description,
+          related_entity_type: relatedEntityType,
+          related_entity_id: relatedEntityId,
+          metadata: metadata || {},
+          processed_by: operatorId ? parseInt(operatorId) : null,
+          status: 'completed',
+          created_at: new Date()
+        }
+      });
+
+      return { userPoints: updatedUserPoints, transaction };
+    };
+
+    if (transactionClient) {
+      return execute(transactionClient);
+    }
+
+    return prisma.$transaction(async (tx) => execute(tx));
+  }
+
+  static async getUserPointsHistory(userId, options = {}) {
+    const page = Math.max(1, parseInt(options.page, 10) || 1);
+    const limit = Math.max(1, Math.min(parseInt(options.limit, 10) || 20, 100));
+    const skip = (page - 1) * limit;
+
+    const where = { user_id: parseInt(userId) };
+
+    if (options.transactionType) {
+      where.transaction_type = options.transactionType;
+    }
+
+    if (options.startDate || options.endDate) {
+      where.created_at = {};
+      if (options.startDate) {
+        where.created_at.gte = options.startDate instanceof Date
+          ? options.startDate
+          : new Date(options.startDate);
+      }
+      if (options.endDate) {
+        const end = options.endDate instanceof Date
+          ? options.endDate
+          : new Date(options.endDate);
+        end.setMilliseconds(999);
+        where.created_at.lte = end;
+      }
+    }
+
+    const [total, records] = await Promise.all([
+      prisma.pointsTransactions.count({ where }),
+      prisma.pointsTransactions.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              real_name: true,
+              email: true,
+              avatar: true,
+              role: true
+            }
+          },
+          processor: {
+            select: {
+              id: true,
+              username: true,
+              real_name: true,
+              email: true,
+              avatar: true,
+              role: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      data: records,
+      pagination: {
+        page,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  static async getStatistics(options = {}) {
+    const userFilter = options.userId ? { user_id: parseInt(options.userId) } : {};
+    const transactionWhere = options.userId ? { user_id: parseInt(options.userId) } : {};
+
+    if (options.startDate || options.endDate) {
+      transactionWhere.created_at = {};
+      if (options.startDate) {
+        transactionWhere.created_at.gte = options.startDate instanceof Date
+          ? options.startDate
+          : new Date(options.startDate);
+      }
+      if (options.endDate) {
+        const end = options.endDate instanceof Date
+          ? options.endDate
+          : new Date(options.endDate);
+        end.setMilliseconds(999);
+        transactionWhere.created_at.lte = end;
+      }
+    }
+
+    const [
+      userAggregate,
+      totalTransactions,
+      transactionsByTypeRaw,
+      levelDistributionRaw
+    ] = await Promise.all([
+      prisma.userPoints.aggregate({
+        where: userFilter,
+        _sum: { balance: true },
+        _count: { _all: true }
+      }),
+      prisma.pointsTransactions.count({ where: transactionWhere }),
+      prisma.pointsTransactions.groupBy({
+        by: ['transaction_type'],
+        where: transactionWhere,
+        _sum: { points_change: true },
+        _count: { _all: true }
+      }),
+      prisma.userPoints.groupBy({
+        by: ['level'],
+        where: userFilter,
+        _count: { _all: true }
+      })
+    ]);
+
+    const totalUsers = userAggregate?._count?._all || 0;
+    const totalPointsInCirculation = userAggregate?._sum?.balance || 0;
+
+    const transactionsByType = transactionsByTypeRaw.map(item => ({
+      type: item.transaction_type,
+      totalPoints: item._sum.points_change || 0,
+      count: item._count._all
+    }));
+
+    const levelDistribution = levelDistributionRaw.map(item => ({
+      level: item.level,
+      count: item._count._all
+    }));
+
+    return {
+      totalUsers,
+      totalPointsInCirculation,
+      totalTransactions,
+      transactionsByType,
+      levelDistribution
+    };
+  }
+
+  static async getLeaderboard({ limit = 10, timeRange = 'all' } = {}) {
+    const take = Math.max(1, Math.min(parseInt(limit, 10) || 10, 100));
+    const now = new Date();
+    let startDate = null;
+
+    if (timeRange === 'weekly') {
+      startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 7);
+      startDate.setHours(0, 0, 0, 0);
+    } else if (timeRange === 'monthly') {
+      startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 1);
+      startDate.setHours(0, 0, 0, 0);
+    }
+
+    if (!startDate) {
+      const topUsers = await prisma.userPoints.findMany({
+        orderBy: { balance: 'desc' },
+        take,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              real_name: true,
+              email: true,
+              avatar: true,
+              role: true
+            }
+          }
+        }
+      });
+
+      return topUsers.map((entry, index) => ({
+        userId: entry.user_id,
+        user: entry.user,
+        points: entry.balance,
+        totalEarned: entry.total_earned,
+        level: {
+          code: entry.level,
+          name: entry.level_name
+        },
+        rank: index + 1
+      }));
+    }
+
+    const grouped = await prisma.pointsTransactions.groupBy({
+      by: ['user_id'],
+      where: {
+        created_at: {
+          gte: startDate
+        }
+      },
+      _sum: { points_change: true }
+    });
+
+    const sorted = grouped
+      .filter(item => item._sum.points_change !== null)
+      .sort((a, b) => (b._sum.points_change || 0) - (a._sum.points_change || 0))
+      .slice(0, take);
+
+    const userIds = sorted.map(item => item.user_id);
+
+    const userPoints = await prisma.userPoints.findMany({
+      where: { user_id: { in: userIds } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            real_name: true,
+            email: true,
+            avatar: true,
+            role: true
+          }
+        }
+      }
+    });
+
+    const userMap = new Map(userPoints.map(entry => [entry.user_id, entry]));
+
+    return sorted.map((item, index) => {
+      const entry = userMap.get(item.user_id);
+      return {
+        userId: item.user_id,
+        user: entry?.user,
+        points: item._sum.points_change || 0,
+        level: entry
+          ? { code: entry.level, name: entry.level_name }
+          : null,
+        rank: index + 1
+      };
+    });
+  }
+
+  static async reverseTransaction(transactionId, reason, operatorId) {
+    return prisma.$transaction(async (tx) => {
+      const id = parseInt(transactionId, 10);
+      const original = await tx.pointsTransactions.findUnique({
+        where: { id }
+      });
+
+      if (!original) {
+        throw new NotFoundError('交易不存在');
+      }
+
+      if (original.status === 'reversed') {
+        throw new BadRequestError('该交易已被撤销');
+      }
+
+      const userPoints = await this.getOrCreateUserPoints(original.user_id, tx);
+      const adjustment = -original.points_change;
+      const previousBalance = userPoints.balance;
+      const newBalance = previousBalance + adjustment;
+
+      if (newBalance < 0) {
+        throw new BadRequestError('撤销后积分余额不能为负数');
+      }
+
+      const updatePayload = {
+        balance: newBalance,
+        last_transaction_at: new Date(),
+        updated_at: new Date()
+      };
+
+      if (original.points_change > 0) {
+        updatePayload.total_earned = { decrement: original.points_change };
+      } else if (original.points_change < 0) {
+        updatePayload.total_spent = { decrement: Math.abs(original.points_change) };
+      }
+
+      await tx.userPoints.update({
+        where: { user_id: original.user_id },
+        data: updatePayload
+      });
+
+      await tx.pointsTransactions.update({
+        where: { id },
+        data: { status: 'reversed' }
+      });
+
+      const reversal = await tx.pointsTransactions.create({
+        data: {
+          user_id: original.user_id,
+          points_change: adjustment,
+          current_balance: newBalance,
+          previous_balance: previousBalance,
+          transaction_type: POINTS_TRANSACTION_TYPES.ADMIN_ADJUSTMENT,
+          description: `撤销交易#${original.id}: ${reason}`,
+          metadata: {
+            relatedTransactionId: original.id,
+            reason
+          },
+          processed_by: operatorId ? parseInt(operatorId, 10) : null,
+          status: 'completed',
+          created_at: new Date()
+        }
+      });
+
+      return reversal;
     });
   }
 }
@@ -169,7 +540,7 @@ class PointsServiceAdapter {
   /**
    * Add points
    */
-  async addPoints(userId, points, type, description, operatorId = null, metadata = {}) {
+  async addPoints(userId, points, type, description, operatorId = null, metadata = {}, options = {}) {
     if (points <= 0) {
       throw new BadRequestError('积分数量必须大于0');
     }
@@ -190,7 +561,8 @@ class PointsServiceAdapter {
 
     const result = await PointsService.addPoints(userId, points, type, description, {
       operatorId,
-      metadata
+      metadata,
+      transactionClient: options.transactionClient
     });
 
     // Check for level upgrade
@@ -208,7 +580,11 @@ class PointsServiceAdapter {
           levelBonus, 
           POINTS_TRANSACTION_TYPES.BONUS_REWARD,
           `升级到${newLevel.name}奖励`,
-          { operatorId, metadata: { levelUpgrade: true, newLevel: newLevel.level } }
+          {
+            operatorId,
+            metadata: { levelUpgrade: true, newLevel: newLevel.level },
+            transactionClient: options.transactionClient
+          }
         );
       }
     }
@@ -231,7 +607,7 @@ class PointsServiceAdapter {
   /**
    * Deduct points
    */
-  async deductPoints(userId, points, type, description, operatorId = null, metadata = {}) {
+  async deductPoints(userId, points, type, description, operatorId = null, metadata = {}, options = {}) {
     if (points <= 0) {
       throw new BadRequestError('扣除积分数量必须大于0');
     }
@@ -244,7 +620,8 @@ class PointsServiceAdapter {
 
     const result = await PointsService.deductPoints(userId, points, type, description, {
       operatorId,
-      metadata
+      metadata,
+      transactionClient: options.transactionClient
     });
 
     return {
@@ -283,7 +660,8 @@ class PointsServiceAdapter {
         POINTS_TRANSACTION_TYPES.REDEEM_REWARD,
         `转账给用户${toUserId}: ${description}`,
         operatorId,
-        { transferTo: toUserId }
+        { transferTo: toUserId },
+        { transactionClient: tx }
       );
 
       // Add to receiver
@@ -293,7 +671,8 @@ class PointsServiceAdapter {
         POINTS_TRANSACTION_TYPES.BONUS_REWARD,
         `收到用户${fromUserId}转账: ${description}`,
         operatorId,
-        { transferFrom: fromUserId }
+        { transferFrom: fromUserId },
+        { transactionClient: tx }
       );
 
       return {
