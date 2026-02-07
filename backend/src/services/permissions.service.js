@@ -2,7 +2,8 @@ const prisma = require('../utils/prisma');
 
 class PermissionsService {
   async list(params = {}) {
-    const { keyword, group_name } = params;
+    const { keyword, group_name, groupName } = params;
+    const normalizedGroupName = groupName ?? group_name;
     
     // 构建查询条件
     const where = {};
@@ -14,21 +15,22 @@ class PermissionsService {
       ];
     }
     
-    if (group_name) {
-      where.group_name = { contains: group_name, mode: 'insensitive' };
+    if (normalizedGroupName) {
+      where.groupName = { contains: normalizedGroupName, mode: 'insensitive' };
     }
     
     return prisma.permissions.findMany({
       where,
-      orderBy: [{ group_name: 'asc' }, { code: 'asc' }],
+      orderBy: [{ groupName: 'asc' }, { code: 'asc' }],
     });
   }
 
   async create(data) {
-    const { code, name, group_name = null, description = null } = data;
+    const { code, name, group_name = null, groupName = null, description = null } = data;
+    const normalizedGroupName = groupName ?? group_name;
     if (!code || !name) throw new Error('code 和 name 必填');
     return prisma.permissions.create({
-      data: { code, name, group_name, description },
+      data: { code, name, groupName: normalizedGroupName, description },
     });
   }
 
@@ -37,7 +39,7 @@ class PermissionsService {
       where: { id: Number(id) },
       data: {
         name: data.name,
-        group_name: data.group_name ?? null,
+        groupName: data.groupName ?? data.group_name ?? null,
         description: data.description ?? null,
       },
     });

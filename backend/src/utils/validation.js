@@ -22,9 +22,11 @@ const common = {
 const schemas = {
   // 用户相关
   login: Joi.object({
-    username: Joi.alternatives().try(common.email, common.username).required(),
+    // 兼容前端字段：identifier 或 username
+    identifier: Joi.alternatives().try(common.email, common.username),
+    username: Joi.alternatives().try(common.email, common.username),
     password: common.password.required(),
-  }),
+  }).or('identifier', 'username'),
 
   register: Joi.object({
     username: common.username.required(),

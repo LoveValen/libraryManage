@@ -18,11 +18,12 @@ const register = asyncHandler(async (req, res) => {
  * 用户登录
  */
 const login = asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+  const { username, identifier, password } = req.body;
+  const loginIdentifier = username || identifier;
   const ip = req.ip;
   const userAgent = req.get('User-Agent');
 
-  const result = await authService.login(username, password, ip, userAgent);
+  const result = await authService.login(loginIdentifier, password, ip, userAgent);
 
   success(res, {
     user: result.user,

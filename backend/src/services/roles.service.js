@@ -16,7 +16,7 @@ class RolesService {
     }
     
     if (is_system !== undefined && is_system !== null && is_system !== '') {
-      where.is_system = is_system === 'true' || is_system === true;
+      where.isSystem = is_system === 'true' || is_system === true;
     }
     
     const roles = await prisma.roles.findMany({
