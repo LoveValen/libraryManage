@@ -38,30 +38,90 @@ const logger = winston.createLogger({
   silent: isTest,
 });
 
-// 生产环境默认写入文件日志（支持 LOG_TO_FILE=true 强制开启）
-const enableFileLogging = (nodeEnv === 'production' || process.env.LOG_TO_FILE === 'true') && !isTest;
+// 生产环境默认写入文件日志（支持 LOG_TO_FILE=true 强制开启，LOG_TO_FILE=false 强制关闭）
+const enableFileLogging =
+  !isTest &&
+  (process.env.LOG_TO_FILE === 'true' || (nodeEnv === 'production' && process.env.LOG_TO_FILE !== 'false'));
+
+const ensureWritableDir = (dirPath) => {
+  fs.mkdirSync(dirPath, { recursive: true });
+
+  // 在某些环境（例如 Docker bind mount / 权限受限目录）下，目录存在但不可写。
+  // 这里通过创建临时文件的方式做一次“真实写入”校验，避免后续日志写入触发未捕获的 error 事件导致进程退出。
+  const probeFile = path.join(dirPath, `.write-test-${process.pid}-${Date.now()}`);
+  fs.writeFileSync(probeFile, '', { flag: 'a' });
+  fs.unlinkSync(probeFile);
+};
+
+const attachRotateFileErrorHandlers = (transport) => {
+  const handleTransportError = (err) => {
+    try {
+      // eslint-disable-next-line no-console
+      console.error('File logger error, disabling file transport:', err?.message || err);
+    } catch (_) {
+      // ignore
+    }
+
+    try {
+      logger.remove(transport);
+    } catch (_) {
+      // ignore
+    }
+    try {
+      transport.close();
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  // winston-transport 自身可能抛出 error
+  transport.on('error', handleTransportError);
+
+  // winston-daily-rotate-file 内部的 file-stream-rotator stream 也可能抛出 error。
+  // 如果不监听，会触发“Unhandled 'error' event”并导致进程退出。
+  if (transport.logStream?.on) {
+    transport.logStream.on('error', handleTransportError);
+  }
+};
+
+const addDailyRotateFileTransport = (options) => {
+  const transport = new DailyRotateFile(options);
+  attachRotateFileErrorHandlers(transport);
+  logger.add(transport);
+};
 
 if (enableFileLogging) {
   const logDir = path.resolve(process.cwd(), logFilePath);
-  fs.mkdirSync(logDir, { recursive: true });
+  try {
+    ensureWritableDir(logDir);
 
-  logger.add(new DailyRotateFile({
-    dirname: logDir,
-    filename: 'app-%DATE%.log',
-    datePattern: logDatePattern,
-    maxSize: logMaxSize,
-    maxFiles: logMaxFiles,
-    level: logLevel,
-  }));
+    addDailyRotateFileTransport({
+      dirname: logDir,
+      filename: 'app-%DATE%.log',
+      datePattern: logDatePattern,
+      maxSize: logMaxSize,
+      maxFiles: logMaxFiles,
+      level: logLevel,
+    });
 
-  logger.add(new DailyRotateFile({
-    dirname: logDir,
-    filename: 'error-%DATE%.log',
-    datePattern: logDatePattern,
-    maxSize: logMaxSize,
-    maxFiles: logMaxFiles,
-    level: 'error',
-  }));
+    addDailyRotateFileTransport({
+      dirname: logDir,
+      filename: 'error-%DATE%.log',
+      datePattern: logDatePattern,
+      maxSize: logMaxSize,
+      maxFiles: logMaxFiles,
+      level: 'error',
+    });
+  } catch (err) {
+    try {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `File logging disabled (cannot write to ${logDir}): ${err?.code || err?.message || err}`
+      );
+    } catch (_) {
+      // ignore
+    }
+  }
 }
 
 /**
