@@ -149,7 +149,7 @@ class WebSocketService {
 
       // 发送未读通知数量
       const unreadCount = await prisma.notifications.count({
-        where: { user_id: userId, is_read: false }
+        where: { userId: userId, isRead: false }
       });
       socket.emit('unread_count_update', { count: unreadCount });
 
@@ -233,7 +233,7 @@ class WebSocketService {
 
       // 发送更新的未读数量
       const unreadCount = await prisma.notifications.count({
-        where: { user_id: userId, is_read: false }
+        where: { userId: userId, isRead: false }
       });
       socket.emit('unread_count_update', { count: unreadCount });
 
@@ -251,7 +251,7 @@ class WebSocketService {
     try {
       const userId = socket.userId;
       const unreadCount = await prisma.notifications.count({
-        where: { user_id: userId, is_read: false }
+        where: { userId: userId, isRead: false }
       });
       socket.emit('unread_count_update', { count: unreadCount });
     } catch (error) {
@@ -448,7 +448,7 @@ class WebSocketService {
   async updateUnreadCountForUser(userId) {
     try {
       const unreadCount = await prisma.notifications.count({
-        where: { user_id: userId, is_read: false }
+        where: { userId: userId, isRead: false }
       });
       const room = `user:${userId}`;
       

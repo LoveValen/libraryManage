@@ -23,18 +23,18 @@ class NotificationService {
 
     return prisma.notifications.create({
       data: {
-        user_id: parseInt(userId),
+        userId: parseInt(userId),
         type,
         title,
         content,
         priority,
         status: 'pending',
         metadata,
-        related_id: relatedId ? parseInt(relatedId) : null,
-        related_type: relatedType,
-        action_url,
-        created_at: new Date(),
-        updated_at: new Date()
+        relatedId: relatedId ? parseInt(relatedId) : null,
+        relatedType: relatedType,
+        actionUrl: action_url,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
   }
@@ -88,7 +88,7 @@ class NotificationService {
           where: { id: notification.id },
           data: {
             status: 'sent',
-            updated_at: now
+            updatedAt: now
           }
         });
       }
@@ -111,12 +111,12 @@ class NotificationService {
       // Clean up notifications older than 30 days that have been read or sent
       const result = await prisma.notifications.deleteMany({
         where: {
-          created_at: {
+          createdAt: {
             lt: thirtyDaysAgo
           },
           OR: [
             { status: 'sent' },
-            { is_read: true }
+            { isRead: true }
           ]
         }
       });
@@ -259,7 +259,7 @@ class NotificationServiceAdapter {
     const allUsers = await prisma.users.findMany({
       where: {
         status: 'active',
-        is_deleted: false
+        isDeleted: false
       },
       select: { id: true }
     });
@@ -408,7 +408,7 @@ class NotificationServiceAdapter {
       throw new BadRequestError(`Unknown borrow notification type: ${type}`);
     }
 
-    const daysRemaining = Math.floor((new Date(borrowWithRelations.due_date) - new Date()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.floor((new Date(borrowWithRelations.dueDate) - new Date()) / (1000 * 60 * 60 * 24));
     const overdueDays = Math.max(0, -daysRemaining);
 
     return this.createNotificationFromTemplate(
@@ -416,7 +416,7 @@ class NotificationServiceAdapter {
       borrowWithRelations.userId,
       {
         bookTitle: borrowWithRelations.book.title,
-        dueDate: new Date(borrowWithRelations.due_date).toLocaleDateString('zh-CN'),
+        dueDate: new Date(borrowWithRelations.dueDate).toLocaleDateString('zh-CN'),
         daysRemaining,
         overdueDays,
         ...additionalData
@@ -577,11 +577,11 @@ class NotificationServiceAdapter {
    */
   async getStatistics(startDate, endDate) {
     const where = {};
-    
+
     if (startDate || endDate) {
-      where.created_at = {};
-      if (startDate) where.created_at.gte = startDate;
-      if (endDate) where.created_at.lte = endDate;
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
     }
 
     const [
@@ -651,8 +651,8 @@ class NotificationServiceAdapter {
       sentAt: notification.sentAt,
       retryCount: notification.retry_count,
       errorMessage: notification.error_message,
-      createdAt: notification.created_at,
-      updatedAt: notification.updated_at
+      createdAt: notification.createdAt,
+      updatedAt: notification.updatedAt
     };
   }
 }

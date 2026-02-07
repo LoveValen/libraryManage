@@ -15,10 +15,10 @@ const formatTag = (tag) => ({
   code: tag.code,
   color: tag.color,
   description: tag.description,
-  sortOrder: tag.sort_order,
-  isActive: tag.is_active,
-  createdAt: tag.created_at,
-  updatedAt: tag.updated_at
+  sortOrder: tag.sortOrder,
+  isActive: tag.isActive,
+  createdAt: tag.createdAt,
+  updatedAt: tag.updatedAt
 });
 
 /**
@@ -36,7 +36,7 @@ const buildWhereClause = (keyword, isActive) => {
   }
 
   if (typeof isActive === 'boolean') {
-    where.is_active = isActive;
+    where.isActive = isActive;
   }
 
   return where;
@@ -98,12 +98,12 @@ const prepareTagData = (payload, isUpdate = false) => {
 
   // Handle sort order (support both camelCase and snake_case)
   if (payload.sortOrder !== undefined || payload.sort_order !== undefined) {
-    data.sort_order = payload.sortOrder ?? payload.sort_order ?? 0;
+    data.sortOrder = payload.sortOrder ?? payload.sort_order ?? 0;
   }
 
   // Handle isActive (support both camelCase and snake_case)
   if (payload.isActive !== undefined || payload.is_active !== undefined) {
-    data.is_active = payload.isActive ?? payload.is_active ?? true;
+    data.isActive = payload.isActive ?? payload.is_active ?? true;
   }
 
   return data;
@@ -153,8 +153,8 @@ const list = async (params = {}) => {
     prisma.book_tags.findMany({
       where,
       orderBy: [
-        { sort_order: 'asc' },
-        { created_at: 'desc' }
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' }
       ],
       skip,
       take: Number(size)
@@ -183,9 +183,9 @@ const listActive = async () => {
 
   // Fetch fresh data
   const tags = await prisma.book_tags.findMany({
-    where: { is_active: true },
+    where: { isActive: true },
     orderBy: [
-      { sort_order: 'asc' },
+      { sortOrder: 'asc' },
       { name: 'asc' }
     ]
   });
@@ -291,7 +291,7 @@ const remove = async (id) => {
 
   // Check for associated books
   const count = await prisma.book_tag_relations.count({
-    where: { tag_id: tagId }
+    where: { tagId: tagId }
   });
 
   if (count > 0) {
@@ -316,11 +316,11 @@ const syncBookTags = async (bookId, tagIds = []) => {
 
   // Get current relations
   const existing = await prisma.book_tag_relations.findMany({
-    where: { book_id: bookId },
-    select: { tag_id: true }
+    where: { bookId: bookId },
+    select: { tagId: true }
   });
 
-  const existingIds = existing.map(item => item.tag_id);
+  const existingIds = existing.map(item => item.tagId);
   const toAdd = numericIds.filter(id => !existingIds.includes(id));
   const toRemove = existingIds.filter(id => !numericIds.includes(id));
 
@@ -329,7 +329,7 @@ const syncBookTags = async (bookId, tagIds = []) => {
     // Add new relations
     if (toAdd.length > 0) {
       await tx.book_tag_relations.createMany({
-        data: toAdd.map(tagId => ({ book_id: bookId, tag_id: tagId })),
+        data: toAdd.map(tagId => ({ bookId: bookId, tagId: tagId })),
         skipDuplicates: true
       });
     }
@@ -338,8 +338,8 @@ const syncBookTags = async (bookId, tagIds = []) => {
     if (toRemove.length > 0) {
       await tx.book_tag_relations.deleteMany({
         where: {
-          book_id: bookId,
-          tag_id: { in: toRemove }
+          bookId: bookId,
+          tagId: { in: toRemove }
         }
       });
     }
@@ -349,7 +349,7 @@ const syncBookTags = async (bookId, tagIds = []) => {
   if (numericIds.length > 0) {
     const tags = await prisma.book_tags.findMany({
       where: { id: { in: numericIds } },
-      orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
     });
     return tags.map(formatTag);
   }
@@ -369,7 +369,7 @@ const findManyByIds = async (ids = []) => {
 
   const tags = await prisma.book_tags.findMany({
     where: { id: { in: validIds } },
-    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
   });
 
   return tags.map(formatTag);
@@ -387,7 +387,7 @@ const findManyByNames = async (names = []) => {
 
   const tags = await prisma.book_tags.findMany({
     where: { name: { in: validNames } },
-    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }]
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
   });
 
   return tags.map(formatTag);
@@ -399,7 +399,7 @@ const findManyByNames = async (names = []) => {
 const getStatistics = async () => {
   const [total, active, withBooks, topUsed] = await Promise.all([
     prisma.book_tags.count(),
-    prisma.book_tags.count({ where: { is_active: true } }),
+    prisma.book_tags.count({ where: { isActive: true } }),
     prisma.$queryRaw`
       SELECT COUNT(DISTINCT tag_id) as count
       FROM book_tag_relations
@@ -435,13 +435,13 @@ const getStatistics = async () => {
  */
 const getBookTags = async (bookId) => {
   const relations = await prisma.book_tag_relations.findMany({
-    where: { book_id: bookId },
+    where: { bookId: bookId },
     include: {
       tag: true
     },
     orderBy: {
       tag: {
-        sort_order: 'asc'
+        sortOrder: 'asc'
       }
     }
   });
@@ -463,18 +463,18 @@ const batchSyncBookTags = async (bookTagPairs = []) => {
 
       // Get current relations
       const existing = await tx.book_tag_relations.findMany({
-        where: { book_id: bookId },
-        select: { tag_id: true }
+        where: { bookId: bookId },
+        select: { tagId: true }
       });
 
-      const existingIds = existing.map(item => item.tag_id);
+      const existingIds = existing.map(item => item.tagId);
       const toAdd = numericIds.filter(id => !existingIds.includes(id));
       const toRemove = existingIds.filter(id => !numericIds.includes(id));
 
       // Add new relations
       if (toAdd.length > 0) {
         await tx.book_tag_relations.createMany({
-          data: toAdd.map(tagId => ({ book_id: bookId, tag_id: tagId })),
+          data: toAdd.map(tagId => ({ bookId: bookId, tagId: tagId })),
           skipDuplicates: true
         });
       }
@@ -483,8 +483,8 @@ const batchSyncBookTags = async (bookTagPairs = []) => {
       if (toRemove.length > 0) {
         await tx.book_tag_relations.deleteMany({
           where: {
-            book_id: bookId,
-            tag_id: { in: toRemove }
+            bookId: bookId,
+            tagId: { in: toRemove }
           }
         });
       }

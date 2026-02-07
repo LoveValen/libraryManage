@@ -55,10 +55,10 @@ class SecurityMonitoringService extends EventEmitter {
     try {
       const event = await prisma.security_events.create({
         data: {
-          event_type: eventType,
+          eventType: eventType,
           severity,
           details,
-          created_at: new Date()
+          createdAt: new Date()
         }
       });
 

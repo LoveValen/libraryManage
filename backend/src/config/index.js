@@ -74,9 +74,11 @@ const config = {
 
   // CORS配置
   cors: {
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:8080', 'http://localhost:3001'],
-    credentials: true,
-    optionsSuccessStatus: 200,
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()).filter(Boolean)
+      : ['http://localhost:8080', 'http://localhost:3001'],
+    credentials: process.env.CORS_CREDENTIALS ? process.env.CORS_CREDENTIALS === 'true' : true,
+    optionsSuccessStatus: parseInt(process.env.CORS_OPTIONS_SUCCESS_STATUS) || 200,
   },
 
   // 安全配置

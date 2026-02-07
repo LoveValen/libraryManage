@@ -18,10 +18,10 @@ const formatLocation = (location) => ({
   shelf: location.shelf,
   description: location.description,
   capacity: location.capacity,
-  sortOrder: location.sort_order,
-  isActive: location.is_active,
-  createdAt: location.created_at,
-  updatedAt: location.updated_at
+  sortOrder: location.sortOrder,
+  isActive: location.isActive,
+  createdAt: location.createdAt,
+  updatedAt: location.updatedAt
 });
 
 /**
@@ -41,7 +41,7 @@ const buildWhereClause = (keyword, isActive) => {
   }
 
   if (typeof isActive === 'boolean') {
-    where.is_active = isActive;
+    where.isActive = isActive;
   }
 
   return where;
@@ -106,12 +106,12 @@ const prepareLocationData = (payload, isUpdate = false) => {
 
   // Handle sort order (support both camelCase and snake_case)
   if (payload.sortOrder !== undefined || payload.sort_order !== undefined) {
-    data.sort_order = payload.sortOrder ?? payload.sort_order ?? 0;
+    data.sortOrder = payload.sortOrder ?? payload.sort_order ?? 0;
   }
 
   // Handle isActive (support both camelCase and snake_case)
   if (payload.isActive !== undefined || payload.is_active !== undefined) {
-    data.is_active = payload.isActive ?? payload.is_active ?? true;
+    data.isActive = payload.isActive ?? payload.is_active ?? true;
   }
 
   return data;
@@ -143,8 +143,8 @@ const list = async (params = {}) => {
     prisma.book_locations.findMany({
       where,
       orderBy: [
-        { sort_order: 'asc' },
-        { created_at: 'desc' }
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' }
       ],
       skip,
       take: Number(size)
@@ -173,9 +173,9 @@ const listActive = async () => {
 
   // Fetch fresh data
   const locations = await prisma.book_locations.findMany({
-    where: { is_active: true },
+    where: { isActive: true },
     orderBy: [
-      { sort_order: 'asc' },
+      { sortOrder: 'asc' },
       { name: 'asc' }
     ]
   });
@@ -281,7 +281,7 @@ const remove = async (id) => {
 
   // Check for associated books
   const count = await prisma.books.count({
-    where: { location_id: locationId, is_deleted: false }
+    where: { locationId: locationId, isDeleted: false }
   });
 
   if (count > 0) {
@@ -339,7 +339,7 @@ const findManyByIds = async (ids = []) => {
   const locations = await prisma.book_locations.findMany({
     where: { id: { in: validIds } },
     orderBy: [
-      { sort_order: 'asc' },
+      { sortOrder: 'asc' },
       { name: 'asc' }
     ]
   });
@@ -353,7 +353,7 @@ const findManyByIds = async (ids = []) => {
 const getStatistics = async () => {
   const [total, active, withBooks] = await Promise.all([
     prisma.book_locations.count(),
-    prisma.book_locations.count({ where: { is_active: true } }),
+    prisma.book_locations.count({ where: { isActive: true } }),
     prisma.$queryRaw`
       SELECT COUNT(DISTINCT location_id) as count
       FROM books

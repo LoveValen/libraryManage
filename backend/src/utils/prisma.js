@@ -20,13 +20,6 @@ function createPrismaClient() {
     errorFormat: 'minimal',
   });
 
-  // 开发环境连接测试
-  if (isDev) {
-    prisma.$connect()
-      .then(() => console.log('🗄️  Database connected'))
-      .catch(err => console.error('❌ Database connection failed:', err.message));
-  }
-
   return prisma;
 }
 
@@ -40,12 +33,10 @@ async function disconnectPrisma() {
   }
 }
 
-// 进程退出时自动清理
-['SIGINT', 'SIGTERM'].forEach(signal => {
-  process.on(signal, async () => {
-    await disconnectPrisma();
-    process.exit(0);
-  });
-});
+/**
+ * 注意：不要在此文件里注册 `process` 信号处理器。
+ * - 应用层（如 graceful-shutdown）会统一管理退出流程。
+ * - 否则会导致提前 `process.exit()`，跳过 HTTP 连接/后台任务的清理。
+ */
 
 module.exports = createPrismaClient();

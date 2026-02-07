@@ -7,7 +7,7 @@ class DatabaseService {
   static async findMany(model, options = {}) {
     const {
       where = {},
-      orderBy = { created_at: 'desc' },
+      orderBy = { createdAt: 'desc' },
       skip = 0,
       take = 10,
       include = {},

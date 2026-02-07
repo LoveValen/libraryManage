@@ -7,7 +7,7 @@ const { BOOK_STATUS } = require('../utils/constants');
  * @private
  */
 const _buildWhereCondition = ({ search, categoryId, status, hasEbook, locationId, startDate, endDate }) => {
-  const where = { is_deleted: false };
+  const where = { isDeleted: false };
 
   // 搜索条件
   const normalizedSearch = typeof search === 'string' ? search.trim() : '';
@@ -27,7 +27,7 @@ const _buildWhereCondition = ({ search, categoryId, status, hasEbook, locationId
 
   // 分类过滤
   if (categoryId) {
-    where.category_id = Number(categoryId);
+    where.categoryId = Number(categoryId);
   }
 
   // 状态过滤
@@ -41,17 +41,17 @@ const _buildWhereCondition = ({ search, categoryId, status, hasEbook, locationId
   }
 
   if (locationId) {
-    where.location_id = Number(locationId);
+    where.locationId = Number(locationId);
   }
 
   // 日期范围过滤
   if (startDate || endDate) {
-    where.created_at = {};
+    where.createdAt = {};
     if (startDate) {
-      where.created_at.gte = new Date(startDate);
+      where.createdAt.gte = new Date(startDate);
     }
     if (endDate) {
-      where.created_at.lte = new Date(endDate);
+      where.createdAt.lte = new Date(endDate);
     }
   }
 
@@ -79,23 +79,6 @@ const findWithPagination = async (options = {}) => {
       endDate = null
     } = options;
 
-    // 字段名映射 - 从camelCase转换为snake_case
-    const fieldMapping = {
-      'createdAt': 'created_at',
-      'updatedAt': 'updated_at',
-      'categoryId': 'category_id',
-      'totalStock': 'total_stock',
-      'availableStock': 'available_stock',
-      'reservedStock': 'reserved_stock',
-      'hasEbook': 'has_ebook',
-      'borrowCount': 'borrow_count',
-      'viewCount': 'view_count',
-      'averageRating': 'average_rating',
-      'reviewCount': 'review_count'
-    };
-
-    const mappedOrderBy = fieldMapping[orderBy] || orderBy;
-
     const skip = (page - 1) * limit;
     const where = _buildWhereCondition({
       search,
@@ -112,7 +95,7 @@ const findWithPagination = async (options = {}) => {
         where,
         skip,
         take: limit,
-        orderBy: { [mappedOrderBy]: order },
+        orderBy: { [orderBy]: order },
         include: {
           bookCategory: true,
           bookLocation: true,
@@ -121,7 +104,7 @@ const findWithPagination = async (options = {}) => {
           },
           _count: {
             select: {
-              borrows: { where: { is_deleted: false } },
+              borrows: { where: { isDeleted: false } },
               reviews: { where: { status: 'published' } }
             }
           }
@@ -166,14 +149,14 @@ const findById = async (id, includeRelations = true) => {
         where: {
           status: 'published'
         },
-        orderBy: { created_at: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 10,
         include: {
           reviewer: {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               avatar: true
             }
           }
@@ -181,7 +164,7 @@ const findById = async (id, includeRelations = true) => {
       },
       _count: {
         select: {
-          borrows: { where: { is_deleted: false } },
+          borrows: { where: { isDeleted: false } },
           reviews: { where: { status: 'published' } }
         }
       }
@@ -190,7 +173,7 @@ const findById = async (id, includeRelations = true) => {
     return await prisma.books.findUnique({
       where: {
         id: Number(id),
-        is_deleted: false
+        isDeleted: false
       },
       include
     });
@@ -213,7 +196,7 @@ const findByISBN = async (isbn) => {
     return await prisma.books.findUnique({
       where: {
         isbn: isbn.trim(),
-        is_deleted: false
+        isDeleted: false
       },
       include: {
         bookCategory: true
@@ -258,41 +241,41 @@ const create = async (bookData) => {
       resolvedLocation = locationRecord.name;
     }
 
-    // Map camelCase to snake_case for Prisma schema
+    // Build Prisma data with camelCase field names
     const prismaData = {
       title: bookData.title,
       isbn: bookData.isbn,
       authors: bookData.authors,
       publisher: bookData.publisher,
-      publication_year: bookData.publicationYear || bookData.publication_year,
+      publicationYear: bookData.publicationYear || bookData.publication_year,
       language: bookData.language || 'zh-CN',
-      // Only set category_id if it's a number, otherwise use null
-      category_id: typeof bookData.categoryId === 'number' ? bookData.categoryId :
+      // Only set categoryId if it's a number, otherwise use null
+      categoryId: typeof bookData.categoryId === 'number' ? bookData.categoryId :
                    typeof bookData.category_id === 'number' ? bookData.category_id : null,
       category: bookData.category,
       tags: bookData.tags,
       summary: bookData.summary,
       description: bookData.description,
-      cover_image: bookData.coverUrl || bookData.cover_image || bookData.cover,
-      total_stock: bookData.totalStock || bookData.total_stock || 1,
-      available_stock: bookData.availableStock || bookData.available_stock || bookData.totalStock || bookData.total_stock || 1,
-      reserved_stock: bookData.reservedStock || bookData.reserved_stock || 0,
+      coverImage: bookData.coverUrl || bookData.cover_image || bookData.cover,
+      totalStock: bookData.totalStock || bookData.total_stock || 1,
+      availableStock: bookData.availableStock || bookData.available_stock || bookData.totalStock || bookData.total_stock || 1,
+      reservedStock: bookData.reservedStock || bookData.reserved_stock || 0,
       status: bookData.status || BOOK_STATUS.AVAILABLE,
-      location_id: locationId ? Number(locationId) : undefined,
+      locationId: locationId ? Number(locationId) : undefined,
       location: resolvedLocation,
       price: bookData.price,
       pages: bookData.pages,
       format: bookData.format || 'BOOK',
-      has_ebook: bookData.hasEbook || bookData.has_ebook || false,
-      borrow_count: bookData.borrowCount || bookData.borrow_count || 0,
-      view_count: bookData.viewCount || bookData.view_count || 0,
-      average_rating: bookData.averageRating || bookData.average_rating || null,
-      review_count: bookData.reviewCount || bookData.review_count || 0,
+      hasEbook: bookData.hasEbook || bookData.has_ebook || false,
+      borrowCount: bookData.borrowCount || bookData.borrow_count || 0,
+      viewCount: bookData.viewCount || bookData.view_count || 0,
+      averageRating: bookData.averageRating || bookData.average_rating || null,
+      reviewCount: bookData.reviewCount || bookData.review_count || 0,
       condition: bookData.condition || 'new',
       notes: bookData.notes,
-      is_deleted: false,
-      created_at: new Date(),
-      updated_at: new Date()
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
 
     // Remove undefined values
@@ -339,7 +322,7 @@ const update = async (id, updateData) => {
       }
     }
 
-    // Map camelCase to snake_case for Prisma schema
+    // Build Prisma data with camelCase field names
     const prismaData = {};
 
     // Only include fields that are being updated
@@ -347,30 +330,30 @@ const update = async (id, updateData) => {
     if (updateData.isbn !== undefined) prismaData.isbn = updateData.isbn;
     if (updateData.authors !== undefined) prismaData.authors = updateData.authors;
     if (updateData.publisher !== undefined) prismaData.publisher = updateData.publisher;
-    if (updateData.publicationYear !== undefined) prismaData.publication_year = updateData.publicationYear;
-    if (updateData.publication_year !== undefined) prismaData.publication_year = updateData.publication_year;
+    if (updateData.publicationYear !== undefined) prismaData.publicationYear = updateData.publicationYear;
+    if (updateData.publication_year !== undefined) prismaData.publicationYear = updateData.publication_year;
     if (updateData.language !== undefined) prismaData.language = updateData.language;
-    if (updateData.categoryId !== undefined) prismaData.category_id = updateData.categoryId;
-    if (updateData.category_id !== undefined) prismaData.category_id = updateData.category_id;
+    if (updateData.categoryId !== undefined) prismaData.categoryId = updateData.categoryId;
+    if (updateData.category_id !== undefined) prismaData.categoryId = updateData.category_id;
     if (updateData.category !== undefined) prismaData.category = updateData.category;
     if (updateData.tags !== undefined) prismaData.tags = updateData.tags;
     if (updateData.summary !== undefined) prismaData.summary = updateData.summary;
     if (updateData.description !== undefined) prismaData.description = updateData.description;
-    if (updateData.coverUrl !== undefined) prismaData.cover_image = updateData.coverUrl;
-    if (updateData.cover_image !== undefined) prismaData.cover_image = updateData.cover_image;
-    if (updateData.cover !== undefined) prismaData.cover_image = updateData.cover;
-    if (updateData.totalStock !== undefined) prismaData.total_stock = updateData.totalStock;
-    if (updateData.total_stock !== undefined) prismaData.total_stock = updateData.total_stock;
-    if (updateData.availableStock !== undefined) prismaData.available_stock = updateData.availableStock;
-    if (updateData.available_stock !== undefined) prismaData.available_stock = updateData.available_stock;
-    if (updateData.reservedStock !== undefined) prismaData.reserved_stock = updateData.reservedStock;
-    if (updateData.reserved_stock !== undefined) prismaData.reserved_stock = updateData.reserved_stock;
+    if (updateData.coverUrl !== undefined) prismaData.coverImage = updateData.coverUrl;
+    if (updateData.cover_image !== undefined) prismaData.coverImage = updateData.cover_image;
+    if (updateData.cover !== undefined) prismaData.coverImage = updateData.cover;
+    if (updateData.totalStock !== undefined) prismaData.totalStock = updateData.totalStock;
+    if (updateData.total_stock !== undefined) prismaData.totalStock = updateData.total_stock;
+    if (updateData.availableStock !== undefined) prismaData.availableStock = updateData.availableStock;
+    if (updateData.available_stock !== undefined) prismaData.availableStock = updateData.available_stock;
+    if (updateData.reservedStock !== undefined) prismaData.reservedStock = updateData.reservedStock;
+    if (updateData.reserved_stock !== undefined) prismaData.reservedStock = updateData.reserved_stock;
     if (updateData.status !== undefined) prismaData.status = updateData.status;
     if (updateData.price !== undefined) prismaData.price = updateData.price;
     if (updateData.pages !== undefined) prismaData.pages = updateData.pages;
     if (updateData.format !== undefined) prismaData.format = updateData.format;
-    if (updateData.hasEbook !== undefined) prismaData.has_ebook = updateData.hasEbook;
-    if (updateData.has_ebook !== undefined) prismaData.has_ebook = updateData.has_ebook;
+    if (updateData.hasEbook !== undefined) prismaData.hasEbook = updateData.hasEbook;
+    if (updateData.has_ebook !== undefined) prismaData.hasEbook = updateData.has_ebook;
     if (updateData.condition !== undefined) prismaData.condition = updateData.condition;
     if (updateData.notes !== undefined) prismaData.notes = updateData.notes;
 
@@ -378,7 +361,7 @@ const update = async (id, updateData) => {
     if (hasLocationIdUpdate) {
       const rawLocationId = updateData.locationId ?? updateData.location_id;
       if (rawLocationId === null || rawLocationId === '' || rawLocationId === undefined) {
-        prismaData.location_id = null;
+        prismaData.locationId = null;
         if (updateData.location !== undefined) {
           prismaData.location = updateData.location;
         } else {
@@ -393,17 +376,17 @@ const update = async (id, updateData) => {
         if (!locationRecord) {
           throw new Error('指定的存放位置不存在');
         }
-        prismaData.location_id = parsedLocationId;
+        prismaData.locationId = parsedLocationId;
         prismaData.location = locationRecord.name;
       }
     } else if (updateData.location !== undefined) {
       prismaData.location = updateData.location;
       if (updateData.location === null || updateData.location === '') {
-        prismaData.location_id = null;
+        prismaData.locationId = null;
       }
     }
 
-    prismaData.updated_at = new Date();
+    prismaData.updatedAt = new Date();
 
     return await prisma.books.update({
       where: { id: Number(id) },
@@ -434,7 +417,7 @@ const incrementViewCount = async (id) => {
   return prisma.books.update({
     where: { id },
     data: {
-      view_count: { increment: 1 }
+      viewCount: { increment: 1 }
     }
   });
 };
@@ -446,7 +429,7 @@ const incrementDownloadCount = async (id) => {
   return prisma.books.update({
     where: { id },
     data: {
-      download_count: { increment: 1 }
+      downloadCount: { increment: 1 }
     }
   });
 };
@@ -473,7 +456,7 @@ const updateStock = async (id, stockChange, transaction = null) => {
     const book = await client.books.findUnique({
       where: {
         id: Number(id),
-        is_deleted: false
+        isDeleted: false
       }
     });
 
@@ -514,7 +497,7 @@ const softDelete = async (id) => {
   return prisma.books.update({
     where: { id },
     data: {
-      is_deleted: true,
+      isDeleted: true,
       deletedAt: new Date(),
       status: BOOK_STATUS.RETIRED
     }
@@ -529,30 +512,30 @@ const getStatistics = async () => {
   try {
     const [total, available, borrowed, hasEbook, reserved] = await Promise.all([
       prisma.books.count({
-        where: { is_deleted: false }
+        where: { isDeleted: false }
       }),
       prisma.books.count({
         where: {
           status: BOOK_STATUS.AVAILABLE,
-          is_deleted: false
+          isDeleted: false
         }
       }),
       prisma.books.count({
         where: {
           status: BOOK_STATUS.BORROWED,
-          is_deleted: false
+          isDeleted: false
         }
       }),
       prisma.books.count({
         where: {
           hasEbook: true,
-          is_deleted: false
+          isDeleted: false
         }
       }),
       prisma.books.count({
         where: {
           status: BOOK_STATUS.RESERVED,
-          is_deleted: false
+          isDeleted: false
         }
       })
     ]);
@@ -592,7 +575,7 @@ const search = async (query, options = {}) => {
     }
 
     const where = {
-      is_deleted: false,
+      isDeleted: false,
       status: BOOK_STATUS.AVAILABLE,
       OR: [
         { title: { contains: normalizedQuery } },
@@ -608,7 +591,7 @@ const search = async (query, options = {}) => {
     };
 
     if (categoryId) {
-      where.category_id = Number(categoryId);
+      where.categoryId = Number(categoryId);
     }
 
     return await prisma.books.findMany({
@@ -634,7 +617,7 @@ const search = async (query, options = {}) => {
 const getPopularBooks = async (limit = 10) => {
   return prisma.books.findMany({
     where: {
-      is_deleted: false,
+      isDeleted: false,
       status: { not: BOOK_STATUS.RETIRED }
     },
     orderBy: [
@@ -657,7 +640,7 @@ const getNewArrivals = async (days = 30, limit = 10) => {
 
   return prisma.books.findMany({
     where: {
-      is_deleted: false,
+      isDeleted: false,
       createdAt: { gte: dateThreshold }
     },
     orderBy: { createdAt: 'desc' },
@@ -674,8 +657,8 @@ const getNewArrivals = async (days = 30, limit = 10) => {
 const getByCategory = async (categoryId, limit = 20) => {
   return prisma.books.findMany({
     where: {
-      category_id: categoryId,
-      is_deleted: false,
+      categoryId: categoryId,
+      isDeleted: false,
       status: { not: BOOK_STATUS.RETIRED }
     },
     orderBy: { createdAt: 'desc' },
@@ -726,7 +709,7 @@ const isISBNExists = async (isbn, excludeId = null) => {
 
     const where = {
       isbn: isbn.trim(),
-      is_deleted: false
+      isDeleted: false
     };
 
     if (excludeId) {

@@ -660,7 +660,7 @@ class SearchService {
     try {
       // 分析用户借阅历史
       const borrowHistory = await prisma.borrows.findMany({
-        where: { user_id: parseInt(userId) },
+        where: { userId: parseInt(userId) },
         include: {
           book: {
             select: {
@@ -670,7 +670,7 @@ class SearchService {
           }
         },
         take: 50,
-        orderBy: { created_at: 'desc' }
+        orderBy: { createdAt: 'desc' }
       });
 
       const categories = {};
@@ -750,13 +750,13 @@ class SearchService {
    */
   async fallbackSearch(query, options = {}) {
     logger.warn('使用数据库降级搜索');
-    
+
     try {
       const { type = 'books', page = 1, limit = 20 } = options;
-      
+
       if (type === 'books' || type === 'all') {
-        let where = { is_deleted: false };
-        
+        let where = { isDeleted: false };
+
         const normalizedQuery = typeof query === 'string' ? query.trim() : '';
         if (normalizedQuery) {
           where.OR = [
@@ -771,7 +771,7 @@ class SearchService {
             where,
             take: limit,
             skip: (page - 1) * limit,
-            orderBy: { created_at: 'desc' }
+            orderBy: { createdAt: 'desc' }
           }),
           prisma.books.count({ where })
         ]);
@@ -813,8 +813,8 @@ class SearchService {
 
     try {
       // 移除敏感信息
-      const { password_hash, email_verification_token, ...safeUser } = user;
-      
+      const { passwordHash, emailVerificationToken, ...safeUser } = user;
+
       await this.client.index({
         index: 'users',
         id: user.id,
@@ -923,26 +923,26 @@ class SearchService {
 
   async reindexUsers() {
     logger.info('重建用户索引...');
-    
+
     const users = await prisma.users.findMany({
       select: {
         id: true,
         username: true,
         email: true,
-        real_name: true,
+        realName: true,
         phone: true,
         avatar: true,
         role: true,
         status: true,
-        last_login_at: true,
-        last_login_ip: true,
-        created_at: true,
-        updated_at: true
-        // Exclude password_hash and other sensitive fields
+        lastLoginAt: true,
+        lastLoginIp: true,
+        createdAt: true,
+        updatedAt: true
+        // Exclude passwordHash and other sensitive fields
         // Note: removed fields that don't exist in current schema:
-        // bio, gender, birthday, student_id, department, points_balance,
-        // borrow_permission, borrow_limit, email_verified, phone_verified,
-        // login_count, preferences
+        // bio, gender, birthday, studentId, department, pointsBalance,
+        // borrowPermission, borrowLimit, emailVerified, phoneVerified,
+        // loginCount, preferences
       }
     });
     const operations = [];
@@ -963,13 +963,13 @@ class SearchService {
 
   async reindexBorrows() {
     logger.info('重建借阅记录索引...');
-    
+
     const borrows = await prisma.borrows.findMany({
       include: {
-        user: {
+        borrower: {
           select: {
             username: true,
-            real_name: true
+            realName: true
           }
         },
         book: {
@@ -985,7 +985,7 @@ class SearchService {
     for (const borrow of borrows) {
       const borrowData = {
         ...borrow,
-        userName: borrow.user?.real_name || borrow.user?.username,
+        userName: borrow.borrower?.realName || borrow.borrower?.username,
         bookTitle: borrow.book?.title,
         isbn: borrow.book?.isbn
       };
@@ -1005,13 +1005,13 @@ class SearchService {
 
   async reindexReviews() {
     logger.info('重建书评索引...');
-    
+
     const reviews = await prisma.reviews.findMany({
       include: {
-        user: {
+        reviewer: {
           select: {
             username: true,
-            real_name: true
+            realName: true
           }
         },
         book: {
@@ -1026,7 +1026,7 @@ class SearchService {
     for (const review of reviews) {
       const reviewData = {
         ...review,
-        userName: review.user?.real_name || review.user?.username,
+        userName: review.reviewer?.realName || review.reviewer?.username,
         bookTitle: review.book?.title
       };
 

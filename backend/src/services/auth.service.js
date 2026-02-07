@@ -38,7 +38,7 @@ class AuthService {
     // Check if phone exists
     if (phone) {
       const existingPhone = await prisma.users.findFirst({
-        where: { phone, is_deleted: false }
+        where: { phone, isDeleted: false }
       });
       if (existingPhone) {
         throw new ConflictError('Phone number already exists');
@@ -52,7 +52,7 @@ class AuthService {
         username,
         email,
         password,
-        real_name: realName,
+        realName: realName,
         phone,
         role: 'patron',
         status: 'active'
@@ -61,12 +61,12 @@ class AuthService {
       // Create user points record
       await tx.userPoints.create({
         data: {
-          user_id: user.id,
+          userId: user.id,
           balance: 0,
-          total_earned: 0,
-          total_spent: 0,
+          totalEarned: 0,
+          totalSpent: 0,
           level: 'NEWCOMER',
-          level_name: '新手读者'
+          levelName: '新手读者'
         }
       });
 
@@ -247,7 +247,7 @@ class AuthService {
    */
   async resetPassword(email) {
     const user = await prisma.users.findFirst({
-      where: { email, is_deleted: false }
+      where: { email, isDeleted: false }
     });
 
     if (!user) {

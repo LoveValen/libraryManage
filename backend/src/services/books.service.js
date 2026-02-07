@@ -107,7 +107,7 @@ const formatBookResponse = (book) => {
     condition: book.condition,
     notes: book.notes,
     format: book.format,
-    is_deleted: book.is_deleted,
+    isDeleted: book.isDeleted,
     createdAt: createdAtValue ? formatDateTime(createdAtValue) : null,
     updatedAt: updatedAtValue ? formatDateTime(updatedAtValue) : null,
     deletedAt: deletedAtValue ? formatDateTime(deletedAtValue) : null,
@@ -255,7 +255,7 @@ const getBookList = async (filters = {}) => {
 const getBookById = async (bookId, user = null) => {
   const book = await BookService.findById(parseInt(bookId));
 
-  if (!book || book.is_deleted) {
+  if (!book || book.isDeleted) {
     throw new NotFoundError('Book not found');
   }
 
@@ -319,7 +319,7 @@ const getBookById = async (bookId, user = null) => {
 const updateBook = async (bookId, updateData, user) => {
   const book = await BookService.findById(parseInt(bookId));
 
-  if (!book || book.is_deleted) {
+  if (!book || book.isDeleted) {
     throw new NotFoundError('Book not found');
   }
 
@@ -414,7 +414,7 @@ const updateBook = async (bookId, updateData, user) => {
 const deleteBook = async (bookId, user) => {
   const book = await BookService.findById(parseInt(bookId));
 
-  if (!book || book.is_deleted) {
+  if (!book || book.isDeleted) {
     throw new NotFoundError('Book not found');
   }
 
@@ -514,7 +514,7 @@ const searchBooks = async (query, options = {}) => {
 const updateBookStock = async (bookId, stockData, user) => {
   const book = await BookService.findById(parseInt(bookId));
 
-  if (!book || book.is_deleted) {
+  if (!book || book.isDeleted) {
     throw new NotFoundError('Book not found');
   }
 

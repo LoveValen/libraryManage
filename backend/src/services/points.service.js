@@ -19,21 +19,21 @@ const UserService = require('./user.service');
 class PointsService {
   static async getOrCreateUserPoints(userId, client = prisma) {
     let userPoints = await client.userPoints.findUnique({
-      where: { user_id: parseInt(userId) },
+      where: { userId: parseInt(userId) },
       include: { user: true }
     });
 
     if (!userPoints) {
       userPoints = await client.userPoints.create({
         data: {
-          user_id: parseInt(userId),
+          userId: parseInt(userId),
           balance: 0,
-          total_earned: 0,
-          total_spent: 0,
+          totalEarned: 0,
+          totalSpent: 0,
           level: 'NEWCOMER',
-          level_name: '新手读者',
-          created_at: new Date(),
-          updated_at: new Date()
+          levelName: '新手读者',
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
         include: { user: true }
       });
@@ -57,30 +57,30 @@ class PointsService {
       const newBalance = previousBalance + points;
 
       const updatedUserPoints = await client.userPoints.update({
-        where: { user_id: parseInt(userId) },
+        where: { userId: parseInt(userId) },
         data: {
           balance: newBalance,
-          total_earned: { increment: points > 0 ? points : 0 },
-          total_spent: { increment: points < 0 ? Math.abs(points) : 0 },
-          last_transaction_at: new Date(),
-          updated_at: new Date()
+          totalEarned: { increment: points > 0 ? points : 0 },
+          totalSpent: { increment: points < 0 ? Math.abs(points) : 0 },
+          lastTransactionAt: new Date(),
+          updatedAt: new Date()
         }
       });
 
       const transaction = await client.pointsTransactions.create({
         data: {
-          user_id: parseInt(userId),
-          points_change: points,
-          current_balance: newBalance,
-          previous_balance: previousBalance,
-          transaction_type: transactionType,
+          userId: parseInt(userId),
+          pointsChange: points,
+          currentBalance: newBalance,
+          previousBalance: previousBalance,
+          transactionType: transactionType,
           description,
-          related_entity_type: relatedEntityType,
-          related_entity_id: relatedEntityId,
+          relatedEntityType: relatedEntityType,
+          relatedEntityId: relatedEntityId,
           metadata: metadata || {},
-          processed_by: operatorId ? parseInt(operatorId) : null,
+          processedBy: operatorId ? parseInt(operatorId) : null,
           status: 'completed',
-          created_at: new Date()
+          createdAt: new Date()
         }
       });
 
@@ -115,30 +115,30 @@ class PointsService {
       const newBalance = previousBalance - amount;
       const data = {
         balance: newBalance,
-        total_spent: { increment: amount },
-        last_transaction_at: new Date(),
-        updated_at: new Date()
+        totalSpent: { increment: amount },
+        lastTransactionAt: new Date(),
+        updatedAt: new Date()
       };
 
       const updatedUserPoints = await client.userPoints.update({
-        where: { user_id: parseInt(userId) },
+        where: { userId: parseInt(userId) },
         data
       });
 
       const transaction = await client.pointsTransactions.create({
         data: {
-          user_id: parseInt(userId),
-          points_change: -amount,
-          current_balance: newBalance,
-          previous_balance: previousBalance,
-          transaction_type: transactionType,
+          userId: parseInt(userId),
+          pointsChange: -amount,
+          currentBalance: newBalance,
+          previousBalance: previousBalance,
+          transactionType: transactionType,
           description,
-          related_entity_type: relatedEntityType,
-          related_entity_id: relatedEntityId,
+          relatedEntityType: relatedEntityType,
+          relatedEntityId: relatedEntityId,
           metadata: metadata || {},
-          processed_by: operatorId ? parseInt(operatorId) : null,
+          processedBy: operatorId ? parseInt(operatorId) : null,
           status: 'completed',
-          created_at: new Date()
+          createdAt: new Date()
         }
       });
 
@@ -157,16 +157,16 @@ class PointsService {
     const limit = Math.max(1, Math.min(parseInt(options.limit, 10) || 20, 100));
     const skip = (page - 1) * limit;
 
-    const where = { user_id: parseInt(userId) };
+    const where = { userId: parseInt(userId) };
 
     if (options.transactionType) {
-      where.transaction_type = options.transactionType;
+      where.transactionType = options.transactionType;
     }
 
     if (options.startDate || options.endDate) {
-      where.created_at = {};
+      where.createdAt = {};
       if (options.startDate) {
-        where.created_at.gte = options.startDate instanceof Date
+        where.createdAt.gte = options.startDate instanceof Date
           ? options.startDate
           : new Date(options.startDate);
       }
@@ -175,7 +175,7 @@ class PointsService {
           ? options.endDate
           : new Date(options.endDate);
         end.setMilliseconds(999);
-        where.created_at.lte = end;
+        where.createdAt.lte = end;
       }
     }
 
@@ -185,13 +185,13 @@ class PointsService {
         where,
         skip,
         take: limit,
-        orderBy: { created_at: 'desc' },
+        orderBy: { createdAt: 'desc' },
         include: {
           user: {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               email: true,
               avatar: true,
               role: true
@@ -201,7 +201,7 @@ class PointsService {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               email: true,
               avatar: true,
               role: true
@@ -223,13 +223,13 @@ class PointsService {
   }
 
   static async getStatistics(options = {}) {
-    const userFilter = options.userId ? { user_id: parseInt(options.userId) } : {};
-    const transactionWhere = options.userId ? { user_id: parseInt(options.userId) } : {};
+    const userFilter = options.userId ? { userId: parseInt(options.userId) } : {};
+    const transactionWhere = options.userId ? { userId: parseInt(options.userId) } : {};
 
     if (options.startDate || options.endDate) {
-      transactionWhere.created_at = {};
+      transactionWhere.createdAt = {};
       if (options.startDate) {
-        transactionWhere.created_at.gte = options.startDate instanceof Date
+        transactionWhere.createdAt.gte = options.startDate instanceof Date
           ? options.startDate
           : new Date(options.startDate);
       }
@@ -238,7 +238,7 @@ class PointsService {
           ? options.endDate
           : new Date(options.endDate);
         end.setMilliseconds(999);
-        transactionWhere.created_at.lte = end;
+        transactionWhere.createdAt.lte = end;
       }
     }
 
@@ -255,9 +255,9 @@ class PointsService {
       }),
       prisma.pointsTransactions.count({ where: transactionWhere }),
       prisma.pointsTransactions.groupBy({
-        by: ['transaction_type'],
+        by: ['transactionType'],
         where: transactionWhere,
-        _sum: { points_change: true },
+        _sum: { pointsChange: true },
         _count: { _all: true }
       }),
       prisma.userPoints.groupBy({
@@ -271,8 +271,8 @@ class PointsService {
     const totalPointsInCirculation = userAggregate?._sum?.balance || 0;
 
     const transactionsByType = transactionsByTypeRaw.map(item => ({
-      type: item.transaction_type,
-      totalPoints: item._sum.points_change || 0,
+      type: item.transactionType,
+      totalPoints: item._sum.pointsChange || 0,
       count: item._count._all
     }));
 
@@ -314,7 +314,7 @@ class PointsService {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               email: true,
               avatar: true,
               role: true
@@ -324,43 +324,43 @@ class PointsService {
       });
 
       return topUsers.map((entry, index) => ({
-        userId: entry.user_id,
+        userId: entry.userId,
         user: entry.user,
         points: entry.balance,
-        totalEarned: entry.total_earned,
+        totalEarned: entry.totalEarned,
         level: {
           code: entry.level,
-          name: entry.level_name
+          name: entry.levelName
         },
         rank: index + 1
       }));
     }
 
     const grouped = await prisma.pointsTransactions.groupBy({
-      by: ['user_id'],
+      by: ['userId'],
       where: {
-        created_at: {
+        createdAt: {
           gte: startDate
         }
       },
-      _sum: { points_change: true }
+      _sum: { pointsChange: true }
     });
 
     const sorted = grouped
-      .filter(item => item._sum.points_change !== null)
-      .sort((a, b) => (b._sum.points_change || 0) - (a._sum.points_change || 0))
+      .filter(item => item._sum.pointsChange !== null)
+      .sort((a, b) => (b._sum.pointsChange || 0) - (a._sum.pointsChange || 0))
       .slice(0, take);
 
-    const userIds = sorted.map(item => item.user_id);
+    const userIds = sorted.map(item => item.userId);
 
     const userPoints = await prisma.userPoints.findMany({
-      where: { user_id: { in: userIds } },
+      where: { userId: { in: userIds } },
       include: {
         user: {
           select: {
             id: true,
             username: true,
-            real_name: true,
+            realName: true,
             email: true,
             avatar: true,
             role: true
@@ -369,16 +369,16 @@ class PointsService {
       }
     });
 
-    const userMap = new Map(userPoints.map(entry => [entry.user_id, entry]));
+    const userMap = new Map(userPoints.map(entry => [entry.userId, entry]));
 
     return sorted.map((item, index) => {
-      const entry = userMap.get(item.user_id);
+      const entry = userMap.get(item.userId);
       return {
-        userId: item.user_id,
+        userId: item.userId,
         user: entry?.user,
-        points: item._sum.points_change || 0,
+        points: item._sum.pointsChange || 0,
         level: entry
-          ? { code: entry.level, name: entry.level_name }
+          ? { code: entry.level, name: entry.levelName }
           : null,
         rank: index + 1
       };
@@ -400,8 +400,8 @@ class PointsService {
         throw new BadRequestError('该交易已被撤销');
       }
 
-      const userPoints = await this.getOrCreateUserPoints(original.user_id, tx);
-      const adjustment = -original.points_change;
+      const userPoints = await this.getOrCreateUserPoints(original.userId, tx);
+      const adjustment = -original.pointsChange;
       const previousBalance = userPoints.balance;
       const newBalance = previousBalance + adjustment;
 
@@ -411,18 +411,18 @@ class PointsService {
 
       const updatePayload = {
         balance: newBalance,
-        last_transaction_at: new Date(),
-        updated_at: new Date()
+        lastTransactionAt: new Date(),
+        updatedAt: new Date()
       };
 
-      if (original.points_change > 0) {
-        updatePayload.total_earned = { decrement: original.points_change };
-      } else if (original.points_change < 0) {
-        updatePayload.total_spent = { decrement: Math.abs(original.points_change) };
+      if (original.pointsChange > 0) {
+        updatePayload.totalEarned = { decrement: original.pointsChange };
+      } else if (original.pointsChange < 0) {
+        updatePayload.totalSpent = { decrement: Math.abs(original.pointsChange) };
       }
 
       await tx.userPoints.update({
-        where: { user_id: original.user_id },
+        where: { userId: original.userId },
         data: updatePayload
       });
 
@@ -433,19 +433,19 @@ class PointsService {
 
       const reversal = await tx.pointsTransactions.create({
         data: {
-          user_id: original.user_id,
-          points_change: adjustment,
-          current_balance: newBalance,
-          previous_balance: previousBalance,
-          transaction_type: POINTS_TRANSACTION_TYPES.ADMIN_ADJUSTMENT,
+          userId: original.userId,
+          pointsChange: adjustment,
+          currentBalance: newBalance,
+          previousBalance: previousBalance,
+          transactionType: POINTS_TRANSACTION_TYPES.ADMIN_ADJUSTMENT,
           description: `撤销交易#${original.id}: ${reason}`,
           metadata: {
             relatedTransactionId: original.id,
             reason
           },
-          processed_by: operatorId ? parseInt(operatorId, 10) : null,
+          processedBy: operatorId ? parseInt(operatorId, 10) : null,
           status: 'completed',
-          created_at: new Date()
+          createdAt: new Date()
         }
       });
 
@@ -512,28 +512,28 @@ class PointsServiceAdapter {
     const userPoints = await PointsService.getOrCreateUserPoints(userId);
     
     // Calculate level info
-    const level = this.calculateUserLevel(userPoints.total_earned || 0);
-    
+    const level = this.calculateUserLevel(userPoints.totalEarned || 0);
+
     return {
-      id: userPoints.user_id,
-      userId: userPoints.user_id,
+      id: userPoints.userId,
+      userId: userPoints.userId,
       balance: userPoints.balance,
-      totalEarned: userPoints.total_earned,
-      totalSpent: userPoints.total_spent,
-      borrowPoints: userPoints.borrow_points,
-      reviewPoints: userPoints.review_points,
-      bonusPoints: userPoints.bonus_points,
-      penaltyPoints: userPoints.penalty_points,
-      lastTransactionAt: userPoints.last_transaction_at,
+      totalEarned: userPoints.totalEarned,
+      totalSpent: userPoints.totalSpent,
+      borrowPoints: userPoints.borrowPoints,
+      reviewPoints: userPoints.reviewPoints,
+      bonusPoints: userPoints.bonusPoints,
+      penaltyPoints: userPoints.penaltyPoints,
+      lastTransactionAt: userPoints.lastTransactionAt,
       level: {
         ...level,
-        currentLevelPoints: userPoints.total_earned,
-        nextLevelPoints: userPoints.next_level_points,
-        progressToNextLevel: userPoints.progress_to_next_level
+        currentLevelPoints: userPoints.totalEarned,
+        nextLevelPoints: userPoints.nextLevelPoints,
+        progressToNextLevel: userPoints.progressToNextLevel
       },
-      createdAt: userPoints.created_at,
-      updatedAt: userPoints.updated_at,
-      totalPoints: userPoints.total_earned // For backwards compatibility
+      createdAt: userPoints.createdAt,
+      updatedAt: userPoints.updatedAt,
+      totalPoints: userPoints.totalEarned // For backwards compatibility
     };
   }
 
@@ -566,8 +566,8 @@ class PointsServiceAdapter {
     });
 
     // Check for level upgrade
-    const oldLevel = this.calculateUserLevel((result.userPoints.total_earned || 0) - points);
-    const newLevel = this.calculateUserLevel(result.userPoints.total_earned || 0);
+    const oldLevel = this.calculateUserLevel((result.userPoints.totalEarned || 0) - points);
+    const newLevel = this.calculateUserLevel(result.userPoints.totalEarned || 0);
     
     if (newLevel.level !== oldLevel.level) {
       console.log(`用户 ${userId} 从 ${oldLevel.name} 升级到 ${newLevel.name}`);
@@ -595,11 +595,11 @@ class PointsServiceAdapter {
       userPoints: await this.getUserPoints(userId),
       transaction: {
         id: result.transaction.id.toString(),
-        userId: result.transaction.user_id,
-        pointsChange: result.transaction.points_change,
-        type: result.transaction.transaction_type,
+        userId: result.transaction.userId,
+        pointsChange: result.transaction.pointsChange,
+        type: result.transaction.transactionType,
         description: result.transaction.description,
-        createdAt: result.transaction.created_at
+        createdAt: result.transaction.createdAt
       }
     };
   }
@@ -630,11 +630,11 @@ class PointsServiceAdapter {
       userPoints: await this.getUserPoints(userId),
       transaction: {
         id: result.transaction.id.toString(),
-        userId: result.transaction.user_id,
-        pointsChange: result.transaction.points_change,
-        type: result.transaction.transaction_type,
+        userId: result.transaction.userId,
+        pointsChange: result.transaction.pointsChange,
+        type: result.transaction.transactionType,
         description: result.transaction.description,
-        createdAt: result.transaction.created_at
+        createdAt: result.transaction.createdAt
       }
     };
   }
@@ -707,16 +707,16 @@ class PointsServiceAdapter {
     return {
       transactions: result.data.map(tx => ({
         id: tx.id.toString(),
-        userId: tx.user_id,
-        pointsChange: tx.points_change,
-        currentBalance: tx.current_balance,
-        previousBalance: tx.previous_balance,
-        type: tx.transaction_type,
+        userId: tx.userId,
+        pointsChange: tx.pointsChange,
+        currentBalance: tx.currentBalance,
+        previousBalance: tx.previousBalance,
+        type: tx.transactionType,
         description: tx.description,
         metadata: tx.metadata,
-        processedBy: tx.processed_by,
+        processedBy: tx.processedBy,
         status: tx.status,
-        createdAt: tx.created_at,
+        createdAt: tx.createdAt,
         user: tx.user ? UserService.toSafeJSON(tx.user) : undefined,
         processor: tx.processor ? UserService.toSafeJSON(tx.processor) : undefined
       })),
@@ -756,11 +756,11 @@ class PointsServiceAdapter {
       message: '交易撤销成功',
       reversalTransaction: {
         id: result.id.toString(),
-        originalTransactionId: result.original_transaction_id?.toString(),
-        userId: result.user_id,
-        pointsChange: result.points_change,
+        originalTransactionId: result.originalTransactionId?.toString(),
+        userId: result.userId,
+        pointsChange: result.pointsChange,
         description: result.description,
-        createdAt: result.created_at
+        createdAt: result.createdAt
       }
     };
   }
@@ -782,7 +782,7 @@ class PointsServiceAdapter {
         user: entry.user ? {
           id: entry.user.id,
           username: entry.user.username,
-          realName: entry.user.real_name,
+          realName: entry.user.realName,
           avatar: entry.user.avatar
         } : undefined
       })),

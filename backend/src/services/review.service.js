@@ -13,7 +13,7 @@ class ReviewService {
       bookId,
       status = 'published',
       rating,
-      is_recommended,
+      isRecommended,
       orderBy = 'createdAt',
       order = 'desc'
     } = options;
@@ -25,7 +25,7 @@ class ReviewService {
     if (bookId) where.bookId = parseInt(bookId);
     if (status) where.status = status;
     if (rating) where.rating = parseInt(rating);
-    if (is_recommended !== undefined) where.is_recommended = is_recommended;
+    if (isRecommended !== undefined) where.isRecommended = isRecommended;
 
     const [reviews, total] = await Promise.all([
       prisma.reviews.findMany({
@@ -84,7 +84,7 @@ class ReviewService {
   static async findByUserAndBook(userId, bookId) {
     return prisma.reviews.findUnique({
       where: {
-        uk_reviews_user_book: {
+        userId_bookId: {
           userId: parseInt(userId),
           bookId: parseInt(bookId)
         }
@@ -105,7 +105,7 @@ class ReviewService {
     }
 
     // Verify user has borrowed the book
-    if (reviewData.require_borrow_verification) {
+    if (reviewData.requireBorrowVerification) {
       const borrow = await client.borrows.findFirst({
         where: {
           userId: reviewData.userId,
@@ -118,28 +118,28 @@ class ReviewService {
         throw new Error('User must borrow and return the book before reviewing');
       }
 
-      reviewData.borrow_id = borrow.id;
-      reviewData.is_verified_purchase = true;
+      reviewData.borrowId = borrow.id;
+      reviewData.isVerifiedPurchase = true;
     }
 
     const review = await client.reviews.create({
       data: {
         userId: reviewData.userId,
         bookId: reviewData.bookId,
-        borrow_id: reviewData.borrow_id,
+        borrowId: reviewData.borrowId,
         rating: reviewData.rating,
         title: reviewData.title,
         content: reviewData.content,
         tags: reviewData.tags || [],
-        is_recommended: reviewData.is_recommended !== false,
-        is_verified_purchase: reviewData.is_verified_purchase || false,
-        spoiler_alert: reviewData.spoiler_alert || false,
+        isRecommended: reviewData.isRecommended !== false,
+        isVerifiedPurchase: reviewData.isVerifiedPurchase || false,
+        spoilerAlert: reviewData.spoilerAlert || false,
         language: reviewData.language || 'zh-CN',
-        reading_progress: reviewData.reading_progress,
-        reading_time: reviewData.reading_time,
+        readingProgress: reviewData.readingProgress,
+        readingTime: reviewData.readingTime,
         status: 'published',
         createdAt: new Date(),
-        updated_at: new Date()
+        updatedAt: new Date()
       },
       include: {
         reviewer: true,
@@ -161,7 +161,7 @@ class ReviewService {
       where: { id: parseInt(id) },
       data: {
         ...updateData,
-        updated_at: new Date()
+        updatedAt: new Date()
       },
       include: {
         reviewer: true,
@@ -184,9 +184,9 @@ class ReviewService {
     const review = await prisma.reviews.update({
       where: { id: parseInt(id) },
       data: {
-        deleted_at: new Date(),
+        deletedAt: new Date(),
         status: 'deleted',
-        updated_at: new Date()
+        updatedAt: new Date()
       }
     });
 
@@ -204,10 +204,10 @@ class ReviewService {
       where: { id: parseInt(id) },
       data: {
         status: moderationData.status,
-        moderator_id: moderationData.moderator_id,
-        moderator_notes: moderationData.notes,
-        moderated_at: new Date(),
-        updated_at: new Date()
+        moderatorId: moderationData.moderatorId,
+        moderatorNotes: moderationData.notes,
+        moderatedAt: new Date(),
+        updatedAt: new Date()
       },
       include: {
         reviewer: true,
@@ -221,8 +221,8 @@ class ReviewService {
    * Mark review as helpful/unhelpful
    */
   static async markHelpfulness(id, isHelpful = true) {
-    const field = isHelpful ? 'helpful_count' : 'unhelpful_count';
-    
+    const field = isHelpful ? 'helpfulCount' : 'unhelpfulCount';
+
     return prisma.reviews.update({
       where: { id: parseInt(id) },
       data: {
@@ -240,7 +240,7 @@ class ReviewService {
       limit = 10,
       status = 'published',
       rating,
-      sortBy = 'helpful_count',
+      sortBy = 'helpfulCount',
       order = 'desc'
     } = options;
 
@@ -415,10 +415,10 @@ class ReviewService {
       },
       data: {
         status: moderationData.status,
-        moderator_id: moderationData.moderator_id,
-        moderator_notes: moderationData.notes,
-        moderated_at: new Date(),
-        updated_at: new Date()
+        moderatorId: moderationData.moderatorId,
+        moderatorNotes: moderationData.notes,
+        moderatedAt: new Date(),
+        updatedAt: new Date()
       }
     });
   }

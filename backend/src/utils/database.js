@@ -32,7 +32,10 @@ async function createInitialAdmin() {
       return existingAdmin;
     }
 
-    const passwordHash = await bcrypt.hash('admin123', 12);
+    // 默认密码仅用于开发/首次启动演示；生产环境应通过环境变量或运维流程注入。
+    const defaultPassword = process.env.INIT_ADMIN_PASSWORD || 'admin123';
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
+    const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
     
     const admin = await prisma.users.create({
       data: {
@@ -47,7 +50,11 @@ async function createInitialAdmin() {
       }
     });
 
-    console.log('✅ 默认管理员账户已创建 (admin/admin123)');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`✅ 默认管理员账户已创建 (admin/${defaultPassword})`);
+    } else {
+      console.log('✅ 初始管理员账户已创建');
+    }
     return admin;
   } catch (error) {
     console.error('❌ 创建管理员账户失败:', error.message);
@@ -106,6 +113,14 @@ async function getDatabaseStats() {
 async function initializeDatabase() {
   try {
     console.log('🚀 Starting database initialization...');
+
+    // 确保数据库可连接（避免 seed 阶段报错不直观）
+    // prisma 单例在多数查询前会自动连接，但这里显式连接能更快暴露连接问题。
+    try {
+      await prisma.$connect();
+    } catch (_) {
+      // ignore
+    }
 
     // Create initial admin 并同步 RBAC 基础数据
     if (process.env.NODE_ENV !== 'test') {

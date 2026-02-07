@@ -77,51 +77,12 @@ const STOCK_DEFAULTS = {
 // 排序默认值
 const SORT_DEFAULTS = {
   ORDER: 'desc',
-  ORDER_BY: 'created_at',
+  ORDER_BY: 'createdAt',
 };
 
-// 字段映射：前端(camelCase) -> 数据库(snake_case)
-const FIELD_MAPPINGS = {
-  // 通用字段
-  COMMON: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    deletedAt: 'deleted_at',
-  },
-  // 用户相关字段
-  USER: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    lastLoginAt: 'last_login_at',
-    realName: 'real_name',
-    studentId: 'student_id',
-  },
-  // 图书相关字段
-  BOOK: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    categoryId: 'category_id',
-    totalStock: 'total_stock',
-    availableStock: 'available_stock',
-    reservedStock: 'reserved_stock',
-    publicationYear: 'publication_year',
-    publishDate: 'publish_date',
-    averageRating: 'average_rating',
-    reviewCount: 'review_count',
-    borrowCount: 'borrow_count',
-    viewCount: 'view_count',
-  },
-  // 借阅相关字段
-  BORROW: {
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    userId: 'user_id',
-    bookId: 'book_id',
-    borrowDate: 'borrow_date',
-    dueDate: 'due_date',
-    returnDate: 'return_date',
-  },
-};
+// 注意: FIELD_MAPPINGS 已移除
+// 现在使用 Prisma @map 指令处理字段命名映射
+// 代码中统一使用 camelCase，数据库字段使用 snake_case
 
 const POINTS_RULES = {
   BORROW_BOOK: 10,
@@ -185,5 +146,4 @@ module.exports = {
   TIME_RANGES,
   STOCK_DEFAULTS,
   SORT_DEFAULTS,
-  FIELD_MAPPINGS,
 };

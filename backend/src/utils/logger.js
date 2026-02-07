@@ -1,11 +1,21 @@
-const winston = require('winston');
+const fs = require('fs');
 const path = require('path');
+const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
 
 /**
  * 日志工具 - 遵循优秀源码的简洁设计
  */
 
-const isDev = process.env.NODE_ENV === 'development';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isDev = nodeEnv === 'development';
+const isTest = nodeEnv === 'test';
+
+const logLevel = process.env.LOG_LEVEL || (isDev ? 'debug' : 'info');
+const logFilePath = process.env.LOG_FILE_PATH || './logs';
+const logMaxSize = process.env.LOG_MAX_SIZE || '20m';
+const logMaxFiles = process.env.LOG_MAX_FILES || '14d';
+const logDatePattern = process.env.LOG_DATE_PATTERN || 'YYYY-MM-DD';
 
 // 简洁的日志格式
 const format = winston.format.combine(
@@ -18,26 +28,39 @@ const format = winston.format.combine(
 
 // 创建日志实例
 const logger = winston.createLogger({
-  level: isDev ? 'debug' : 'info',
+  level: logLevel,
   format,
   transports: [
     new winston.transports.Console({
       format: winston.format.combine(winston.format.colorize(), format)
     })
   ],
-  silent: process.env.NODE_ENV === 'test',
+  silent: isTest,
 });
 
-// 生产环境添加文件日志
-if (!isDev && !process.env.NODE_ENV === 'test') {
-  logger.add(new winston.transports.File({
-    filename: path.join(process.cwd(), 'logs', 'app.log'),
-    level: 'info'
+// 生产环境默认写入文件日志（支持 LOG_TO_FILE=true 强制开启）
+const enableFileLogging = (nodeEnv === 'production' || process.env.LOG_TO_FILE === 'true') && !isTest;
+
+if (enableFileLogging) {
+  const logDir = path.resolve(process.cwd(), logFilePath);
+  fs.mkdirSync(logDir, { recursive: true });
+
+  logger.add(new DailyRotateFile({
+    dirname: logDir,
+    filename: 'app-%DATE%.log',
+    datePattern: logDatePattern,
+    maxSize: logMaxSize,
+    maxFiles: logMaxFiles,
+    level: logLevel,
   }));
-  
-  logger.add(new winston.transports.File({
-    filename: path.join(process.cwd(), 'logs', 'error.log'),
-    level: 'error'
+
+  logger.add(new DailyRotateFile({
+    dirname: logDir,
+    filename: 'error-%DATE%.log',
+    datePattern: logDatePattern,
+    maxSize: logMaxSize,
+    maxFiles: logMaxFiles,
+    level: 'error',
   }));
 }
 
@@ -54,7 +77,7 @@ const logError = (error, req = null, meta = {}) => {
   if (req) {
     errorInfo.request = {
       method: req.method,
-      url: req.url,
+      url: req.originalUrl || req.url,
       ip: req.ip,
       userId: req.user?.id
     };
@@ -70,7 +93,7 @@ const logSecurityEvent = (event, req, details = {}) => {
   logger.warn('安全事件', {
     event,
     ip: req?.ip,
-    url: req?.url,
+    url: req?.originalUrl || req?.url,
     userId: req?.user?.id,
     ...details
   });
@@ -116,7 +139,7 @@ const createHttpLogger = () => {
     // 记录请求开始
     logger.info('HTTP Request', {
       method: req.method,
-      url: req.url,
+      url: req.originalUrl || req.url,
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       requestId: req.id
@@ -129,9 +152,9 @@ const createHttpLogger = () => {
       
       logger[logLevel]('HTTP Response', {
         method: req.method,
-        url: req.url,
+        url: req.originalUrl || req.url,
         statusCode: res.statusCode,
-        duration: `${duration}ms`,
+        durationMs: duration,
         ip: req.ip,
         requestId: req.id
       });
@@ -140,6 +163,16 @@ const createHttpLogger = () => {
     next();
   };
 };
+
+// 避免在日志输出被管道关闭时抛出未捕获异常（例如：CI/超时终止）。
+logger.on('error', (err) => {
+  try {
+    // eslint-disable-next-line no-console
+    console.error('Logger transport error:', err?.message || err);
+  } catch (_) {
+    // ignore
+  }
+});
 
 module.exports = {
   logger,

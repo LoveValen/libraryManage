@@ -23,22 +23,22 @@ class PermissionResourcesService {
     }
 
     if (typeof isActive === 'boolean') {
-      where.is_active = isActive;
+      where.isActive = isActive;
     }
 
     if (keyword) {
       where.OR = [
-        { resource_key: { contains: keyword } },
-        { resource_name: { contains: keyword } },
-        { route_path: { contains: keyword } },
-        { route_name: { contains: keyword } },
+        { resourceKey: { contains: keyword } },
+        { resourceName: { contains: keyword } },
+        { routePath: { contains: keyword } },
+        { routeName: { contains: keyword } },
       ];
     }
 
     const items = await prisma.permission_resources.findMany({
       where,
       include: { permission: true },
-      orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
 
     return items.map((item) => this.#formatResource(item));
@@ -52,8 +52,8 @@ class PermissionResourcesService {
     const item = await prisma.permission_resources.create({
       data: {
         ...payload,
-        created_at: new Date(),
-        updated_at: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       include: { permission: true },
     });
@@ -82,7 +82,7 @@ class PermissionResourcesService {
       where: { id: resourceId },
       data: {
         ...payload,
-        updated_at: new Date(),
+        updatedAt: new Date(),
       },
       include: { permission: true },
     });
@@ -118,27 +118,27 @@ class PermissionResourcesService {
     const hasWildcard = normalizedCodes.includes('*');
 
     const whereClause = {
-      is_active: true,
+      isActive: true,
     };
 
     if (!hasWildcard) {
       whereClause.OR = [
         { permission: { code: { in: normalizedCodes } } },
-        { permission_id: null },
+        { permissionId: null },
       ];
     }
 
     const resources = await prisma.permission_resources.findMany({
       where: whereClause,
       include: { permission: true },
-      orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
+      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
     });
 
     // 非超级权限场景下进一步过滤无对应权限的资源
     const accessible = hasWildcard
       ? resources
       : resources.filter((item) => {
-          if (!item.permission_id) {
+          if (!item.permissionId) {
             return true;
           }
           const code = item.permission?.code;
@@ -221,22 +221,22 @@ class PermissionResourcesService {
       if (!finalResourceKey || typeof finalResourceKey !== 'string') {
         throw new BadRequestError('资源标识不可为空');
       }
-      payload.resource_key = finalResourceKey.trim();
+      payload.resourceKey = finalResourceKey.trim();
     }
 
     const finalResourceName = resourceName ?? data?.name ?? null;
     if (finalResourceName !== undefined) {
-      payload.resource_name = finalResourceName ? String(finalResourceName).trim() : null;
+      payload.resourceName = finalResourceName ? String(finalResourceName).trim() : null;
     }
 
     const finalRoutePath = routePath ?? routePathCamel ?? null;
     if (finalRoutePath !== undefined) {
-      payload.route_path = finalRoutePath ? String(finalRoutePath).trim() : null;
+      payload.routePath = finalRoutePath ? String(finalRoutePath).trim() : null;
     }
 
     const finalRouteName = routeName ?? routeNameCamel ?? null;
     if (finalRouteName !== undefined) {
-      payload.route_name = finalRouteName ? String(finalRouteName).trim() : null;
+      payload.routeName = finalRouteName ? String(finalRouteName).trim() : null;
     }
 
     if (component !== undefined) {
@@ -245,7 +245,7 @@ class PermissionResourcesService {
 
     const finalParentKey = parentKey ?? parentKeyCamel ?? null;
     if (finalParentKey !== undefined) {
-      payload.parent_key = finalParentKey ? String(finalParentKey).trim() : null;
+      payload.parentKey = finalParentKey ? String(finalParentKey).trim() : null;
     }
 
     if (meta !== undefined) {
@@ -262,13 +262,13 @@ class PermissionResourcesService {
       if (Number.isNaN(num)) {
         throw new BadRequestError('排序值必须为数字');
       }
-      payload.sort_order = num;
+      payload.sortOrder = num;
     }
 
     const finalPermissionId = permissionId ?? permissionIdCamel;
     if (finalPermissionId !== undefined) {
       if (finalPermissionId === null) {
-        payload.permission_id = null;
+        payload.permissionId = null;
       } else {
         const pid = Number(finalPermissionId);
         if (!pid || Number.isNaN(pid)) {
@@ -278,13 +278,13 @@ class PermissionResourcesService {
         if (!exists) {
           throw new BadRequestError('关联的权限不存在');
         }
-        payload.permission_id = pid;
+        payload.permissionId = pid;
       }
     }
 
     const finalIsActive = isActive ?? isActiveCamel;
     if (finalIsActive !== undefined) {
-      payload.is_active = Boolean(finalIsActive);
+      payload.isActive = Boolean(finalIsActive);
     }
 
     return payload;
@@ -298,19 +298,19 @@ class PermissionResourcesService {
     return {
       id: item.id,
       type: item.type,
-      resourceKey: item.resource_key,
-      resourceName: item.resource_name,
-      routePath: item.route_path,
-      routeName: item.route_name,
+      resourceKey: item.resourceKey,
+      resourceName: item.resourceName,
+      routePath: item.routePath,
+      routeName: item.routeName,
       component: item.component,
-      parentKey: item.parent_key,
+      parentKey: item.parentKey,
       meta: item.meta || {},
-      sortOrder: item.sort_order ?? 0,
-      isActive: item.is_active,
-      permissionId: item.permission_id,
+      sortOrder: item.sortOrder ?? 0,
+      isActive: item.isActive,
+      permissionId: item.permissionId,
       permissionCode: item.permission?.code || null,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
     };
   }
 

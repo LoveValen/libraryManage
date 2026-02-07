@@ -72,12 +72,12 @@ class UserService {
 
       const createData = {
         ...userData,
-        password_hash,
+        passwordHash: password_hash,
         preferences: userData.preferences || defaultPreferences,
         role: userData.role || USER_ROLES.PATRON,
         status: userData.status || USER_STATUS.ACTIVE,
-        created_at: new Date(),
-        updated_at: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       delete createData.password;
 
@@ -107,7 +107,7 @@ class UserService {
 
       const where = { id: Number(id) };
       if (!includeDeleted) {
-        where.is_deleted = false;
+        where.isDeleted = false;
       }
 
       return await prisma.users.findUnique({
@@ -116,21 +116,21 @@ class UserService {
           userPoints: true,
           userPreferences: true,
           userBorrows: {
-            where: { 
+            where: {
               status: 'borrowed',
-              is_deleted: false
+              isDeleted: false
             },
-            include: { 
+            include: {
               book: {
                 select: {
                   id: true,
                   title: true,
                   isbn: true,
-                  cover_image: true
+                  coverImage: true
                 }
               }
             },
-            orderBy: { created_at: 'desc' },
+            orderBy: { createdAt: 'desc' },
             take: 5
           }
         }
@@ -160,7 +160,7 @@ class UserService {
       };
 
       if (!includeDeleted) {
-        where.is_deleted = false;
+        where.isDeleted = false;
       }
 
       return await prisma.users.findFirst({
@@ -184,10 +184,10 @@ class UserService {
    */
   static async validatePassword(user, password) {
     try {
-      if (!user?.password_hash || !password) {
+      if (!user?.passwordHash || !password) {
         return false;
       }
-      return await bcrypt.compare(password, user.password_hash);
+      return await bcrypt.compare(password, user.passwordHash);
     } catch (error) {
       throw new Error(`密码验证失败: ${error.message}`);
     }
@@ -208,9 +208,9 @@ class UserService {
       return await prisma.users.update({
         where: { id: Number(userId) },
         data: {
-          last_login_at: new Date(),
-          last_login_ip: ip || null,
-          updated_at: new Date()
+          lastLoginAt: new Date(),
+          lastLoginIp: ip || null,
+          updatedAt: new Date()
         }
       });
     } catch (error) {
@@ -244,7 +244,7 @@ class UserService {
           throw new Error('密码长度不能少于 6 位');
         }
         const salt = await bcrypt.genSalt(12);
-        processedData.password_hash = await bcrypt.hash(updateData.password, salt);
+        processedData.passwordHash = await bcrypt.hash(updateData.password, salt);
         delete processedData.password;
       }
 
@@ -263,7 +263,7 @@ class UserService {
         }
       }
 
-      processedData.updated_at = new Date();
+      processedData.updatedAt = new Date();
 
       return await prisma.users.update({
         where: { id: Number(id) },
@@ -285,8 +285,8 @@ class UserService {
     return prisma.users.update({
       where: { id },
       data: {
-        is_deleted: true,
-        deleted_at: new Date(),
+        isDeleted: true,
+        deletedAt: new Date(),
         status: USER_STATUS.INACTIVE
       }
     });
@@ -303,40 +303,40 @@ class UserService {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       
       const [total, active, admins, suspended, newThisMonth, newLastMonth] = await Promise.all([
-        prisma.users.count({ 
-          where: { is_deleted: false } 
-        }),
-        prisma.users.count({ 
-          where: { 
-            status: USER_STATUS.ACTIVE, 
-            is_deleted: false 
-          } 
-        }),
-        prisma.users.count({ 
-          where: { 
-            role: USER_ROLES.ADMIN, 
-            is_deleted: false 
-          } 
-        }),
-        prisma.users.count({ 
-          where: { 
-            status: USER_STATUS.SUSPENDED, 
-            is_deleted: false 
-          } 
+        prisma.users.count({
+          where: { isDeleted: false }
         }),
         prisma.users.count({
           where: {
-            created_at: { gte: thisMonthStart },
-            is_deleted: false,
+            status: USER_STATUS.ACTIVE,
+            isDeleted: false
+          }
+        }),
+        prisma.users.count({
+          where: {
+            role: USER_ROLES.ADMIN,
+            isDeleted: false
+          }
+        }),
+        prisma.users.count({
+          where: {
+            status: USER_STATUS.SUSPENDED,
+            isDeleted: false
+          }
+        }),
+        prisma.users.count({
+          where: {
+            createdAt: { gte: thisMonthStart },
+            isDeleted: false,
           },
         }),
         prisma.users.count({
           where: {
-            created_at: { 
+            createdAt: {
               gte: lastMonthStart,
               lt: thisMonthStart
             },
-            is_deleted: false,
+            isDeleted: false,
           },
         })
       ]);
@@ -368,7 +368,7 @@ class UserService {
     return prisma.users.count({
       where: {
         status: USER_STATUS.ACTIVE,
-        is_deleted: false,
+        isDeleted: false,
       },
     });
   }
@@ -381,7 +381,7 @@ class UserService {
    * @param {string} [options.search=''] 搜索关键词
    * @param {string} [options.role] 角色过滤
    * @param {string} [options.status] 状态过滤
-   * @param {string} [options.orderBy='created_at'] 排序字段
+   * @param {string} [options.orderBy='createdAt'] 排序字段
    * @param {string} [options.order='desc'] 排序方向
    * @returns {Promise<Object>} 分页结果
    */
@@ -393,12 +393,12 @@ class UserService {
         search = '',
         role = null,
         status = null,
-        orderBy = 'created_at',
+        orderBy = 'createdAt',
         order = 'desc'
       } = options;
 
       const skip = (Number(page) - 1) * Number(limit);
-      const where = { is_deleted: false };
+      const where = { isDeleted: false };
 
       const normalizedSearch = typeof search === 'string' ? search : '';
 
@@ -407,7 +407,7 @@ class UserService {
         where.OR = [
           { username: { contains: normalizedSearch } },
           { email: { contains: normalizedSearch } },
-          { real_name: { contains: normalizedSearch } },
+          { realName: { contains: normalizedSearch } },
           { phone: { contains: normalizedSearch } }
         ];
       }
@@ -432,7 +432,7 @@ class UserService {
             userPoints: true,
             _count: {
               select: {
-                userBorrows: { where: { is_deleted: false } },
+                userBorrows: { where: { isDeleted: false } },
                 userReviews: true
               }
             }
@@ -470,9 +470,9 @@ class UserService {
         return false;
       }
 
-      const where = { 
+      const where = {
         username: username.trim(),
-        is_deleted: false
+        isDeleted: false
       };
       
       if (excludeId) {
@@ -498,9 +498,9 @@ class UserService {
         return false;
       }
 
-      const where = { 
+      const where = {
         email: email.trim().toLowerCase(),
-        is_deleted: false
+        isDeleted: false
       };
       
       if (excludeId) {
@@ -525,12 +525,12 @@ class UserService {
     const safeUser = { ...user };
     
     // 移除敏感或内部字段
-    delete safeUser.password_hash;
-    delete safeUser.email_verification_token;
-    delete safeUser.is_deleted;
-    delete safeUser.deleted_at;
-    delete safeUser.wechat_openid;
-    delete safeUser.wechat_unionid;
+    delete safeUser.passwordHash;
+    delete safeUser.emailVerificationToken;
+    delete safeUser.isDeleted;
+    delete safeUser.deletedAt;
+    delete safeUser.wechatOpenid;
+    delete safeUser.wechatUnionid;
     
     // 确保数据类型正确
     if (safeUser.id) safeUser.id = Number(safeUser.id);
@@ -557,7 +557,7 @@ class UserService {
    * @returns {boolean} 是否激活
    */
   static isActive(user) {
-    return user?.status === USER_STATUS.ACTIVE && !user?.is_deleted;
+    return user?.status === USER_STATUS.ACTIVE && !user?.isDeleted;
   }
 
   /**
@@ -600,19 +600,19 @@ class UserService {
 
     // Update or create user points
     return prisma.userPoints.upsert({
-      where: { user_id: userId },
+      where: { userId: userId },
       update: {
         balance: newBalance,
-        total_earned: pointsChange > 0 ? { increment: pointsChange } : undefined,
-        total_spent: pointsChange < 0 ? { increment: Math.abs(pointsChange) } : undefined,
-        last_transaction_at: new Date()
+        totalEarned: pointsChange > 0 ? { increment: pointsChange } : undefined,
+        totalSpent: pointsChange < 0 ? { increment: Math.abs(pointsChange) } : undefined,
+        lastTransactionAt: new Date()
       },
       create: {
-        user_id: userId,
+        userId: userId,
         balance: newBalance,
-        total_earned: pointsChange > 0 ? pointsChange : 0,
-        total_spent: pointsChange < 0 ? Math.abs(pointsChange) : 0,
-        last_transaction_at: new Date()
+        totalEarned: pointsChange > 0 ? pointsChange : 0,
+        totalSpent: pointsChange < 0 ? Math.abs(pointsChange) : 0,
+        lastTransactionAt: new Date()
       }
     });
   }
@@ -627,14 +627,14 @@ class UserService {
         userPoints: true,
         userPreferences: true,
         userBorrows: {
-          orderBy: { created_at: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
             book: true
           }
         },
         userReviews: {
-          orderBy: { created_at: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
             book: true

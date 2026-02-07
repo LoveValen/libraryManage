@@ -91,9 +91,9 @@ class BehaviorTrackingService extends EventEmitter {
 
       // 构建行为记录
       const behavior = {
-        user_id: userId,
-        book_id: bookId,
-        behavior_type: behaviorType,
+        userId: userId,
+        bookId: bookId,
+        behaviorType: behaviorType,
         intensity,
         duration,
         context: {
@@ -105,25 +105,25 @@ class BehaviorTrackingService extends EventEmitter {
           device: context.device || null,
           source: context.source || null
         },
-        search_query: context.searchQuery || null,
-        rating_value: context.ratingValue || null,
-        recommendation_id: recommendationId,
-        recommendation_algorithm: context.recommendationAlgorithm || null,
-        recommendation_position: context.recommendationPosition || null,
+        searchQuery: context.searchQuery || null,
+        ratingValue: context.ratingValue || null,
+        recommendationId: recommendationId,
+        recommendationAlgorithm: context.recommendationAlgorithm || null,
+        recommendationPosition: context.recommendationPosition || null,
         feedback: context.feedback || null,
-        session_info: context.sessionInfo || null,
-        experiment_id: context.experimentId || null,
-        experiment_variant: context.experimentVariant || null,
-        ip_address: context.ipAddress || null,
-        user_agent: context.userAgent || null,
+        sessionInfo: context.sessionInfo || null,
+        experimentId: context.experimentId || null,
+        experimentVariant: context.experimentVariant || null,
+        ipAddress: context.ipAddress || null,
+        userAgent: context.userAgent || null,
         processed: false,
-        processed_at: null,
-        is_implicit: this.isImplicitBehavior(behaviorType),
-        confidence_score: this.calculateConfidenceScore(behaviorType, intensity, context),
-        is_anomaly: false,
+        processedAt: null,
+        isImplicit: this.isImplicitBehavior(behaviorType),
+        confidenceScore: this.calculateConfidenceScore(behaviorType, intensity, context),
+        isAnomaly: false,
         metadata: context.metadata || null,
-        created_at: new Date(),
-        updated_at: new Date()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       // 添加到处理队列
@@ -170,13 +170,13 @@ class BehaviorTrackingService extends EventEmitter {
       // 追踪行为
       await this.trackBehavior({
         userId,
-        bookId: recommendation.book_id,
+        bookId: recommendation.bookId,
         behaviorType,
         intensity,
         context: {
           ...context,
           recommendationContext: true,
-          algorithmType: recommendation.algorithm_type,
+          algorithmType: recommendation.algorithmType,
           recommendationScore: recommendation.score
         },
         recommendationId
@@ -187,7 +187,7 @@ class BehaviorTrackingService extends EventEmitter {
 
       // 实时更新用户偏好
       if (this.realTimeLearningEnabled) {
-        await this.updateUserPreferencesRealTime(userId, recommendation.book_id, action, intensity);
+        await this.updateUserPreferencesRealTime(userId, recommendation.bookId, action, intensity);
       }
 
       return { success: true };
@@ -390,17 +390,17 @@ class BehaviorTrackingService extends EventEmitter {
       // 获取两个用户的共同行为
       const commonBehaviors = await prisma.user_behaviors.findMany({
         where: {
-          user_id: {
+          userId: {
             in: [userId1, userId2]
           },
-          book_id: {
+          bookId: {
             not: null
           }
         },
         select: {
-          user_id: true,
-          book_id: true,
-          behavior_type: true,
+          userId: true,
+          bookId: true,
+          behaviorType: true,
           intensity: true
         }
       });
@@ -447,11 +447,11 @@ class BehaviorTrackingService extends EventEmitter {
       
       const behaviors = await prisma.user_behaviors.findMany({
         where: {
-          user_id: userId,
-          book_id: {
+          userId: userId,
+          bookId: {
             not: null
           },
-          created_at: {
+          createdAt: {
             gte: startDate
           }
         },
@@ -461,7 +461,7 @@ class BehaviorTrackingService extends EventEmitter {
               id: true,
               title: true,
               author: true,
-              category_id: true,
+              categoryId: true,
               tags: true,
               isbn: true
             }
@@ -484,19 +484,19 @@ class BehaviorTrackingService extends EventEmitter {
       const startTime = new Date(Date.now() - timeWindow * 60 * 1000);
       
       const whereClause = {
-        created_at: {
+        createdAt: {
           gte: startTime
         }
       };
-      
+
       if (userId) {
-        whereClause.user_id = userId;
+        whereClause.userId = userId;
       }
-      
+
       const recentBehaviors = await prisma.user_behaviors.findMany({
         where: whereClause,
         orderBy: {
-          created_at: 'desc'
+          createdAt: 'desc'
         }
       });
       
@@ -587,7 +587,7 @@ class BehaviorTrackingService extends EventEmitter {
       });
 
       // 实时更新用户偏好
-      if (behavior.book_id && this.realTimeLearningEnabled) {
+      if (behavior.bookId && this.realTimeLearningEnabled) {
         await this.updateUserPreferencesImmediate(behavior);
       }
 
@@ -671,11 +671,11 @@ class BehaviorTrackingService extends EventEmitter {
    */
   startRealTimeLearning() {
     this.on('behaviorTracked', async (behavior) => {
-      if (behavior.book_id && this.shouldTriggerLearning(behavior)) {
+      if (behavior.bookId && this.shouldTriggerLearning(behavior)) {
         await this.updateUserPreferencesRealTime(
-          behavior.user_id, 
-          behavior.book_id, 
-          behavior.behavior_type, 
+          behavior.userId,
+          behavior.bookId,
+          behavior.behaviorType,
           behavior.intensity
         );
       }
@@ -694,20 +694,20 @@ class BehaviorTrackingService extends EventEmitter {
     try {
       // 查找或创建用户偏好记录
       let userPreference = await prisma.userPreferences.findUnique({
-        where: { user_id: userId }
+        where: { userId: userId }
       });
 
       if (!userPreference) {
         userPreference = await prisma.userPreferences.create({
           data: {
-            user_id: userId,
-            category_preferences: {},
-            author_preferences: {},
-            tag_preferences: {},
-            confidence_score: 0.1,
-            last_updated: new Date(),
-            created_at: new Date(),
-            updated_at: new Date()
+            userId: userId,
+            categoryPreferences: {},
+            authorPreferences: {},
+            tagPreferences: {},
+            confidenceScore: 0.1,
+            lastUpdated: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
           }
         });
       }
@@ -718,56 +718,56 @@ class BehaviorTrackingService extends EventEmitter {
           bookCategories: true
         }
       });
-      
+
       if (!book) return;
 
       // 计算学习率
       const learningRate = this.calculateLearningRate(behaviorType, intensity);
-      
+
       // 更新分类偏好
-      if (book.category_id) {
-        const categoryPrefs = userPreference.category_preferences || {};
-        const currentScore = categoryPrefs[book.category_id] || 0;
+      if (book.categoryId) {
+        const categoryPrefs = userPreference.categoryPreferences || {};
+        const currentScore = categoryPrefs[book.categoryId] || 0;
         const newScore = this.updatePreferenceScore(currentScore, intensity, learningRate);
-        
-        categoryPrefs[book.category_id] = newScore;
-        
+
+        categoryPrefs[book.categoryId] = newScore;
+
         await prisma.userPreferences.update({
           where: { id: userPreference.id },
           data: {
-            category_preferences: categoryPrefs,
-            last_updated: new Date(),
-            updated_at: new Date()
+            categoryPreferences: categoryPrefs,
+            lastUpdated: new Date(),
+            updatedAt: new Date()
           }
         });
       }
 
       // 更新作者偏好
       if (book.author) {
-        const authorPrefs = userPreference.author_preferences || {};
+        const authorPrefs = userPreference.authorPreferences || {};
         const currentScore = authorPrefs[book.author] || 0;
         const newScore = this.updatePreferenceScore(currentScore, intensity, learningRate);
-        
+
         authorPrefs[book.author] = newScore;
-        
+
         await prisma.userPreferences.update({
           where: { id: userPreference.id },
           data: {
-            author_preferences: authorPrefs,
-            last_updated: new Date(),
-            updated_at: new Date()
+            authorPreferences: authorPrefs,
+            lastUpdated: new Date(),
+            updatedAt: new Date()
           }
         });
       }
 
       // 更新置信度
-      const newConfidence = Math.min(1.0, userPreference.confidence_score + learningRate * 0.1);
+      const newConfidence = Math.min(1.0, userPreference.confidenceScore + learningRate * 0.1);
       await prisma.userPreferences.update({
         where: { id: userPreference.id },
         data: {
-          confidence_score: newConfidence,
-          last_updated: new Date(),
-          updated_at: new Date()
+          confidenceScore: newConfidence,
+          lastUpdated: new Date(),
+          updatedAt: new Date()
         }
       });
 
@@ -782,13 +782,13 @@ class BehaviorTrackingService extends EventEmitter {
   async updateUserPreferencesImmediate(behavior) {
     try {
       // 高优先级行为使用更高的学习率
-      const learningRate = this.calculateLearningRate(behavior.behavior_type, behavior.intensity) * 2;
-      
-      if (behavior.book_id) {
+      const learningRate = this.calculateLearningRate(behavior.behaviorType, behavior.intensity) * 2;
+
+      if (behavior.bookId) {
         await this.updateUserPreferencesRealTime(
-          behavior.user_id, 
-          behavior.book_id, 
-          behavior.behavior_type, 
+          behavior.userId,
+          behavior.bookId,
+          behavior.behaviorType,
           behavior.intensity
         );
       }
@@ -881,7 +881,7 @@ class BehaviorTrackingService extends EventEmitter {
         where: { id: recommendation.id },
         data: {
           status: newStatus,
-          updated_at: new Date()
+          updatedAt: new Date()
         }
       });
     }
@@ -926,7 +926,7 @@ class BehaviorTrackingService extends EventEmitter {
   shouldTriggerLearning(behavior) {
     // 某些行为类型总是触发学习
     const alwaysLearn = ['borrow', 'rate', 'review', 'bookmark'];
-    if (alwaysLearn.includes(behavior.behavior_type)) {
+    if (alwaysLearn.includes(behavior.behaviorType)) {
       return true;
     }
     
@@ -969,14 +969,14 @@ class BehaviorTrackingService extends EventEmitter {
 
   groupBehaviorsByUser(behaviors) {
     const grouped = new Map();
-    
+
     behaviors.forEach(behavior => {
-      if (!grouped.has(behavior.user_id)) {
-        grouped.set(behavior.user_id, []);
+      if (!grouped.has(behavior.userId)) {
+        grouped.set(behavior.userId, []);
       }
-      grouped.get(behavior.user_id).push(behavior);
+      grouped.get(behavior.userId).push(behavior);
     });
-    
+
     return grouped;
   }
 
@@ -986,17 +986,17 @@ class BehaviorTrackingService extends EventEmitter {
       
       const activeUsers = await prisma.user_behaviors.findMany({
         where: {
-          created_at: {
+          createdAt: {
             gte: since
           }
         },
         select: {
-          user_id: true
+          userId: true
         },
-        distinct: ['user_id']
+        distinct: ['userId']
       });
-      
-      return activeUsers.map(u => u.user_id);
+
+      return activeUsers.map(u => u.userId);
     } catch (error) {
       logger.error('获取最近活跃用户失败:', error);
       return [];

@@ -5,17 +5,17 @@ class BookCategoryService {
    * Find all categories with optional pagination
    */
   static async findAll(options = {}) {
-    const { 
+    const {
       includeBookCount = false,
-      orderBy = 'sort_order',
-      order = 'asc' 
+      orderBy = 'sortOrder',
+      order = 'asc'
     } = options;
 
     const include = includeBookCount ? {
       _count: {
         select: {
           books: {
-            where: { is_deleted: false }
+            where: { isDeleted: false }
           }
         }
       }
@@ -33,14 +33,14 @@ class BookCategoryService {
   static async findById(id, includeBooks = false) {
     const include = includeBooks ? {
       books: {
-        where: { is_deleted: false },
-        orderBy: { created_at: 'desc' },
+        where: { isDeleted: false },
+        orderBy: { createdAt: 'desc' },
         take: 10
       },
       _count: {
         select: {
           books: {
-            where: { is_deleted: false }
+            where: { isDeleted: false }
           }
         }
       }
@@ -71,15 +71,15 @@ class BookCategoryService {
         _count: {
           select: {
             books: {
-              where: { is_deleted: false }
+              where: { isDeleted: false }
             }
           }
         },
         books: {
-          where: { is_deleted: false },
+          where: { isDeleted: false },
           select: {
             status: true,
-            has_ebook: true
+            hasEbook: true
           }
         }
       }
@@ -97,7 +97,7 @@ class BookCategoryService {
     category.books.forEach(book => {
       if (book.status === 'available') stats.available++;
       if (book.status === 'borrowed') stats.borrowed++;
-      if (book.has_ebook) stats.hasEbook++;
+      if (book.hasEbook) stats.hasEbook++;
     });
 
     // Remove the books array from response
@@ -116,7 +116,7 @@ class BookCategoryService {
     // Get max sort order
     const maxSortOrder = await prisma.book_categories.aggregate({
       _max: {
-        sort_order: true
+        sortOrder: true
       }
     });
 
@@ -124,9 +124,9 @@ class BookCategoryService {
     return prisma.book_categories.create({
       data: {
         ...categoryData,
-        sort_order: categoryData.sort_order || ((maxSortOrder._max.sort_order || 0) + 1),
-        created_at: now,
-        updated_at: now
+        sortOrder: categoryData.sortOrder || ((maxSortOrder._max.sortOrder || 0) + 1),
+        createdAt: now,
+        updatedAt: now
       }
     });
   }
@@ -148,8 +148,8 @@ class BookCategoryService {
     // Check if category has books
     const bookCount = await prisma.books.count({
       where: {
-        category_id: id,
-        is_deleted: false
+        categoryId: id,
+        isDeleted: false
       }
     });
 
@@ -171,19 +171,19 @@ class BookCategoryService {
         _count: {
           select: {
             books: {
-              where: { is_deleted: false }
+              where: { isDeleted: false }
             }
           }
         },
         books: {
-          where: { is_deleted: false },
+          where: { isDeleted: false },
           select: {
             status: true,
-            has_ebook: true
+            hasEbook: true
           }
         }
       },
-      orderBy: { sort_order: 'asc' }
+      orderBy: { sortOrder: 'asc' }
     });
 
     return categories.map(category => {
@@ -197,7 +197,7 @@ class BookCategoryService {
       category.books.forEach(book => {
         if (book.status === 'available') stats.available++;
         if (book.status === 'borrowed') stats.borrowed++;
-        if (book.has_ebook) stats.hasEbook++;
+        if (book.hasEbook) stats.hasEbook++;
       });
 
       // Remove the books array from response
@@ -214,10 +214,10 @@ class BookCategoryService {
    * Update sort order for multiple categories
    */
   static async updateSortOrders(updates) {
-    const operations = updates.map(update => 
+    const operations = updates.map(update =>
       prisma.book_categories.update({
         where: { id: update.id },
-        data: { sort_order: update.sort_order }
+        data: { sortOrder: update.sortOrder }
       })
     );
 
@@ -234,7 +234,7 @@ class BookCategoryService {
           contains: query
         }
       },
-      orderBy: { sort_order: 'asc' }
+      orderBy: { sortOrder: 'asc' }
     });
   }
 
@@ -247,7 +247,7 @@ class BookCategoryService {
         _count: {
           select: {
             books: {
-              where: { is_deleted: false }
+              where: { isDeleted: false }
             }
           }
         }

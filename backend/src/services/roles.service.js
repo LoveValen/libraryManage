@@ -21,7 +21,7 @@ class RolesService {
     
     const roles = await prisma.roles.findMany({
       where,
-      orderBy: [{ is_system: 'desc' }, { code: 'asc' }],
+      orderBy: [{ isSystem: 'desc' }, { code: 'asc' }],
       include: { rolePermissions: { include: { permission: true } } },
     });
 
@@ -52,18 +52,18 @@ class RolesService {
   }
 
   async create(data) {
-    const { code, name, description = null, is_system = false, permissionIds = [] } = data;
+    const { code, name, description = null, isSystem = false, permissionIds = [] } = data;
     if (!code || !name) throw new Error('code 和 name 必填');
 
     const role = await prisma.roles.create({
-      data: { code, name, description, is_system },
+      data: { code, name, description, isSystem },
     });
 
     if (Array.isArray(permissionIds) && permissionIds.length) {
       await prisma.$transaction(
         permissionIds.map((pid) =>
           prisma.role_permissions.create({
-            data: { role_id: role.id, permission_id: Number(pid) },
+            data: { roleId: role.id, permissionId: Number(pid) },
           })
         )
       );
@@ -73,19 +73,19 @@ class RolesService {
   }
 
   async update(id, data) {
-    const { name, description = null, is_system, permissionIds } = data;
+    const { name, description = null, isSystem, permissionIds } = data;
     const roleId = Number(id);
 
     const role = await prisma.roles.update({
       where: { id: roleId },
-      data: { name, description, is_system },
+      data: { name, description, isSystem },
     });
 
     if (Array.isArray(permissionIds)) {
       await prisma.$transaction([
-        prisma.role_permissions.deleteMany({ where: { role_id: roleId } }),
+        prisma.role_permissions.deleteMany({ where: { roleId: roleId } }),
         ...permissionIds.map((pid) =>
-          prisma.role_permissions.create({ data: { role_id: roleId, permission_id: Number(pid) } })
+          prisma.role_permissions.create({ data: { roleId: roleId, permissionId: Number(pid) } })
         ),
       ]);
     }
@@ -95,7 +95,7 @@ class RolesService {
 
   async remove(id) {
     const roleId = Number(id);
-    await prisma.role_permissions.deleteMany({ where: { role_id: roleId } });
+    await prisma.role_permissions.deleteMany({ where: { roleId: roleId } });
     return prisma.roles.delete({ where: { id: roleId } });
   }
 
@@ -104,9 +104,9 @@ class RolesService {
     const ids = Array.isArray(roleIds) ? roleIds : [];
 
     await prisma.$transaction([
-      prisma.user_roles.deleteMany({ where: { user_id: uid } }),
+      prisma.user_roles.deleteMany({ where: { userId: uid } }),
       ...ids.map((rid) =>
-        prisma.user_roles.create({ data: { user_id: uid, role_id: Number(rid) } })
+        prisma.user_roles.create({ data: { userId: uid, roleId: Number(rid) } })
       ),
     ]);
 
@@ -121,7 +121,7 @@ class RolesService {
     }
 
     const assignments = await prisma.user_roles.findMany({
-      where: { user_id: uid },
+      where: { userId: uid },
       include: {
         role: {
           include: { rolePermissions: { include: { permission: true } } },

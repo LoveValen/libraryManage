@@ -11,6 +11,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# 后端项目内可能存在的环境文件
+backend/.env
+
 # 日志文件
 logs/
 *.log

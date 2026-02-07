@@ -61,25 +61,65 @@ const securityMiddleware = () => {
  * CORS中间件配置 - 简化版
  */
 const corsMiddleware = () => {
-  const allowedOrigins = [
-    'http://localhost:8080',
-    'http://localhost:8081', // 添加8081端口支持
-    'http://127.0.0.1:8080',
-    'http://127.0.0.1:8081',
-    'http://8.133.18.41:8080'
-  ];
-  
+  const allowedOrigins = Array.isArray(config.cors?.origin)
+    ? config.cors.origin
+    : typeof config.cors?.origin === 'string'
+      ? [config.cors.origin]
+      : [];
+
+  const allowedOriginPatterns = allowedOrigins
+    .map((origin) => (typeof origin === 'string' ? origin.trim() : ''))
+    .filter(Boolean);
+
+  const allowAllLocalhost = process.env.CORS_ALLOW_ALL_LOCALHOST === 'true';
+
+  const wildcardToRegExp = (pattern) => {
+    const escaped = pattern
+      .split('*')
+      .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.*');
+    return new RegExp(`^${escaped}$`, 'i');
+  };
+
+  const isOriginInAllowList = (origin) => {
+    for (const pattern of allowedOriginPatterns) {
+      if (pattern === '*') return true;
+      if (pattern === origin) return true;
+      if (!pattern.includes('*')) continue;
+
+      try {
+        if (wildcardToRegExp(pattern).test(origin)) return true;
+      } catch (_) {
+        // ignore invalid pattern
+      }
+    }
+
+    return false;
+  };
+
+  const isAllowed = (origin) => {
+    if (!origin) return true;
+    if (allowAllLocalhost) {
+      try {
+        const { hostname } = new URL(origin);
+        if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+      } catch (_) {
+        // ignore
+      }
+    }
+    return isOriginInAllowList(origin);
+  };
+
   return cors({
     origin: (origin, callback) => {
-      // 允许无来源（如移动应用、Postman等）或允许的来源
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowed(origin)) {
         callback(null, true);
       } else {
         callback(new Error('CORS policy violation'));
       }
     },
-    credentials: true,
-    optionsSuccessStatus: 200,
+    credentials: config.cors?.credentials ?? true,
+    optionsSuccessStatus: config.cors?.optionsSuccessStatus ?? 200,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Origin', 'X-Requested-With', 'Content-Type', 'Accept', 

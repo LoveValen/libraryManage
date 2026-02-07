@@ -140,9 +140,9 @@ class RecommendationService extends EventEmitter {
       const targetBook = await prisma.books.findUnique({
         where: { id: bookId },
         include: {
-          user_behaviors: {
+          userBehaviors: {
             select: {
-              user_id: true,
+              userId: true,
               intensity: true
             },
             take: 100
@@ -233,29 +233,29 @@ class RecommendationService extends EventEmitter {
       // 获取新书
       const newBooks = await prisma.books.findMany({
         where: {
-          created_at: {
+          createdAt: {
             gte: startDate
           },
-          avg_rating: {
+          avgRating: {
             gte: minRating
           }
         },
         orderBy: [
-          { created_at: 'desc' },
-          { avg_rating: 'desc' }
+          { createdAt: 'desc' },
+          { avgRating: 'desc' }
         ],
         take: limit * 2 // 获取更多候选
       });
 
       // 个性化过滤和排序
       if (userId) {
-        const personalizedNew = await this.personalizeRecommendations(userId, 
+        const personalizedNew = await this.personalizeRecommendations(userId,
           newBooks.map(book => ({
             bookId: book.id,
             book,
             score: this.calculateNewBookScore(book),
             algorithm: 'new_books',
-            explanation: `新书推荐: ${book.created_at.toLocaleDateString()}`
+            explanation: `新书推荐: ${book.createdAt.toLocaleDateString()}`
           }))
         );
         return personalizedNew.slice(0, limit);
@@ -266,7 +266,7 @@ class RecommendationService extends EventEmitter {
         book,
         score: this.calculateNewBookScore(book),
         algorithm: 'new_books',
-        explanation: `新书推荐: ${book.created_at.toLocaleDateString()}`
+        explanation: `新书推荐: ${book.createdAt.toLocaleDateString()}`
       }));
 
     } catch (error) {
@@ -337,30 +337,30 @@ class RecommendationService extends EventEmitter {
       // 创建反馈记录
       const feedback = await prisma.recommendation_feedbacks.create({
         data: {
-          user_id: userId,
-          recommendation_id: recommendationId,
-          book_id: recommendation.book_id,
-          feedback_type: feedbackType,
-          feedback_value: feedbackValue,
-          raw_feedback_value: rating?.toString() || relevance?.toString(),
-          feedback_dimensions: {
+          userId: userId,
+          recommendationId: recommendationId,
+          bookId: recommendation.bookId,
+          feedbackType: feedbackType,
+          feedbackValue: feedbackValue,
+          rawFeedbackValue: rating?.toString() || relevance?.toString(),
+          feedbackDimensions: {
             relevance,
             satisfaction,
             interest: feedbackData.interest || null,
             quality: feedbackData.quality || null
           },
-          feedback_content: {
-            text_feedback: comment,
-            selected_reasons: feedbackData.reasons || [],
-            emotional_response: feedbackData.emotion || null
+          feedbackContent: {
+            textFeedback: comment,
+            selectedReasons: feedbackData.reasons || [],
+            emotionalResponse: feedbackData.emotion || null
           },
-          feedback_context: {
+          feedbackContext: {
             ...context,
             timestamp: new Date(),
             source: context.source || 'web'
           },
-          created_at: new Date(),
-          updated_at: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       });
 
@@ -368,13 +368,13 @@ class RecommendationService extends EventEmitter {
       await prisma.recommendations.update({
         where: { id: recommendationId },
         data: {
-          user_feedback: {
-            relevance_rating: relevance,
+          userFeedback: {
+            relevanceRating: relevance,
             satisfaction,
-            feedback_text: comment,
-            feedback_timestamp: new Date()
+            feedbackText: comment,
+            feedbackTimestamp: new Date()
           },
-          updated_at: new Date()
+          updatedAt: new Date()
         }
       });
 
@@ -406,9 +406,9 @@ class RecommendationService extends EventEmitter {
           where: { id: recommendationId },
           data: {
             status: 'clicked',
-            click_count: (recommendation.click_count || 0) + 1,
-            last_clicked_at: new Date(),
-            updated_at: new Date()
+            clickCount: (recommendation.clickCount || 0) + 1,
+            lastClickedAt: new Date(),
+            updatedAt: new Date()
           }
         });
       }
@@ -504,44 +504,44 @@ class RecommendationService extends EventEmitter {
         // 总推荐数
         prisma.recommendations.count({
           where: {
-            created_at: { gte: startDate }
+            createdAt: { gte: startDate }
           }
         }),
-        
+
         // 被点击推荐数
         prisma.recommendations.count({
           where: {
-            created_at: { gte: startDate },
+            createdAt: { gte: startDate },
             status: 'clicked'
           }
         }),
-        
+
         // 有反馈的推荐数
         prisma.recommendations.count({
           where: {
-            created_at: { gte: startDate },
-            user_feedback: { not: null }
+            createdAt: { gte: startDate },
+            userFeedback: { not: null }
           }
         }),
-        
+
         // 反馈统计
-        prisma.recommendation_feedback.aggregate({
+        prisma.recommendation_feedbacks.aggregate({
           where: {
-            created_at: { gte: startDate }
+            createdAt: { gte: startDate }
           },
-          _avg: { feedback_value: true },
-          _count: { feedback_value: true }
+          _avg: { feedbackValue: true },
+          _count: { feedbackValue: true }
         })
       ]);
 
       return {
-        total_recommendations: totalRecs,
-        clicked_recommendations: clickedRecs,
-        rated_recommendations: ratedRecs,
-        click_through_rate: totalRecs > 0 ? (clickedRecs / totalRecs) * 100 : 0,
-        feedback_rate: totalRecs > 0 ? (ratedRecs / totalRecs) * 100 : 0,
-        average_feedback: feedbackStats._avg.feedback_value || 0,
-        total_feedback_count: feedbackStats._count.feedback_value || 0
+        totalRecommendations: totalRecs,
+        clickedRecommendations: clickedRecs,
+        ratedRecommendations: ratedRecs,
+        clickThroughRate: totalRecs > 0 ? (clickedRecs / totalRecs) * 100 : 0,
+        feedbackRate: totalRecs > 0 ? (ratedRecs / totalRecs) * 100 : 0,
+        averageFeedback: feedbackStats._avg.feedbackValue || 0,
+        totalFeedbackCount: feedbackStats._count.feedbackValue || 0
       };
     } catch (error) {
       logger.error('获取有效性统计失败:', error);
@@ -661,32 +661,32 @@ class RecommendationService extends EventEmitter {
       const defaultModels = [
         {
           name: 'collaborative_filtering_user_based',
-          algorithm_type: 'collaborative_filtering',
+          algorithmType: 'collaborative_filtering',
           description: '基于用户的协同过滤算法',
           hyperparameters: {
-            similarity_threshold: 0.1,
-            neighbor_count: 50,
-            min_common_items: 5
+            similarityThreshold: 0.1,
+            neighborCount: 50,
+            minCommonItems: 5
           },
-          performance_metrics: {},
+          performanceMetrics: {},
           status: 'active',
           version: '1.0.0',
-          created_at: new Date(),
-          updated_at: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         },
         {
           name: 'content_based_filtering',
-          algorithm_type: 'content_based',
+          algorithmType: 'content_based',
           description: '基于内容的推荐算法',
           hyperparameters: {
-            feature_weights: { category: 0.3, author: 0.2, tags: 0.5 },
-            similarity_function: 'cosine'
+            featureWeights: { category: 0.3, author: 0.2, tags: 0.5 },
+            similarityFunction: 'cosine'
           },
-          performance_metrics: {},
+          performanceMetrics: {},
           status: 'active',
           version: '1.0.0',
-          created_at: new Date(),
-          updated_at: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       ];
 
@@ -722,7 +722,7 @@ class RecommendationService extends EventEmitter {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const cleanupResult = await prisma.recommendations.deleteMany({
           where: {
-            created_at: { lt: thirtyDaysAgo },
+            createdAt: { lt: thirtyDaysAgo },
             status: { in: ['displayed', 'expired'] }
           }
         });
@@ -761,18 +761,18 @@ class RecommendationService extends EventEmitter {
     // 监听行为追踪事件
     behaviorTrackingService.on('behaviorTracked', async (behavior) => {
       // 清理相关缓存
-      this.clearUserCache(behavior.user_id);
+      this.clearUserCache(behavior.userId);
     });
 
     behaviorTrackingService.on('highPriorityBehavior', async (behavior) => {
       // 高优先级行为触发实时推荐更新
-      this.clearUserCache(behavior.user_id);
-      
+      this.clearUserCache(behavior.userId);
+
       // 触发实时推荐生成
-      if (behavior.behavior_type === 'borrow') {
+      if (behavior.behaviorType === 'borrow') {
         setImmediate(async () => {
           try {
-            await this.generateRealTimeRecommendations(behavior.user_id, behavior);
+            await this.generateRealTimeRecommendations(behavior.userId, behavior);
           } catch (error) {
             logger.error('生成实时推荐失败:', error);
           }
@@ -807,9 +807,9 @@ class RecommendationService extends EventEmitter {
             where: { id: rec.id },
             data: {
               status: 'displayed',
-              display_count: { increment: 1 },
-              last_displayed_at: new Date(),
-              updated_at: new Date()
+              displayCount: { increment: 1 },
+              lastDisplayedAt: new Date(),
+              updatedAt: new Date()
             }
           });
         }
@@ -824,24 +824,24 @@ class RecommendationService extends EventEmitter {
       const recommendation = await prisma.recommendations.findUnique({
         where: { id: recommendationId }
       });
-      
+
       if (!recommendation) return;
 
       await prisma.recommendation_feedbacks.create({
         data: {
-          user_id: userId,
-          recommendation_id: recommendationId,
-          book_id: recommendation.book_id,
-          feedback_type: 'implicit',
-          feedback_value: intensity,
-          raw_feedback_value: action,
-          feedback_context: {
+          userId: userId,
+          recommendationId: recommendationId,
+          bookId: recommendation.bookId,
+          feedbackType: 'implicit',
+          feedbackValue: intensity,
+          rawFeedbackValue: action,
+          feedbackContext: {
             source: 'implicit',
             timestamp: new Date(),
             action: action
           },
-          created_at: new Date(),
-          updated_at: new Date()
+          createdAt: new Date(),
+          updatedAt: new Date()
         }
       });
     } catch (error) {
@@ -852,26 +852,26 @@ class RecommendationService extends EventEmitter {
   async processRecommendationFeedback(feedback) {
     try {
       // 更新用户偏好
-      if (feedback.feedback_value !== 0) {
+      if (feedback.feedbackValue !== 0) {
         await behaviorTrackingService.updateUserPreferencesRealTime(
-          feedback.user_id,
-          feedback.book_id,
+          feedback.userId,
+          feedback.bookId,
           'feedback',
-          feedback.feedback_value
+          feedback.feedbackValue
         );
       }
 
       // 标记为已处理
-      await prisma.recommendation_feedback.update({
+      await prisma.recommendation_feedbacks.update({
         where: { id: feedback.id },
         data: {
           processed: true,
-          processed_at: new Date(),
-          processing_metadata: {
-            learning_applied: true,
-            processed_timestamp: new Date()
+          processedAt: new Date(),
+          processingMetadata: {
+            learningApplied: true,
+            processedTimestamp: new Date()
           },
-          updated_at: new Date()
+          updatedAt: new Date()
         }
       });
 
@@ -881,10 +881,10 @@ class RecommendationService extends EventEmitter {
   }
 
   calculateNewBookScore(book) {
-    const daysSincePublished = (new Date() - new Date(book.created_at)) / (1000 * 60 * 60 * 24);
+    const daysSincePublished = (new Date() - new Date(book.createdAt)) / (1000 * 60 * 60 * 24);
     const freshnessScore = Math.max(0.1, 1 - daysSincePublished / 30); // 30天内的新鲜度
-    const qualityScore = (book.avg_rating || 3.0) / 5.0;
-    
+    const qualityScore = (book.avgRating || 3.0) / 5.0;
+
     return (freshnessScore * 0.6 + qualityScore * 0.4);
   }
 

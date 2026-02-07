@@ -5,6 +5,7 @@ import { resolve } from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import swc from 'unplugin-swc'
 
 export default defineConfig({
   plugins: [
@@ -19,6 +20,15 @@ export default defineConfig({
       // Vue JSX 配置
       mergeProps: false,
       enableObjectSlots: false
+    }),
+    // SWC 加速构建
+    swc.vite({
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          tsx: true
+        }
+      }
     }),
     // Element Plus 自动导入
     AutoImport({

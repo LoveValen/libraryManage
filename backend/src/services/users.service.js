@@ -77,7 +77,7 @@ class UsersService {
       search,
       role,
       status,
-      sortBy = 'created_at',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
     } = filters;
 
@@ -107,7 +107,7 @@ class UsersService {
     const user = await prisma.users.findUnique({
       where: {
         id: parseInt(userId),
-        is_deleted: false,
+        isDeleted: false,
       },
       include: {
         userPoints: true,
@@ -230,7 +230,7 @@ class UsersService {
     // 检查是否有未归还的借阅记录
     const activeBorrows = await prisma.borrows.count({
       where: {
-        user_id: parseInt(userId),
+        userId: parseInt(userId),
         status: { in: ['borrowed', 'overdue'] },
       },
     });
@@ -411,7 +411,7 @@ class UsersService {
       status,
       limit = 20,
       offset = 0,
-      sortBy = 'created_at',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
     } = options;
 
@@ -466,19 +466,19 @@ class UsersService {
     } = filters;
 
     const skip = (page - 1) * limit;
-    const where = { user_id: parseInt(userId) };
+    const where = { userId: parseInt(userId) };
 
     if (status) {
       where.status = status;
     }
-    
+
     if (startDate || endDate) {
-      where.borrow_date = {};
+      where.borrowDate = {};
       if (startDate) {
-        where.borrow_date.gte = new Date(startDate);
+        where.borrowDate.gte = new Date(startDate);
       }
       if (endDate) {
-        where.borrow_date.lte = new Date(endDate);
+        where.borrowDate.lte = new Date(endDate);
       }
     }
 
@@ -492,11 +492,11 @@ class UsersService {
               title: true,
               isbn: true,
               authors: true,
-              cover_image: true,
+              coverImage: true,
             }
           },
         },
-        orderBy: { borrow_date: 'desc' },
+        orderBy: { borrowDate: 'desc' },
         skip,
         take: parseInt(limit),
       }),

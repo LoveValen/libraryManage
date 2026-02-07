@@ -7,6 +7,9 @@
  * 3. 嵌套对象和数组支持
  * 4. 基于配置的字段映射
  *
+ * 注意: 由于使用 Prisma @map 指令，代码现在统一使用 camelCase。
+ * 这些工具函数主要用于与外部系统交互时的数据转换。
+ *
  * @example
  * // 单个对象转换
  * const snakeObj = toSnakeCase({ userId: 1, userName: 'John' });
@@ -15,12 +18,7 @@
  * // 数组转换
  * const camelArray = toCamelCase([{ user_id: 1 }, { user_id: 2 }]);
  * // 结果: [{ userId: 1 }, { userId: 2 }]
- *
- * // 基于映射表转换
- * const mapped = applyMapping(obj, FIELD_MAPPINGS.BOOK);
  */
-
-const { FIELD_MAPPINGS } = require('./constants');
 
 /**
  * 将 camelCase 转换为 snake_case
@@ -187,25 +185,22 @@ function reverseMapping(data, mapping, options = {}) {
 }
 
 /**
- * 智能字段转换（自动检测并应用合适的映射）
+ * 智能字段转换
+ * 注意: 由于使用 Prisma @map 指令，代码现在统一使用 camelCase。
+ * 此函数现在简单地使用通用的 camelCase/snake_case 转换。
+ *
  * @param {Object} data - 输入数据
- * @param {string} resource - 资源类型: 'books', 'users', 'borrows' 等
+ * @param {string} resource - 资源类型（保留参数兼容性）
  * @param {string} direction - 转换方向: 'toDb' | 'toApi'
  * @returns {Object} 转换后的数据
  */
 function smartConvert(data, resource = 'common', direction = 'toDb') {
-  const resourceUpper = resource.toUpperCase();
-  const mapping = {
-    ...FIELD_MAPPINGS.COMMON,
-    ...(FIELD_MAPPINGS[resourceUpper] || {}),
-  };
-
   if (direction === 'toDb') {
-    // 前端 -> 数据库（camelCase -> snake_case）
-    return applyMapping(data, mapping);
+    // 转换为 snake_case（用于与外部系统交互）
+    return toSnakeCase(data, { deep: true });
   } else {
-    // 数据库 -> 前端（snake_case -> camelCase）
-    return reverseMapping(data, mapping);
+    // 转换为 camelCase
+    return toCamelCase(data, { deep: true });
   }
 }
 
@@ -249,8 +244,10 @@ function safeGetMultiple(obj, keys, defaults = {}) {
 
 /**
  * 规范化对象字段（确保同时存在 camelCase 和 snake_case 版本）
+ * 注意: 由于使用 Prisma @map 指令，此函数现在使用通用转换。
+ *
  * @param {Object} obj - 对象
- * @param {string} resource - 资源类型
+ * @param {string} resource - 资源类型（保留参数兼容性）
  * @returns {Object} 规范化后的对象
  */
 function normalize(obj, resource = 'common') {
@@ -258,20 +255,18 @@ function normalize(obj, resource = 'common') {
     return obj;
   }
 
-  const resourceUpper = resource.toUpperCase();
-  const mapping = {
-    ...FIELD_MAPPINGS.COMMON,
-    ...(FIELD_MAPPINGS[resourceUpper] || {}),
-  };
-
   const result = { ...obj };
 
-  // 为每个映射添加双向字段
-  Object.entries(mapping).forEach(([camelKey, snakeKey]) => {
-    if (obj[camelKey] !== undefined) {
-      result[snakeKey] = obj[camelKey];
-    } else if (obj[snakeKey] !== undefined) {
-      result[camelKey] = obj[snakeKey];
+  // 为每个字段添加双向版本
+  Object.keys(obj).forEach(key => {
+    const snakeKey = camelToSnake(key);
+    const camelKey = snakeToCamel(key);
+
+    if (key !== snakeKey && obj[key] !== undefined) {
+      result[snakeKey] = obj[key];
+    }
+    if (key !== camelKey && obj[key] !== undefined) {
+      result[camelKey] = obj[key];
     }
   });
 

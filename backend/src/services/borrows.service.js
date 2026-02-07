@@ -295,10 +295,10 @@ class BorrowsService {
     } = filters;
 
     const skip = (Number(page) - 1) * Number(limit);
-    const where = { 
-      is_deleted: false,
+    const where = {
+      isDeleted: false,
       status: BORROW_STATUS.BORROWED,
-      due_date: { lt: new Date() }
+      dueDate: { lt: new Date() }
     };
 
     // 关键字搜索（用户名、真实姓名、图书标题）
@@ -311,7 +311,7 @@ class BorrowsService {
         },
         {
           borrower: {
-            real_name: { contains: keyword.trim() }
+            realName: { contains: keyword.trim() }
           }
         },
         {
@@ -327,8 +327,8 @@ class BorrowsService {
     if (minOverdueDays !== '' && !isNaN(Number(minOverdueDays))) {
       const minDate = new Date(now);
       minDate.setDate(minDate.getDate() - Number(minOverdueDays));
-      where.due_date = { 
-        ...where.due_date,
+      where.dueDate = {
+        ...where.dueDate,
         lte: minDate
       };
     }
@@ -362,9 +362,9 @@ class BorrowsService {
       orderBy = { [mappedSortBy]: sortOrder };
     }
 
-    // 对于currentOverdueDays，我们按due_date升序排列（最早到期的在前，逾期天数最多）
+    // 对于currentOverdueDays，我们按dueDate升序排列（最早到期的在前，逾期天数最多）
     if (sortBy === 'currentOverdueDays') {
-      orderBy = { due_date: sortOrder === 'desc' ? 'asc' : 'desc' };
+      orderBy = { dueDate: sortOrder === 'desc' ? 'asc' : 'desc' };
     }
 
     try {
@@ -379,7 +379,7 @@ class BorrowsService {
               select: {
                 id: true,
                 username: true,
-                real_name: true,
+                realName: true,
                 email: true,
                 phone: true
               }
@@ -393,7 +393,7 @@ class BorrowsService {
               select: {
                 id: true,
                 username: true,
-                real_name: true
+                realName: true
               }
             }
           }

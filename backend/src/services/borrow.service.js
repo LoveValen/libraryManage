@@ -37,36 +37,8 @@ class BorrowService {
         order = 'desc'
       } = options;
 
-      // 字段名映射 - 从camelCase转换为snake_case
-      const fieldMapping = {
-        'borrowDate': 'borrow_date',
-        'dueDate': 'due_date',
-        'returnDate': 'return_date',
-        'actualReturnDate': 'actual_return_date',
-        'renewalCount': 'renewal_count',
-        'maxRenewals': 'max_renewals',
-        'overdueDays': 'overdue_days',
-        'finePaid': 'fine_paid',
-        'damageDescription': 'damage_description',
-        'returnNotes': 'return_notes',
-        'borrowNotes': 'borrow_notes',
-        'notificationsSent': 'notifications_sent',
-        'pointsEarned': 'points_earned',
-        'pointsDeducted': 'points_deducted',
-        'processedBy': 'processed_by',
-        'borrowLocation': 'borrow_location',
-        'returnLocation': 'return_location',
-        'userId': 'user_id',
-        'bookId': 'book_id',
-        'borrowDays': 'borrow_days',
-        'createdAt': 'created_at',
-        'updatedAt': 'updated_at'
-      };
-
-      const mappedOrderBy = fieldMapping[orderBy] || orderBy;
-
       const skip = (Number(page) - 1) * Number(limit);
-      const where = { is_deleted: false };
+      const where = { isDeleted: false };
 
       // 添加过滤条件
       if (userId && !isNaN(Number(userId))) {
@@ -78,7 +50,7 @@ class BorrowService {
       if (status) {
         where.status = status;
       }
-      
+
       // 只显示逾期记录
       if (overdue_only) {
         where.status = BORROW_STATUS.BORROWED;
@@ -90,13 +62,13 @@ class BorrowService {
           where,
           skip,
           take: Number(limit),
-          orderBy: { [mappedOrderBy]: order },
+          orderBy: { [orderBy]: order },
           include: {
             borrower: {
               select: {
                 id: true,
                 username: true,
-                real_name: true,
+                realName: true,
                 email: true,
                 phone: true
               }
@@ -110,7 +82,7 @@ class BorrowService {
               select: {
                 id: true,
                 username: true,
-                real_name: true
+                realName: true
               }
             }
           }
@@ -149,7 +121,7 @@ class BorrowService {
           select: {
             id: true,
             username: true,
-            real_name: true,
+            realName: true,
             email: true,
             phone: true
           }
@@ -163,20 +135,20 @@ class BorrowService {
           select: {
             id: true,
             username: true,
-            real_name: true
+            realName: true
           }
         },
         reviews: {
           where: {
-            is_deleted: false
+            deletedAt: null
           }
         }
       } : undefined;
 
       return await prisma.borrows.findUnique({
-        where: { 
+        where: {
           id: Number(id),
-          is_deleted: false
+          isDeleted: false
         },
         include
       });
@@ -205,7 +177,7 @@ class BorrowService {
           userId: Number(userId),
           bookId: Number(bookId),
           status: { in: [BORROW_STATUS.BORROWED, BORROW_STATUS.OVERDUE] },
-          is_deleted: false
+          isDeleted: false
         }
       });
     } catch (error) {
@@ -269,7 +241,7 @@ class BorrowService {
       if (!book) {
         throw new Error('图书不存在');
       }
-      if (book.available_stock <= 0) {
+      if (book.availableStock <= 0) {
         throw new Error('图书库存不足，无法借阅');
       }
 
@@ -283,10 +255,10 @@ class BorrowService {
         data: {
           userId: Number(borrowData.userId),
           bookId: Number(borrowData.bookId),
-          processorId: borrowData.processorId ? Number(borrowData.processorId) : null,
+          processedBy: borrowData.processorId ? Number(borrowData.processorId) : null,
           borrowDate: borrowDate,
           dueDate: dueDate,
-          borrow_days: borrowDays,
+          borrowDays: borrowDays,
           status: BORROW_STATUS.BORROWED,
           maxRenewals: borrowData.maxRenewals || 2,
           renewalCount: 0,
@@ -298,7 +270,7 @@ class BorrowService {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               email: true
             }
           },
@@ -307,7 +279,7 @@ class BorrowService {
               id: true,
               title: true,
               isbn: true,
-              cover_image: true
+              coverImage: true
             }
           }
         }
@@ -361,11 +333,11 @@ class BorrowService {
       const updateData = {
         status: BORROW_STATUS.RETURNED,
         returnDate: returnDate,
-        actual_returnDate: returnDate,
-        overdue_days: overdueDays,
+        actualReturnDate: returnDate,
+        overdueDays: overdueDays,
         condition: returnData.condition || 'good',
         returnNotes: returnData.returnNotes || null,
-        processorId: returnData.processorId ? Number(returnData.processorId) : null,
+        processedBy: returnData.processorId ? Number(returnData.processorId) : null,
         updatedAt: new Date()
       };
 
@@ -384,7 +356,7 @@ class BorrowService {
             select: {
               id: true,
               username: true,
-              real_name: true,
+              realName: true,
               email: true
             }
           },
@@ -393,7 +365,7 @@ class BorrowService {
               id: true,
               title: true,
               isbn: true,
-              cover_image: true
+              coverImage: true
             }
           }
         }
@@ -541,7 +513,7 @@ class BorrowService {
     try {
       const { startDate, endDate } = options;
 
-      const where = { is_deleted: false };
+      const where = { isDeleted: false };
       if (startDate || endDate) {
         where.borrowDate = {};
         if (startDate) where.borrowDate.gte = new Date(startDate);
@@ -572,18 +544,18 @@ class BorrowService {
         where: {
           ...where,
           status: BORROW_STATUS.RETURNED,
-          actual_returnDate: { not: null }
+          actualReturnDate: { not: null }
         },
         select: {
           borrowDate: true,
-          actual_returnDate: true
+          actualReturnDate: true
         }
       });
 
       let avgDuration = 0;
       if (completedBorrows.length > 0) {
         const totalDays = completedBorrows.reduce((sum, borrow) => {
-          const days = Math.floor((new Date(borrow.actual_returnDate) - new Date(borrow.borrowDate)) / (1000 * 60 * 60 * 24));
+          const days = Math.floor((new Date(borrow.actualReturnDate) - new Date(borrow.borrowDate)) / (1000 * 60 * 60 * 24));
           return sum + days;
         }, 0);
         avgDuration = Math.round(totalDays / completedBorrows.length);
@@ -693,7 +665,7 @@ class BorrowService {
       data: {
         status: 'damaged',
         condition: 'damaged',
-        damage_description: damageDescription,
+        damageDescription: damageDescription,
         fine,
         updatedAt: new Date()
       }
@@ -741,7 +713,7 @@ class BorrowService {
           where: {
             userId: Number(userId),
             status: { in: [BORROW_STATUS.BORROWED, BORROW_STATUS.OVERDUE] },
-            is_deleted: false
+            isDeleted: false
           }
         }),
         prisma.borrows.count({
@@ -749,7 +721,7 @@ class BorrowService {
             userId: Number(userId),
             fine: { gt: 0 },
             finePaid: false,
-            is_deleted: false
+            isDeleted: false
           }
         }),
         prisma.borrows.aggregate({
@@ -757,7 +729,7 @@ class BorrowService {
             userId: Number(userId),
             fine: { gt: 0 },
             finePaid: false,
-            is_deleted: false
+            isDeleted: false
           },
           _sum: {
             fine: true

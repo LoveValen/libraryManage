@@ -3,84 +3,56 @@
  *
  * 功能：
  * 1. 清理和标准化查询参数
- * 2. 字段名映射（前端 camelCase -> 后端 snake_case）
- * 3. 参数类型转换和验证
- * 4. 分页参数处理
+ * 2. 参数类型转换和验证
+ * 3. 分页参数处理
+ *
+ * 注意: 字段映射现在由 Prisma @map 指令处理，代码统一使用 camelCase
  *
  * @example
  * const cleaned = cleanParams(req.query, 'books');
  * const pagination = getPaginationParams(req.query);
  */
 
-const { PAGINATION_DEFAULTS, FIELD_MAPPINGS, SORT_DEFAULTS } = require('./constants');
-
-/**
- * 应用字段映射（内部辅助函数）
- * @private
- */
-function _applyFieldMappings(query, resource) {
-  const resourceUpper = resource.toUpperCase();
-  const mappings = {
-    ...FIELD_MAPPINGS.COMMON,
-    ...FIELD_MAPPINGS.SORT,
-    ...(FIELD_MAPPINGS[resourceUpper] || {}),
-  };
-
-  Object.entries(mappings).forEach(([camelKey, snakeKey]) => {
-    if (query[camelKey] !== undefined) {
-      query[snakeKey] = query[camelKey];
-      delete query[camelKey];
-    }
-  });
-}
+const { PAGINATION_DEFAULTS, SORT_DEFAULTS } = require('./constants');
 
 /**
  * 清理查询参数
  * @param {Object} query - 原始查询参数
- * @param {string} resource - 资源类型: 'books', 'users', 'borrows' 等
+ * @param {string} resource - 资源类型: 'books', 'users', 'borrows' 等（保留参数兼容性）
  * @param {Object} options - 可选配置
  * @param {boolean} options.removeEmpty - 是否移除空字符串，默认 true
- * @param {boolean} options.applyFieldMapping - 是否应用字段映射，默认 true
  * @returns {Object} 清理后的查询参数
  */
 function cleanParams(query, resource = 'common', options = {}) {
-  const {
-    removeEmpty = true,
-    applyFieldMapping = true,
-  } = options;
+  const { removeEmpty = true } = options;
 
   // 复制参数对象
-  const mappedQuery = { ...query };
+  const cleanedQuery = { ...query };
 
   // 统一参数名称（兼容多种命名方式）
-  if (mappedQuery.keyword || mappedQuery.search) {
-    mappedQuery.search = mappedQuery.keyword || mappedQuery.search;
-    delete mappedQuery.keyword;
+  if (cleanedQuery.keyword || cleanedQuery.search) {
+    cleanedQuery.search = cleanedQuery.keyword || cleanedQuery.search;
+    delete cleanedQuery.keyword;
   }
 
-  if (mappedQuery.size || mappedQuery.limit) {
-    mappedQuery.limit = mappedQuery.size || mappedQuery.limit;
-    delete mappedQuery.size;
+  if (cleanedQuery.size || cleanedQuery.limit) {
+    cleanedQuery.limit = cleanedQuery.size || cleanedQuery.limit;
+    delete cleanedQuery.size;
   }
 
   // 移除临时参数
-  delete mappedQuery._t; // 时间戳参数
-
-  // 应用字段映射
-  if (applyFieldMapping) {
-    _applyFieldMappings(mappedQuery, resource);
-  }
+  delete cleanedQuery._t; // 时间戳参数
 
   // 移除空字符串
   if (removeEmpty) {
-    Object.keys(mappedQuery).forEach(key => {
-      if (mappedQuery[key] === '') {
-        delete mappedQuery[key];
+    Object.keys(cleanedQuery).forEach(key => {
+      if (cleanedQuery[key] === '') {
+        delete cleanedQuery[key];
       }
     });
   }
 
-  return mappedQuery;
+  return cleanedQuery;
 }
 
 /**
