@@ -64,7 +64,7 @@ const getBookBorrowHistory = asyncHandler(async (req, res) => {
     
     // 构建查询条件
     const where = {
-      book_id: parseInt(bookId)
+      bookId: parseInt(bookId)
     };
     
     // 状态筛选
@@ -107,18 +107,18 @@ const getBookBorrowHistory = asyncHandler(async (req, res) => {
         }
       },
       orderBy: {
-        borrow_date: 'desc'
+        borrowDate: 'desc'
       }
     });
 
     // 简化日期格式化
     const formattedBorrows = borrows.map(record => ({
       ...record,
-      borrow_date: formatDateTime(record.borrow_date),
-      due_date: formatDate(record.due_date),
-      return_date: record.return_date ? formatDateTime(record.return_date) : null,
-      created_at: formatDateTime(record.created_at),
-      updated_at: formatDateTime(record.updated_at)
+      borrowDate: formatDateTime(record.borrowDate),
+      dueDate: formatDate(record.dueDate),
+      returnDate: record.returnDate ? formatDateTime(record.returnDate) : null,
+      createdAt: formatDateTime(record.createdAt),
+      updatedAt: formatDateTime(record.updatedAt)
     }));
 
     successWithPagination(

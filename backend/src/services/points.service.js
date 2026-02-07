@@ -18,13 +18,13 @@ const UserService = require('./user.service');
  */
 class PointsService {
   static async getOrCreateUserPoints(userId, client = prisma) {
-    let userPoints = await client.userPoints.findUnique({
+    let userPoints = await client.user_points.findUnique({
       where: { userId: parseInt(userId) },
       include: { user: true }
     });
 
     if (!userPoints) {
-      userPoints = await client.userPoints.create({
+      userPoints = await client.user_points.create({
         data: {
           userId: parseInt(userId),
           balance: 0,
@@ -56,7 +56,7 @@ class PointsService {
       const previousBalance = userPoints.balance;
       const newBalance = previousBalance + points;
 
-      const updatedUserPoints = await client.userPoints.update({
+      const updatedUserPoints = await client.user_points.update({
         where: { userId: parseInt(userId) },
         data: {
           balance: newBalance,
@@ -67,7 +67,8 @@ class PointsService {
         }
       });
 
-      const transaction = await client.pointsTransactions.create({
+      const now = new Date();
+      const transaction = await client.points_transactions.create({
         data: {
           userId: parseInt(userId),
           pointsChange: points,
@@ -80,7 +81,8 @@ class PointsService {
           metadata: metadata || {},
           processedBy: operatorId ? parseInt(operatorId) : null,
           status: 'completed',
-          createdAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }
       });
 
@@ -120,12 +122,13 @@ class PointsService {
         updatedAt: new Date()
       };
 
-      const updatedUserPoints = await client.userPoints.update({
+      const updatedUserPoints = await client.user_points.update({
         where: { userId: parseInt(userId) },
         data
       });
 
-      const transaction = await client.pointsTransactions.create({
+      const now = new Date();
+      const transaction = await client.points_transactions.create({
         data: {
           userId: parseInt(userId),
           pointsChange: -amount,
@@ -138,7 +141,8 @@ class PointsService {
           metadata: metadata || {},
           processedBy: operatorId ? parseInt(operatorId) : null,
           status: 'completed',
-          createdAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }
       });
 
@@ -180,8 +184,8 @@ class PointsService {
     }
 
     const [total, records] = await Promise.all([
-      prisma.pointsTransactions.count({ where }),
-      prisma.pointsTransactions.findMany({
+      prisma.points_transactions.count({ where }),
+      prisma.points_transactions.findMany({
         where,
         skip,
         take: limit,
@@ -248,19 +252,19 @@ class PointsService {
       transactionsByTypeRaw,
       levelDistributionRaw
     ] = await Promise.all([
-      prisma.userPoints.aggregate({
+      prisma.user_points.aggregate({
         where: userFilter,
         _sum: { balance: true },
         _count: { _all: true }
       }),
-      prisma.pointsTransactions.count({ where: transactionWhere }),
-      prisma.pointsTransactions.groupBy({
+      prisma.points_transactions.count({ where: transactionWhere }),
+      prisma.points_transactions.groupBy({
         by: ['transactionType'],
         where: transactionWhere,
         _sum: { pointsChange: true },
         _count: { _all: true }
       }),
-      prisma.userPoints.groupBy({
+      prisma.user_points.groupBy({
         by: ['level'],
         where: userFilter,
         _count: { _all: true }
@@ -306,7 +310,7 @@ class PointsService {
     }
 
     if (!startDate) {
-      const topUsers = await prisma.userPoints.findMany({
+      const topUsers = await prisma.user_points.findMany({
         orderBy: { balance: 'desc' },
         take,
         include: {
@@ -336,7 +340,7 @@ class PointsService {
       }));
     }
 
-    const grouped = await prisma.pointsTransactions.groupBy({
+    const grouped = await prisma.points_transactions.groupBy({
       by: ['userId'],
       where: {
         createdAt: {
@@ -353,7 +357,7 @@ class PointsService {
 
     const userIds = sorted.map(item => item.userId);
 
-    const userPoints = await prisma.userPoints.findMany({
+    const userPoints = await prisma.user_points.findMany({
       where: { userId: { in: userIds } },
       include: {
         user: {
@@ -388,7 +392,7 @@ class PointsService {
   static async reverseTransaction(transactionId, reason, operatorId) {
     return prisma.$transaction(async (tx) => {
       const id = parseInt(transactionId, 10);
-      const original = await tx.pointsTransactions.findUnique({
+      const original = await tx.points_transactions.findUnique({
         where: { id }
       });
 
@@ -421,17 +425,18 @@ class PointsService {
         updatePayload.totalSpent = { decrement: Math.abs(original.pointsChange) };
       }
 
-      await tx.userPoints.update({
+      await tx.user_points.update({
         where: { userId: original.userId },
         data: updatePayload
       });
 
-      await tx.pointsTransactions.update({
+      await tx.points_transactions.update({
         where: { id },
         data: { status: 'reversed' }
       });
 
-      const reversal = await tx.pointsTransactions.create({
+      const now = new Date();
+      const reversal = await tx.points_transactions.create({
         data: {
           userId: original.userId,
           pointsChange: adjustment,
@@ -445,7 +450,8 @@ class PointsService {
           },
           processedBy: operatorId ? parseInt(operatorId, 10) : null,
           status: 'completed',
-          createdAt: new Date()
+          createdAt: now,
+          updatedAt: now
         }
       });
 

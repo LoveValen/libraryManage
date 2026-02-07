@@ -54,14 +54,14 @@ function formatCategoryResponse(category) {
     id: category.id,
     name: category.name,
     code: category.code,
-    parentId: category.parent_id,
+    parentId: category.parentId,
     level: category.level,
     description: category.description,
-    sortOrder: category.sort_order,
-    isActive: category.is_active,
+    sortOrder: category.sortOrder,
+    isActive: category.isActive,
     bookCount: category._count?.books || category.stats?.total || 0,
-    createdAt: category.created_at,
-    updatedAt: category.updated_at
+    createdAt: category.createdAt,
+    updatedAt: category.updatedAt
   };
 }
 
@@ -144,11 +144,11 @@ const createCategory = asyncHandler(async (req, res) => {
   const categoryData = {
     name,
     code: code || name,
-    parent_id: resolvedParentId,
+    parentId: resolvedParentId,
     description,
-    sort_order: sortOrder,
+    sortOrder: sortOrder,
     level,
-    is_active: true
+    isActive: true
   };
 
   const category = await BookCategoryService.create(categoryData);
@@ -197,8 +197,8 @@ const updateCategory = asyncHandler(async (req, res) => {
   const updateData = {};
   if (name !== undefined) updateData.name = name;
   if (description !== undefined) updateData.description = description;
-  if (sortOrder !== undefined) updateData.sort_order = sortOrder;
-  if (isActive !== undefined) updateData.is_active = isActive;
+  if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+  if (isActive !== undefined) updateData.isActive = isActive;
 
   const updatedCategory = await BookCategoryService.update(categoryId, updateData);
   const formattedCategory = formatCategoryResponse(updatedCategory);

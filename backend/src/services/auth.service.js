@@ -59,13 +59,16 @@ class AuthService {
       });
 
       // Create user points record
-      await tx.userPoints.create({
+      const now = new Date();
+      await tx.user_points.create({
         data: {
           userId: user.id,
           balance: 0,
           totalEarned: 0,
           totalSpent: 0,
           level: 'NEWCOMER',
+          createdAt: now,
+          updatedAt: now,
           levelName: '新手读者'
         }
       });

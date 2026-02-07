@@ -257,16 +257,16 @@ const quickReturn = asyncHandler(async (req, res) => {
   // 查找该图书的活跃借阅记录
   const activeBorrow = await BorrowService.findOne({
     where: {
-      book_id: book.id,
+      bookId: book.id,
       status: { in: ['borrowed', 'overdue'] },
-      is_deleted: false
+      isDeleted: false
     },
     include: {
       borrower: {
         select: {
           id: true,
           username: true,
-          real_name: true
+          realName: true
         }
       }
     }
@@ -315,31 +315,31 @@ const getBorrowTrends = asyncHandler(async (req, res) => {
 
   // Get borrow trends grouped by date
   const borrowTrends = await prisma.borrows.groupBy({
-    by: ['borrow_date'],
+    by: ['borrowDate'],
     where: {
-      borrow_date: {
+      borrowDate: {
         gte: dateRange,
       },
-      is_deleted: false,
+      isDeleted: false,
     },
     _count: true,
     orderBy: {
-      borrow_date: 'asc'
+      borrowDate: 'asc'
     }
   });
 
   // Get return trends grouped by date
   const returnTrends = await prisma.borrows.groupBy({
-    by: ['return_date'],
+    by: ['returnDate'],
     where: {
-      return_date: {
+      returnDate: {
         gte: dateRange,
       },
-      is_deleted: false,
+      isDeleted: false,
     },
     _count: true,
     orderBy: {
-      return_date: 'asc'
+      returnDate: 'asc'
     }
   });
 
@@ -347,14 +347,14 @@ const getBorrowTrends = asyncHandler(async (req, res) => {
   const formattedBorrowTrends = borrowTrends
     .map(item => ({
       count: item._count,
-      period: item.borrow_date ? item.borrow_date.toISOString().split('T')[0] : null
+      period: item.borrowDate ? item.borrowDate.toISOString().split('T')[0] : null
     }))
     .filter(item => item.period);
 
   const formattedReturnTrends = returnTrends
     .map(item => ({
       count: item._count,
-      period: item.return_date ? item.return_date.toISOString().split('T')[0] : null
+      period: item.returnDate ? item.returnDate.toISOString().split('T')[0] : null
     }))
     .filter(item => item.period);
 

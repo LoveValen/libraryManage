@@ -336,23 +336,23 @@ class BorrowsService {
     if (maxOverdueDays !== '' && !isNaN(Number(maxOverdueDays))) {
       const maxDate = new Date(now);
       maxDate.setDate(maxDate.getDate() - Number(maxOverdueDays));
-      where.due_date = {
-        ...where.due_date,
+      where.dueDate = {
+        ...where.dueDate,
         gte: maxDate
       };
     }
 
     // 排序字段映射
     const sortMapping = {
-      'currentOverdueDays': 'due_date',
-      'borrowDate': 'borrow_date',
-      'dueDate': 'due_date',
+      'currentOverdueDays': 'dueDate',
+      'borrowDate': 'borrowDate',
+      'dueDate': 'dueDate',
       'userName': 'borrower.username',
       'bookTitle': 'book.title'
     };
 
     let orderBy = {};
-    const mappedSortBy = sortMapping[sortBy] || 'due_date';
+    const mappedSortBy = sortMapping[sortBy] || 'dueDate';
     
     if (mappedSortBy.includes('.')) {
       // 处理关联字段排序

@@ -552,17 +552,14 @@ async function upsertPermissions() {
       where: { code: p.code },
       update: {
         name: p.name,
-        group_name: p.group_name,
-        description: p.description,
-        updated_at: new Date(),
+        groupName: p.group_name ?? null,
+        description: p.description ?? null,
       },
       create: {
         code: p.code,
         name: p.name,
-        group_name: p.group_name,
-        description: p.description,
-        created_at: new Date(),
-        updated_at: new Date(),
+        groupName: p.group_name ?? null,
+        description: p.description ?? null,
       },
     });
     map.set(p.code, perm);
@@ -578,16 +575,13 @@ async function upsertRoles(permissionMap) {
       update: {
         name: r.name,
         description: r.description,
-        is_system: r.is_system,
-        updated_at: new Date(),
+        isSystem: Boolean(r.is_system),
       },
       create: {
         code: r.code,
         name: r.name,
         description: r.description,
-        is_system: r.is_system,
-        created_at: new Date(),
-        updated_at: new Date(),
+        isSystem: Boolean(r.is_system),
       },
     });
 
@@ -598,14 +592,14 @@ async function upsertRoles(permissionMap) {
       : r.permissions;
 
     const existingRolePermissions = await prisma.role_permissions.findMany({
-      where: { role_id: role.id },
-      select: { permission: { select: { code: true } }, permission_id: true }
+      where: { roleId: role.id },
+      select: { permission: { select: { code: true } }, permissionId: true }
     });
 
     const existingPermissionMap = new Map(
       existingRolePermissions
         .filter(item => item.permission?.code)
-        .map(item => [item.permission.code, item.permission_id])
+        .map(item => [item.permission.code, item.permissionId])
     );
 
     const desiredSet = new Set(permissionCodes);
@@ -623,9 +617,8 @@ async function upsertRoles(permissionMap) {
     if (codesToAdd.length) {
       await prisma.role_permissions.createMany({
         data: codesToAdd.map(permissionId => ({
-          role_id: role.id,
-          permission_id: permissionId,
-          created_at: new Date()
+          roleId: role.id,
+          permissionId: permissionId,
         })),
         skipDuplicates: true
       });
@@ -641,8 +634,8 @@ async function upsertRoles(permissionMap) {
     if (codesToRemove.length) {
       await prisma.role_permissions.deleteMany({
         where: {
-          role_id: role.id,
-          permission_id: { in: codesToRemove }
+          roleId: role.id,
+          permissionId: { in: codesToRemove }
         }
       });
     }
@@ -656,37 +649,34 @@ async function upsertPermissionResources(permissionMap) {
 
     await prisma.permission_resources.upsert({
       where: {
-        type_resource_key: {
+        type_resourceKey: {
           type: item.type,
-          resource_key: item.resource_key,
+          resourceKey: item.resource_key,
         },
       },
       update: {
-        resource_name: item.resource_name,
-        route_path: item.route_path || null,
-        route_name: item.route_name || null,
+        resourceName: item.resource_name,
+        routePath: item.route_path || null,
+        routeName: item.route_name || null,
         component: item.component || null,
-        parent_key: item.parent_key || null,
+        parentKey: item.parent_key || null,
         meta: item.meta || null,
-        sort_order: item.sort_order || 0,
-        is_active: item.is_active !== false,
-        permission_id: permission ? permission.id : null,
-        updated_at: new Date(),
+        sortOrder: item.sort_order || 0,
+        isActive: item.is_active !== false,
+        permissionId: permission ? permission.id : null,
       },
       create: {
         type: item.type,
-        resource_key: item.resource_key,
-        resource_name: item.resource_name,
-        route_path: item.route_path || null,
-        route_name: item.route_name || null,
+        resourceKey: item.resource_key,
+        resourceName: item.resource_name,
+        routePath: item.route_path || null,
+        routeName: item.route_name || null,
         component: item.component || null,
-        parent_key: item.parent_key || null,
+        parentKey: item.parent_key || null,
         meta: item.meta || null,
-        sort_order: item.sort_order || 0,
-        is_active: item.is_active !== false,
-        permission_id: permission ? permission.id : null,
-        created_at: new Date(),
-        updated_at: new Date(),
+        sortOrder: item.sort_order || 0,
+        isActive: item.is_active !== false,
+        permissionId: permission ? permission.id : null,
       },
     });
   }
@@ -696,23 +686,22 @@ async function assignAdminRole(roleMap) {
   const adminRole = roleMap.get('Admin');
   if (!adminRole) return;
   const admins = await prisma.users.findMany({
-    where: { role: 'admin', is_deleted: false },
+    where: { role: 'admin', isDeleted: false },
     select: { id: true },
   });
 
   for (const u of admins) {
     await prisma.user_roles.upsert({
       where: {
-        user_id_role_id: {
-          user_id: u.id,
-          role_id: adminRole.id,
+        userId_roleId: {
+          userId: u.id,
+          roleId: adminRole.id,
         },
       },
       update: {},
       create: {
-        user_id: u.id,
-        role_id: adminRole.id,
-        created_at: new Date(),
+        userId: u.id,
+        roleId: adminRole.id,
       },
     });
   }

@@ -693,19 +693,18 @@ class BehaviorTrackingService extends EventEmitter {
   async updateUserPreferencesRealTime(userId, bookId, behaviorType, intensity) {
     try {
       // 查找或创建用户偏好记录
-      let userPreference = await prisma.userPreferences.findUnique({
+      let userPreference = await prisma.user_preferences.findUnique({
         where: { userId: userId }
       });
 
       if (!userPreference) {
-        userPreference = await prisma.userPreferences.create({
+        userPreference = await prisma.user_preferences.create({
           data: {
             userId: userId,
             categoryPreferences: {},
             authorPreferences: {},
             tagPreferences: {},
             confidenceScore: 0.1,
-            lastUpdated: new Date(),
             createdAt: new Date(),
             updatedAt: new Date()
           }
@@ -732,11 +731,10 @@ class BehaviorTrackingService extends EventEmitter {
 
         categoryPrefs[book.categoryId] = newScore;
 
-        await prisma.userPreferences.update({
+        await prisma.user_preferences.update({
           where: { id: userPreference.id },
           data: {
             categoryPreferences: categoryPrefs,
-            lastUpdated: new Date(),
             updatedAt: new Date()
           }
         });
@@ -750,11 +748,10 @@ class BehaviorTrackingService extends EventEmitter {
 
         authorPrefs[book.author] = newScore;
 
-        await prisma.userPreferences.update({
+        await prisma.user_preferences.update({
           where: { id: userPreference.id },
           data: {
             authorPreferences: authorPrefs,
-            lastUpdated: new Date(),
             updatedAt: new Date()
           }
         });
@@ -762,11 +759,10 @@ class BehaviorTrackingService extends EventEmitter {
 
       // 更新置信度
       const newConfidence = Math.min(1.0, userPreference.confidenceScore + learningRate * 0.1);
-      await prisma.userPreferences.update({
+      await prisma.user_preferences.update({
         where: { id: userPreference.id },
         data: {
           confidenceScore: newConfidence,
-          lastUpdated: new Date(),
           updatedAt: new Date()
         }
       });

@@ -37,16 +37,17 @@ async function createInitialAdmin() {
     const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(defaultPassword, saltRounds);
     
+    const now = new Date();
     const admin = await prisma.users.create({
       data: {
         username: 'admin',
         email: 'admin@library.com',
-        password_hash: passwordHash,
-        real_name: '系统管理员',
+        passwordHash: passwordHash,
+        realName: '系统管理员',
         role: 'admin',
         status: 'active',
-        created_at: new Date(),
-        updated_at: new Date(),
+        createdAt: now,
+        updatedAt: now,
       }
     });
 
@@ -68,15 +69,15 @@ async function createInitialAdmin() {
 async function getDatabaseStats() {
   try {
     const stats = await Promise.all([
-      prisma.users.count({ where: { is_deleted: false } }),
-      prisma.users.count({ where: { status: 'active', is_deleted: false } }),
-      prisma.users.count({ where: { role: 'admin', is_deleted: false } }),
-      prisma.books.count({ where: { is_deleted: false } }),
-      prisma.books.count({ where: { status: 'available', is_deleted: false } }),
-      prisma.borrows.count({ where: { is_deleted: false } }),
-      prisma.borrows.count({ where: { status: 'borrowed', is_deleted: false } }),
+      prisma.users.count({ where: { isDeleted: false } }),
+      prisma.users.count({ where: { status: 'active', isDeleted: false } }),
+      prisma.users.count({ where: { role: 'admin', isDeleted: false } }),
+      prisma.books.count({ where: { isDeleted: false } }),
+      prisma.books.count({ where: { status: 'available', isDeleted: false } }),
+      prisma.borrows.count({ where: { isDeleted: false } }),
+      prisma.borrows.count({ where: { status: 'borrowed', isDeleted: false } }),
       prisma.reviews.count(),
-      prisma.userPoints.aggregate({ _sum: { balance: true } })
+      prisma.user_points.aggregate({ _sum: { balance: true } })
     ]);
 
     const [totalUsers, activeUsers, adminUsers, totalBooks, availableBooks, 

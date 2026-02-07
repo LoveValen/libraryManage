@@ -49,37 +49,21 @@ class UserService {
 
       // 加密密码
       const salt = await bcrypt.genSalt(12);
-      const password_hash = await bcrypt.hash(userData.password, salt);
+      const passwordHash = await bcrypt.hash(userData.password, salt);
 
-      // 设置默认配置
-      const defaultPreferences = {
-        language: 'zh-CN',
-        timezone: 'Asia/Shanghai',
-        notifications: {
-          email: true,
-          sms: false,
-          push: true,
-          dueDateReminder: true,
-          overdueNotice: true,
-          pointsUpdate: true,
-        },
-        privacy: {
-          profileVisible: true,
-          readingHistoryVisible: false,
-          pointsVisible: true,
-        },
-      };
-
+      const now = new Date();
       const createData = {
-        ...userData,
-        passwordHash: password_hash,
-        preferences: userData.preferences || defaultPreferences,
+        username: userData.username.trim(),
+        email: userData.email ? userData.email.trim().toLowerCase() : null,
+        passwordHash,
+        realName: userData.realName ?? userData.real_name ?? null,
+        phone: userData.phone?.trim() || null,
+        avatar: userData.avatar?.trim() || null,
         role: userData.role || USER_ROLES.PATRON,
         status: userData.status || USER_STATUS.ACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now,
       };
-      delete createData.password;
 
       return await prisma.users.create({
         data: createData,
@@ -599,20 +583,24 @@ class UserService {
     }
 
     // Update or create user points
-    return prisma.userPoints.upsert({
+    const now = new Date();
+    return prisma.user_points.upsert({
       where: { userId: userId },
       update: {
         balance: newBalance,
         totalEarned: pointsChange > 0 ? { increment: pointsChange } : undefined,
         totalSpent: pointsChange < 0 ? { increment: Math.abs(pointsChange) } : undefined,
-        lastTransactionAt: new Date()
+        lastTransactionAt: now,
+        updatedAt: now
       },
       create: {
         userId: userId,
         balance: newBalance,
         totalEarned: pointsChange > 0 ? pointsChange : 0,
         totalSpent: pointsChange < 0 ? Math.abs(pointsChange) : 0,
-        lastTransactionAt: new Date()
+        lastTransactionAt: now,
+        createdAt: now,
+        updatedAt: now
       }
     });
   }
