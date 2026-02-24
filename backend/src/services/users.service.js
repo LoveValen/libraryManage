@@ -506,12 +506,8 @@ class UsersService {
     return {
       borrows: borrows.map(borrow => ({
         ...borrow,
-        // Convert field names for compatibility
-        borrowDate: borrow.borrow_date,
-        dueDate: borrow.due_date,
-        returnDate: borrow.return_date,
-        renewCount: borrow.renew_count,
-        // Keep book data as-is since it's selected properly
+        // Alias renewalCount as renewCount for frontend compatibility
+        renewCount: borrow.renewalCount,
       })),
       pagination: {
         page: parseInt(page),

@@ -5,12 +5,11 @@ const {
   verifyRefreshToken 
 } = require('../middlewares/auth.middleware');
 const RolesService = require('./roles.service');
-const { 
-  UnauthorizedError, 
-  ConflictError, 
+const {
+  UnauthorizedError,
+  ConflictError,
   BadRequestError,
-  WechatError,
-  NotFoundError 
+  NotFoundError
 } = require('../utils/apiError');
 const { logBusinessOperation, logSecurityEvent } = require('../utils/logger');
 const config = require('../config');

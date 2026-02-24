@@ -147,13 +147,10 @@ class UserService {
         where.isDeleted = false;
       }
 
-      return await prisma.users.findFirst({
-        where,
-        include: {
-          userPoints: true,
-          userPreferences: true
-        }
-      });
+      // 登录/借阅等场景通常只需要用户基础信息。
+      // 在某些部署环境中，关联表可能尚未完成初始化，提前 include 会导致整个查询失败。
+      // 需要完整资料时请使用 getFullProfile / findById。
+      return await prisma.users.findFirst({ where });
     } catch (error) {
       throw new Error(`根据标识符获取用户失败: ${error.message}`);
     }

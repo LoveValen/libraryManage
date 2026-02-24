@@ -820,7 +820,7 @@ class PointsServiceAdapter {
         if (operation.action === 'add') {
           result = await this.addPoints(
             operation.userId,
-            operation.points,
+            operation.amount,
             operation.type || POINTS_TRANSACTION_TYPES.ADMIN_ADJUSTMENT,
             operation.description,
             operatorId,
@@ -829,7 +829,7 @@ class PointsServiceAdapter {
         } else if (operation.action === 'deduct') {
           result = await this.deductPoints(
             operation.userId,
-            operation.points,
+            operation.amount,
             operation.type || POINTS_TRANSACTION_TYPES.PENALTY_DEDUCTION,
             operation.description,
             operatorId,

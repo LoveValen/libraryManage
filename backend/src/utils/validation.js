@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { BadRequestError } = require('./apiError');
 
 /**
  * 验证工具 - 遵循优秀源码的简洁设计
@@ -116,9 +117,9 @@ const validateRequest = (schema, data) => {
       message: detail.message.replace(/"/g, ''),
       value: detail.context?.value,
     }));
-    
-    const validationError = new Error('参数验证失败');
-    validationError.details = details;
+
+    const validationError = new BadRequestError('参数验证失败');
+    validationError.errors = details;
     throw validationError;
   }
   

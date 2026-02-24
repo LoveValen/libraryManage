@@ -11,7 +11,7 @@ const {
   ForbiddenError 
 } = require('../utils/apiError');
 const { logBusinessOperation } = require('../utils/logger');
-const { USER_ROLES, REVIEW_STATUS } = require('../utils/constants');
+const { USER_ROLES } = require('../utils/constants');
 
 /**
  * Reviews service adapter for Prisma
@@ -259,8 +259,8 @@ class ReviewsService {
     });
 
     const stats = {
-      averageRating: book.average_rating,
-      totalReviews: book.review_count,
+      averageRating: book.averageRating,
+      totalReviews: book.reviewCount,
       ratingDistribution: {
         1: 0,
         2: 0,
@@ -439,6 +439,18 @@ class ReviewsService {
    */
   async checkCanReview(userId, bookId) {
     return await ReviewService.canUserReview(userId, bookId, true);
+  }
+
+  /**
+   * Get review list (general purpose)
+   */
+  async getReviewList(options = {}) {
+    const result = await ReviewService.findWithPagination(options);
+
+    return {
+      reviews: result.data.map(review => this.formatReviewResponse(review)),
+      pagination: result.pagination
+    };
   }
 
   /**

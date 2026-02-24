@@ -2,8 +2,17 @@ const prisma = require('../utils/prisma');
 const recommendationService = require('../services/recommendation.service');
 const behaviorTrackingService = require('../services/behaviorTracking.service');
 const { logger } = require('../utils/logger');
-const { formatResponse } = require('../utils/response');
 const Joi = require('joi');
+
+/**
+ * 格式化响应（推荐控制器专用）
+ */
+const formatResponse = (isSuccess, message, data = null) => ({
+  success: isSuccess,
+  message,
+  data,
+  timestamp: new Date().toISOString()
+});
 
 /**
  * 推荐系统控制器

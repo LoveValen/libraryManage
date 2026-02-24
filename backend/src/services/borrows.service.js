@@ -37,7 +37,7 @@ class BorrowsService {
 
     // Validate book exists and is available
     const book = await BookService.findById(bookId);
-    if (!book || book.available_stock <= 0 || book.status !== 'available') {
+    if (!book || book.availableStock <= 0 || book.status !== 'available') {
       throw new BadRequestError('Book not found or not available');
     }
 
@@ -148,7 +148,7 @@ class BorrowsService {
       const updatedBorrow = await BorrowService.returnBook(borrowId, {
         returnDate: returnData.returnDate || new Date(),
         condition: returnData.condition,
-        return_notes: returnData.notes,
+        returnNotes: returnData.notes,
         damage_description: returnData.damageDescription,
         fine_per_day: BORROW_RULES.FINE_PER_DAY,
         waive_fine: returnData.waiveFine
@@ -403,7 +403,7 @@ class BorrowsService {
 
       // 计算逾期天数并添加到记录中
       const recordsWithOverdueDays = records.map(record => {
-        const overdueDays = Math.floor((now - new Date(record.due_date)) / (1000 * 60 * 60 * 24));
+        const overdueDays = Math.floor((now - new Date(record.dueDate)) / (1000 * 60 * 60 * 24));
         return {
           ...record,
           currentOverdueDays: overdueDays,
@@ -575,13 +575,13 @@ class BorrowsService {
       overdueDays: borrow.overdueDays,
       currentOverdueDays: borrow.currentOverdueDays || borrow.overdue_days || 0, // 支持新的currentOverdueDays字段
       fine: parseFloat(borrow.fine || 0),
-      finePaid: borrow.fine_paid,
+      finePaid: borrow.finePaid,
       condition: borrow.condition,
-      damageDescription: borrow.damage_description,
-      returnNotes: borrow.return_notes,
+      damageDescription: borrow.damageDescription,
+      returnNotes: borrow.returnNotes,
       borrowNotes: borrow.borrowNotes,
-      notificationsSent: borrow.notifications_sent,
-      pointsEarned: borrow.points_earned,
+      notificationsSent: borrow.notificationsSent,
+      pointsEarned: borrow.pointsEarned,
       processedBy: borrow.processedBy,
       borrowLocation: borrow.borrowLocation,
       createdAt: borrow.createdAt,

@@ -53,12 +53,29 @@ class ValidationError extends ApiError {
   }
 }
 
+class InsufficientPointsError extends ApiError {
+  constructor(message = '积分余额不足') {
+    super(message, 400);
+  }
+}
+
 /**
  * 错误转换函数
  */
 const fromError = (error) => {
   if (error instanceof ApiError) {
     return error;
+  }
+
+  // Body parser (express.json / body-parser) 错误
+  // - entity.parse.failed: JSON 解析失败
+  // - entity.too.large: 请求体过大
+  if (error?.type === 'entity.parse.failed') {
+    return new BadRequestError('请求体 JSON 格式错误');
+  }
+
+  if (error?.type === 'entity.too.large') {
+    return new ApiError('请求体过大', 413);
   }
 
   // JWT错误处理
@@ -99,5 +116,6 @@ module.exports = {
   NotFoundError,
   ConflictError,
   ValidationError,
+  InsufficientPointsError,
   fromError,
 };

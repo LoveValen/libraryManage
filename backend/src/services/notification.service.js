@@ -2,7 +2,7 @@ const webSocketService = require('./websocket.service');
 const prisma = require('../utils/prisma');
 const { logger } = require('../utils/logger');
 const { ApiError, BadRequestError, NotFoundError } = require('../utils/apiError');
-const { NOTIFICATION_TYPES, NOTIFICATION_STATUS, NOTIFICATION_PRIORITY } = require('../utils/constants');
+const { NOTIFICATION_TYPES } = require('../utils/constants');
 
 /**
  * Basic NotificationService for Prisma operations
@@ -127,6 +127,105 @@ class NotificationService {
     } catch (error) {
       logger.error('Failed to clean up old notifications:', error);
     }
+  }
+
+  static async createBatch(notifications) {
+    const results = [];
+    for (const n of notifications) {
+      const result = await this.create(n);
+      results.push(result);
+    }
+    return { count: results.length, notifications: results };
+  }
+
+  static async broadcast(userIds, data) {
+    const results = [];
+    for (const userId of userIds) {
+      const result = await this.create({ ...data, userId });
+      results.push(result);
+    }
+    return { count: results.length, notifications: results };
+  }
+
+  static async findWithPagination(options = {}) {
+    const { page = 1, limit = 20, userId, type, status, is_read } = options;
+    const skip = (page - 1) * limit;
+    const where = { deletedAt: null };
+    if (userId) where.userId = parseInt(userId);
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (is_read !== undefined) where.isRead = is_read;
+
+    const [data, total] = await Promise.all([
+      prisma.notifications.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.notifications.count({ where })
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  static async findById(id) {
+    return prisma.notifications.findUnique({
+      where: { id: parseInt(id) }
+    });
+  }
+
+  static async markAsRead(id) {
+    return prisma.notifications.update({
+      where: { id: parseInt(id) },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  static async markAllAsRead(userId) {
+    return prisma.notifications.updateMany({
+      where: {
+        userId: parseInt(userId),
+        isRead: false
+      },
+      data: {
+        isRead: true,
+        readAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  static async softDelete(id) {
+    return prisma.notifications.update({
+      where: { id: parseInt(id) },
+      data: {
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
+  }
+
+  static async getUnreadCount(userId) {
+    return prisma.notifications.count({
+      where: {
+        userId: parseInt(userId),
+        isRead: false,
+        deletedAt: null
+      }
+    });
   }
 }
 
@@ -473,11 +572,6 @@ class NotificationServiceAdapter {
    * Add notification to processing queue
    */
   addToQueue(notification) {
-    if (notification.scheduled_at && new Date(notification.scheduled_at) > new Date()) {
-      // Don't queue scheduled notifications
-      return;
-    }
-    
     this.processingQueue.push(notification);
   }
 
@@ -535,18 +629,6 @@ class NotificationServiceAdapter {
         webSocketService.sendToUser(notification.userId, 'notification:new', {
           notification: this.formatNotificationResponse(notification)
         });
-      }
-
-      // Send via other channels if configured
-      const channels = notification.channel || [];
-      
-      
-      if (channels.includes('sms') && this.smsService) {
-        await this.sendSmsNotification(notification);
-      }
-      
-      if (channels.includes('push') && this.pushService) {
-        await this.sendPushNotification(notification);
       }
 
       logger.info(`Processed notification ${notification.id}`);
@@ -639,18 +721,12 @@ class NotificationServiceAdapter {
       content: notification.content,
       priority: notification.priority,
       status: notification.status,
-      isRead: notification.is_read,
+      isRead: notification.isRead,
       readAt: notification.readAt,
-      channel: notification.channel,
       metadata: notification.metadata,
       relatedId: notification.relatedId,
       relatedType: notification.relatedType,
-      actionUrl: notification.action_url,
-      expiresAt: notification.expires_at,
-      scheduledAt: notification.scheduled_at,
-      sentAt: notification.sentAt,
-      retryCount: notification.retry_count,
-      errorMessage: notification.error_message,
+      actionUrl: notification.actionUrl,
       createdAt: notification.createdAt,
       updatedAt: notification.updatedAt
     };

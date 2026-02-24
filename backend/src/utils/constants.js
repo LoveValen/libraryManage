@@ -19,6 +19,7 @@ const USER_STATUS = {
 const BOOK_STATUS = {
   AVAILABLE: 'available',
   BORROWED: 'borrowed',
+  RESERVED: 'reserved',
   MAINTENANCE: 'maintenance',
   RETIRED: 'retired',
 };
@@ -27,6 +28,8 @@ const BORROW_STATUS = {
   BORROWED: 'borrowed',
   RETURNED: 'returned',
   OVERDUE: 'overdue',
+  LOST: 'lost',
+  DAMAGED: 'damaged',
 };
 
 // 积分和通知类型
@@ -35,6 +38,9 @@ const POINTS_TRANSACTION_TYPES = {
   RETURN_ON_TIME: 'RETURN_ON_TIME',
   WRITE_REVIEW: 'WRITE_REVIEW',
   PENALTY_DEDUCTION: 'PENALTY_DEDUCTION',
+  BONUS_REWARD: 'BONUS_REWARD',
+  ADMIN_ADJUSTMENT: 'ADMIN_ADJUSTMENT',
+  REDEEM_REWARD: 'REDEEM_REWARD',
 };
 
 const NOTIFICATION_TYPES = {
@@ -54,8 +60,13 @@ const PAGINATION_DEFAULTS = {
 
 const BORROW_RULES = {
   MAX_BOOKS_PER_USER: 5,
+  MAX_BORROW_BOOKS: 5,
   DEFAULT_BORROW_DAYS: 30,
+  DEFAULT_RENEWAL_DAYS: 30,
   MAX_RENEWAL_TIMES: 2,
+  FINE_PER_DAY: 1.0,
+  POINTS_FOR_RETURN: 5,
+  DEFAULT_LOST_BOOK_FINE: 100,
 };
 
 // 时间范围常量（毫秒）
@@ -89,6 +100,15 @@ const POINTS_RULES = {
   RETURN_ON_TIME: 5,
   WRITE_REVIEW: 25,
   OVERDUE_PENALTY: -10,
+};
+
+const USER_LEVELS = {
+  NEWCOMER: { min: 0, name: '新手读者', level: 'NEWCOMER' },
+  BRONZE: { min: 100, name: '铜牌读者', level: 'BRONZE' },
+  SILVER: { min: 500, name: '银牌读者', level: 'SILVER' },
+  GOLD: { min: 1000, name: '金牌读者', level: 'GOLD' },
+  PLATINUM: { min: 5000, name: '白金读者', level: 'PLATINUM' },
+  DIAMOND: { min: 10000, name: '钻石读者', level: 'DIAMOND' },
 };
 
 // 验证规则
@@ -140,6 +160,7 @@ module.exports = {
   PAGINATION_DEFAULTS,
   BORROW_RULES,
   POINTS_RULES,
+  USER_LEVELS,
   VALIDATION_RULES,
   ERROR_CODES,
   HTTP_STATUS,
