@@ -66,6 +66,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-da555f549f113d99ee0b85fb180ba187d0ec4a6a47325ded9272a777d8271ed4}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - FRONTEND_URL=${FRONTEND_URL:-http://8.133.18.41:8080}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://8.133.18.41:8080}
     volumes:
       - ./backend/public/uploads:/app/public/uploads
       - ./backend/logs:/app/logs
